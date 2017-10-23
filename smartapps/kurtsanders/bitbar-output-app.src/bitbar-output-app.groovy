@@ -14,7 +14,7 @@
  *
  */
 
- // V 1.0 Initial release by Matt
+ // V 1.0 Initial release by Matt (V1)
  // V 1.1 Added logging from @kurtsanders making it easier to copy/paste URL and secret
  // V 1.2 Add extra handling if Main Display is not set (right now N/A is displayed)
  // V 1.3 Add Lock capability support
@@ -55,9 +55,9 @@ definition(
     author: "kurtsanders",
     description: "Display SmartThings Device Information in the Apple BitBar (OSX) Application",
     category: "My Apps",
-    iconUrl:    "https://raw.githubusercontent.com/KurtSanders/STBitBarApp/master/Images/STBB60.png",
-    iconX2Url:  "https://raw.githubusercontent.com/KurtSanders/STBitBarApp/master/Images/STBB120.png",
-    iconX3Url:  "https://raw.githubusercontent.com/KurtSanders/STBitBarApp/master/Images/STBB120.png")
+    iconUrl:    "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-60.png",
+    iconX2Url:  "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-120.png",
+    iconX3Url:  "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-120.png")
 
 preferences {
   page(name:"mainPage")
