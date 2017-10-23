@@ -1,7 +1,7 @@
 # STBitBarApp-V2 (For Apple macOS)
 
 ### SmartThings BitBar App V2
-![STBitBarApp-V2 logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-Menu.jpg)
+![STBitBarApp-V2 logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-Menu.png)
 
 ## Overview:
 Monitor and control [SmartThings](https://www.smartthings.com/) sensors, modes & routines from the Apple MacOS Menu Bar.  This application is controlled via the SmartThings Mobile Client named **BitBar Output App**.  Selected program and configuration files are installed localled on the Apple macOS.
