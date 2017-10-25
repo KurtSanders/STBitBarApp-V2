@@ -229,7 +229,7 @@ def setLevel() {
 def setThermo() {
 	def id = params.id
     def cmdType = params.type
-    def val = params.val
+    def val = params.val.toInteger()
 	log.debug "setThermo called with id ${id} command ${cmdType} and value ${val}"
 
     if(thermos) {
