@@ -397,6 +397,12 @@ def getMainDisplayData() {
 }
 def getStatus() {
     log.debug "getStatus called"
+    def pythonAppVersion = params.pythonAppVersion
+    def pythonAppPath = params.path
+	log.debug "getStatus called with version ${pythonAppVersion} and path ${pythonAppPath}"
+    state.pythonAppVersion = pythonAppVersion
+    state.pythonAppPath = pythonAppPath
+
     def tempData = getTempData()
     def contactData = getContactData()
     def presenceData = getPresenceData()
@@ -459,7 +465,9 @@ def getStatus() {
 private mainPage() {
 	dynamicPage(name: "mainPage", uninstall:true, install:true) {
         section("Version Information") {
-        	paragraph "ST BitBar Output SmartApp Version: " + version()
+        	paragraph "ST BitBar Output SmartApp Version: ${version()}" +
+            "${state.pythonAppVersion == null?"\nST_Python_Logic.py Version: Not Installed":"\nST_Python_Logic.py Version: " + state.pythonAppVersion}" +
+            "${state.pythonAppPath    == null?"\nBitBar Plugin Directory: Not Installed":"\nBitBar Plugin Directory: "    + state.pythonAppPath}"
         }
         section("API Setup") {
         href name: "APIPageLink", title: "API Setup", description: "", page: "APIPage"
