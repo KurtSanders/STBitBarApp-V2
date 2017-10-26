@@ -35,7 +35,8 @@ Updates to the Python source code located on your MacOS is currently by a manual
 	* [UK Users](https://graph-eu01-euwest1.api.smartthings.com/)
 2. Find the **My SmartApps** link on the top of the page.
 3. Find the **Settings** button at the upper-right corner of your SmartThings IDE page (this will only appear after you have configured with GitHub).
-4. Clicking this button will open the GitHub Repository Integration page. To find the **StBitBarApp** SmartApp code, enter the information below:
+4. ![](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/new-logo.png)Clicking this button will open the GitHub Repository Integration page. To find the **StBitBarApp** SmartApp code, enter the information below: 
+
 	* **Owner:** kurtsanders
 	* **Name:** STBitBarApp-V2
 	* **Branch:** master
