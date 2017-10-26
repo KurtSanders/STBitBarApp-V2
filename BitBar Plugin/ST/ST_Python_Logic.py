@@ -150,7 +150,7 @@ smartAppURL = cfgGetValue('smartAppURL', "", True)
 secret = cfgGetValue('secret', "", True)
 
 # Set URLs
-statusURL = smartAppURL + "GetStatus/"
+statusURL = smartAppURL + "GetStatus/?pythonAppVersion="+PythonVersion.__str__() + "&path=" + sys.argv[0]
 contactURL = smartAppURL + "ToggleSwitch/?id="
 levelURL = smartAppURL + "SetLevel/?id="
 lockURL = smartAppURL + "ToggleLock/?id="
@@ -536,14 +536,14 @@ if len(thermostats) > 0:
                         id = c - currentHeatingSetPoint
                         print "----", str(
                             c) + degree_symbol, buildFontOptions(3), "color=", numberToColorGrad(id, "red"), \
-                            "bash=", callbackScript, " param1=request param2=", str(
-                            heatingSetpointURL + str(c)), " param3=", secret, " terminal=false refresh=true"
+                            "bash=" + callbackScript, " param1=request param2=" + str(
+                            heatingSetpointURL + str(c)), " param3=" + secret, " terminal=false refresh=true"
                     print "----", str(currentHeatingSetPoint) + degree_symbol, "(current)|color=", \
                         numberToColorGrad(0,"red")
                     for c in range(currentHeatingSetPoint - 1, currentHeatingSetPoint - 6, -1):
                         print "----", str(c) + degree_symbol, buildFontOptions(3), "color=gray", \
-                            "bash=", callbackScript, " param1=request param2=", str(
-                            heatingSetpointURL + str(c)), " param3=", secret, " terminal=false refresh=true"
+                            "bash=" + callbackScript, " param1=request param2=" + str(
+                            heatingSetpointURL + str(c)), " param3=" + secret, " terminal=false refresh=true"
 
 # Output Temp Sensors
 hortSeparatorBar()
@@ -1064,10 +1064,9 @@ print "--Launch TextEdit " + cfgFileName + buildFontOptions() + openParamBuilder
     "open -e " + cfgFileName) + ' terminal=false'
 print "--Launch SmartThings IDE" + buildFontOptions() + openParamBuilder(
     "open " + buildIDEURL(smartAppURL)) + ' terminal=false'
-print "--Launch Browser to View STBitBarAPP " + j['Version'] + " GitHub Software Resp" \
+print "--Launch Browser to View STBitBarAPP-V2 " + j['Version'] + " GitHub Software Repo" \
       + buildFontOptions() + openParamBuilder(
-    "open https://github.com/kurtsanders/STBitBarApp") + ' terminal=false'
+    "open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
 print "--Download ST_Python_Logic.py v{:1.2f}".format(PythonVersion) \
       + " to your 'Downloads' directory " + buildFontOptions(),\
     "bash="+callbackScript, ' param1=github_ST_Python_Logic terminal=false'
-
