@@ -1,7 +1,9 @@
 # STBitBarApp-V2 (For Apple macOS)
 
-### SmartThings BitBar App V2
+![STBitBarApp-V2 logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-Macbook Pro.png)
+
 ![STBitBarApp-V2 logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-Menu.png)
+
 
 ## Overview:
 Monitor and control [SmartThings](https://www.smartthings.com/) sensors, modes & routines from the Apple MacOS Menu Bar.  This application is controlled via the SmartThings Mobile Client named **BitBar Output App**.  Selected program and configuration files are installed localled on the Apple macOS.
@@ -13,11 +15,12 @@ One can click on any controllable SmartThings device, mode or routine in the Mac
 Battery levels can be dipslayed for devices that have a battery capability by depressing the Apple {option} key as the BitBar menu is activated {being displayed}.
 
 ## Prerequisities
-* [Apple macOS](https://en.wikipedia.org/wiki/MacOS)
-* [BitBar](https://getbitbar.com/)
-* [SmartThings Devices](https://shop.smartthings.com/)
+
+* [Apple macOS with Python 2.7](https://en.wikipedia.org/wiki/MacOS)
+* [BitBar Software \*Freeware\* ](https://getbitbar.com/)
+* [SmartThings Hub & Devices](https://shop.smartthings.com/)
 * [Knowledge of installing software on macOS and SmartThings IDE](https://www.google.com/search?q=how+to+install+software+on+mac&rlz=1C5CHFA_enUS503US503&oq=how+to+install+softwate&aqs=chrome.2.69i57j0l5.9308j0j4&sourceid=chrome&ie=UTF-8)
-* Member of [SmartThings Community](https://community.smartthings.com/) for support
+* Member of [SmartThings Community](https://community.smartthings.com/) for support and new releases
 
 
 ## Section 1: Installation:
