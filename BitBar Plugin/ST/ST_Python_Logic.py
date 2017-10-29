@@ -497,11 +497,15 @@ if len(thermostats) > 0:
             thermoModeURL = currentThermoURL + "&type=mode&val="
             # Mode Menu
             if "thermostatMode" in thermostat:
-                print "--Mode ({})".format(thermostat['thermostatMode'].title()), buildFontOptions(3)
+                print "--Mode ({})".format(
+                    thermostat['thermostatMode'] if thermostat['thermostatMode'] is None
+                        else thermostat['thermostatMode'].title()), buildFontOptions(3)
                 if not subMenuCompact: print "----Set Mode to:", buildFontOptions(1)
                 for thermoMode in thermoModeList:
                     if thermoMode != thermostat['thermostatMode']:
-                        print "----{}".format(thermoMode.title()), buildFontOptions(3), "bash=" + callbackScript, \
+                        print "----{}".format(
+                            thermoMode if thermoMode is None else thermoMode.title()
+                        ), buildFontOptions(3), "bash=" + callbackScript, \
                             " param1=request param2=" + thermoModeURL + thermoMode.lower(), \
                             " param3=" + secret, ' terminal=false refresh=true'
             # Cooling Setpoint Menu
