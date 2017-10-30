@@ -738,7 +738,7 @@ if countSensors > 0:
         colorText = 'color=#333333' if colorSwitch else 'color=#666666'
         print subMenuText + notPresentMenuText, sensor['name'], whiteSpace, emoji, buildFontOptions(3), colorText
         for event in sensor['eventlog']:
-            if event['value'] == 'presence: 1':
+            if event['value'] == 'present':
                 emoji = presenscePresentEmoji
             else:
                 emoji = presensceNotPresentEmoji
