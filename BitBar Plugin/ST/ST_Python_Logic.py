@@ -15,7 +15,7 @@ sys.setdefaultencoding('utf8')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 2.30  # Must be float or Int
+PythonVersion = 2.31  # Must be float or Int
 ##################################
 
 
@@ -50,7 +50,10 @@ class NumberFormatter:
                 return str(r)
 
 
-# End NumberFormatter
+# String Case Formatter
+def TitleCase(var):
+    return var if var is None else var.capitalize()
+
 
 # Format percentages
 def formatPercentage(val):
@@ -142,6 +145,13 @@ def buildIDEURL(url):
     return ide
 
 
+def verifyInteger(intValue, errorIntValue):
+    if isinstance(intValue, int):
+        return intValue
+    else:
+        return errorIntValue
+
+
 # Begin Read User Config File
 cfgFileName = sys.argv[0][:-2] + "cfg"
 cfgFileObj = Setting(cfgFileName)
@@ -153,14 +163,17 @@ secret = cfgGetValue('secret', "", True)
 statusURL = smartAppURL + "GetStatus/?pythonAppVersion="+PythonVersion.__str__() + "&path=" + sys.argv[0]
 contactURL = smartAppURL + "ToggleSwitch/?id="
 levelURL = smartAppURL + "SetLevel/?id="
+musicplayerURL = smartAppURL + "SetMusicPlayer/?id="
 lockURL = smartAppURL + "ToggleLock/?id="
 thermoURL = smartAppURL + "SetThermo/?id="
 routineURL = smartAppURL + "SetRoutine/?id="
 modeURL = smartAppURL + "SetMode/?id="
+alarmURL = smartAppURL + "SetAlarm/?id="
 
 # Set the callback script for switch/level commands from parameters
+# sys.argv[1] must contain the full path name to bitbar pluggins subdirectory
+# an example could be: /Users/[account name]/[directory]/Bitbar/ST/
 callbackScript = sys.argv[1]
-
 
 # Make the call the to the API and retrieve JSON data
 attempt = 0
@@ -175,7 +188,7 @@ while connected is False:
     except subprocess.CalledProcessError as grepexc:
         attempt += 1
         if attempt == maxRetries:
-            print "No Connection"
+            print "Unable to Connect to SmartThings"
             print "---"
             print "Please check connection and try again (⌘R)"
             print "Debug information: Error code ", grepexc.returncode, grepexc.output
@@ -199,18 +212,20 @@ if "error" in j:
 
 # Get the sensor arrays from the JSON data
 try:
-    temps       = j['Temp Sensors']
-    contacts    = j['Contact Sensors']
-    switches    = j['Switches']
-    motion      = j['Motion Sensors']
-    mainDisplay = j['MainDisplay']
-    locks       = j['Locks']
-    presences   = j['Presence Sensors']
-    thermostats = j['Thermostats']
-    routines    = j['Routines']
-    modes       = j['Modes']
-    currentmode = j['CurrentMode']
-    options     = j['Options']
+    alarms          = j['Alarm Sensors']
+    temps           = j['Temp Sensors']
+    contacts        = j['Contact Sensors']
+    switches        = j['Switches']
+    motion          = j['Motion Sensors']
+    mainDisplay     = j['MainDisplay']
+    musicplayers    = j['Music Players']
+    locks           = j['Locks']
+    presences       = j['Presence Sensors']
+    thermostats     = j['Thermostats']
+    routines        = j['Routines']
+    modes           = j['Modes']
+    currentmode     = j['CurrentMode']
+    options         = j['Options']
 
 except KeyError, e:
     print "Error in ST API Data"
@@ -218,6 +233,29 @@ except KeyError, e:
     print "Error Details: ", e
     print "Source Data: ", output
     raise SystemExit(0)
+
+
+def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
+    strLen = len(tempList)-1
+    for x in range(0, strLen):
+        curSplitRecord = tempList[x]['date'].split()
+        if x == 0:
+            print "--{}{} {} {}".format(
+                prefix, curSplitRecord[0], curSplitRecord[1], curSplitRecord[2]
+            ), buildFontOptions(3)
+            sys.stdout.write("--")
+        elif curSplitRecord[2] == tempList[x-1]['date'].split()[2]:
+            sys.stdout.write("--")
+        else:
+            print "--{}{} {} {}".format(
+                prefix, curSplitRecord[0], curSplitRecord[1], curSplitRecord[2]
+            ), buildFontOptions(3)
+            sys.stdout.write("--")
+        print "--{}{} {} {} = {}{}".format(
+            prefix, curSplitRecord[3], curSplitRecord[4], curSplitRecord[5], tempList[x]['value'],
+            valueSuffix), buildFontOptions(3)
+    return
+
 
 # Set User Display Options sent from BitBar Output SmartApp
 useImages                   = getOptions("useImages",True)
@@ -242,17 +280,19 @@ subMenuFontSize             = getOptions("subMenuFontSize","14").__str__()
 subMenuFontColor            = getOptions("subMenuFontColor","Black")
 subMenuMoreColor            = getOptions("subMenuMoreColor","black")
 hortSeparatorBarBool        = getOptions("hortSeparatorBarBool",True)
+shmDisplayBool              = getOptions("shmDisplayBool",True)
 # Read Temperature Formatting Settings
-numberOfDecimals            = getOptions("numberOfDecimals","0")
-matchOutputNumberOfDecimals = getOptions("matchOutputNumberOfDecimals", False)
-colorSwitch = True
+numberOfDecimals            = verifyInteger(getOptions("numberOfDecimals","0"),0)
 
+matchOutputNumberOfDecimals = getOptions("matchOutputNumberOfDecimals", False)
+colorSwitch                 = True
+smallFontPitchSize          = "size={}".format(int(fixedPitchFontSize) - 2)
+alarmStates                 = ['away', 'off', 'stay']
 
 # Generates a Horizontal Separator Bar if desired by GUI
 def hortSeparatorBar():
     if hortSeparatorBarBool:print "---"
     return
-
 
 # Check if MacOS is in DarkMode
 # noinspection PyBroadException
@@ -286,12 +326,13 @@ def buildFontOptions(level=1):
 
 # Setup the Main Menu and Sub Menu Display Relationship
 mainMenuMaxItemsDict = {
-    "Temps"    : None,
-    "Contacts" : None,
-    "Switches" : None,
-    "Motion"   : None,
-    "Locks"    : None,
-    "Presences": None
+    "Temps"         : None,
+    "MusicPlayers"  : None,
+    "Contacts"      : None,
+    "Switches"      : None,
+    "Motion"        : None,
+    "Locks"         : None,
+    "Presences"     : None
     }
 mainMenuAutoSizeDict = {}
 mainMenuAutoSize = False
@@ -313,6 +354,7 @@ if sortSensorsName is True:
     switches = sorted(switches, key=lambda k: k[sortkey])
     motion = sorted(motion, key=lambda k: k[sortkey])
     mainDisplay = sorted(mainDisplay, key=lambda k: k[sortkey])
+    musicplayers = sorted(musicplayers, key=lambda k: k[sortkey])
     locks = sorted(locks, key=lambda k: k[sortkey])
     presences = sorted(presences, key=lambda k: k[sortkey])
     modes = sorted(modes, key=lambda k: k[sortkey])
@@ -325,6 +367,7 @@ if sortSensorsActive is True or mainMenuAutoSize is True:
     motion = sorted(motion, key=lambda k: k[sortkey], reverse=True)
     locks = sorted(locks, key=lambda k: k[sortkey], reverse=True)
     presences = sorted(presences, key=lambda k: k[sortkey], reverse=True)
+    musicplayers = sorted(musicplayers, key=lambda k: k['status'])
 
 # Presence sort mode by status or in submenu, sort by value desc
 if presenceDisplayMode == 1 or presenceDisplayMode == 2:
@@ -497,17 +540,13 @@ if len(thermostats) > 0:
             thermoModeURL = currentThermoURL + "&type=mode&val="
             # Mode Menu
             if "thermostatMode" in thermostat:
-                print "--Mode ({})".format(
-                    thermostat['thermostatMode'] if thermostat['thermostatMode'] is None
-                        else thermostat['thermostatMode'].title()), buildFontOptions(3)
+                print "--Mode ({})".format(TitleCase(thermostat['thermostatMode'])), buildFontOptions(3)
                 if not subMenuCompact: print "----Set Mode to:", buildFontOptions(1)
                 for thermoMode in thermoModeList:
                     if thermoMode != thermostat['thermostatMode']:
-                        print "----{}".format(
-                            thermoMode if thermoMode is None else thermoMode.title()
-                        ), buildFontOptions(3), "bash=" + callbackScript, \
-                            " param1=request param2=" + thermoModeURL + thermoMode.lower(), \
-                            " param3=" + secret, ' terminal=false refresh=true'
+                        print "----{}".format(TitleCase(thermoMode)), buildFontOptions(3), \
+                            "bash=" + callbackScript, " param1=request param2=" + thermoModeURL +\
+                            thermoMode.lower(), " param3=" + secret, ' terminal=false refresh=true'
             # Cooling Setpoint Menu
             if "coolingSetpoint" in thermostat:
                 if thermostat['coolingSetpoint'] is not None:
@@ -515,7 +554,7 @@ if len(thermostats) > 0:
                     currentCoolingSetPoint = int(thermostat['coolingSetpoint'])
                     print "--Cooling Set Point (" + str(currentCoolingSetPoint) + degree_symbol + ")", \
                         buildFontOptions(3), "color=blue"
-                    print "----Change Setpoint|size=9"
+                    print "----Change Setpoint | ", smallFontPitchSize
                     for c in range(currentCoolingSetPoint - 5, currentCoolingSetPoint):
                         id = currentCoolingSetPoint - c
                         print "----", str(c) + degree_symbol, buildFontOptions(3),\
@@ -535,7 +574,7 @@ if len(thermostats) > 0:
                     currentHeatingSetPoint = int(thermostat['heatingSetpoint'])
                     print "--Heating Set Point (" + str(currentHeatingSetPoint) + degree_symbol + ")", \
                         buildFontOptions(3),"color=red"
-                    print "----Change Setpoint|size=9"
+                    print "----Change Setpoint | ", smallFontPitchSize
                     for c in range(currentHeatingSetPoint + 5, currentHeatingSetPoint, -1):
                         id = c - currentHeatingSetPoint
                         print "----", str(
@@ -550,10 +589,10 @@ if len(thermostats) > 0:
                             heatingSetpointURL + str(c)), " param3=" + secret, " terminal=false refresh=true"
 
 # Output Temp Sensors
-hortSeparatorBar()
 sensorName = "Temps"
 countSensors = len(temps)
 if countSensors > 0:
+    hortSeparatorBar()
     menuTitle = "Temp Sensors"
     mainTitle = menuTitle
     if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
@@ -578,6 +617,17 @@ if countSensors > 0:
             subMenuText = "--"
         print subMenuText, sensor['name'], whiteSpace, currentValue + degree_symbol, \
             buildFontOptions(3), colorText
+
+        eventGroupByDate(
+            [d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°"
+        )
+
+#        for event in sensor['eventlog']:
+#            if event['name'] == 'temperature':
+#                print subMenuText + '--' + event['date'], \
+#                    '{:>3}'.format(formatter.formatNumber(float(event['value']))) \
+#                    + degree_symbol, buildFontOptions(3)
+
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -585,8 +635,8 @@ if countSensors > 0:
         colorSwitch = not colorSwitch
 
 # Output Modes
-hortSeparatorBar()
 if len(modes) > 0:
+    hortSeparatorBar()
     if currentmode['name'] == "Home":
         emoji = " :house: "
     else:
@@ -614,11 +664,34 @@ if len(routines) > 0:
             currentRoutineURL, ' param3=', secret, ' terminal=false refresh=true'
         colorSwitch = not colorSwitch
 
+# Output Smart Home Monitor
+if shmDisplayBool:
+    colorText = ''
+    for i, alarm in enumerate(alarms):
+        if alarm['name'] == 'shm':
+            shmCurrentState = alarm['value']
+# Verify the SHM is configured:
+    if shmCurrentState != "unconfigured":
+        print "--Smart Home Monitor (Select to Change)" + buildFontOptions()
+        for alarmState in alarmStates:
+            colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+            if alarmState == shmCurrentState:
+                currentAlarmStateDisplay = " (Current)"
+                currentAlarmURL = ""
+            else:
+                currentAlarmURL = alarmURL + alarmState
+                currentAlarmStateDisplay = ""
+                currentAlarmURL = 'bash= ' + callbackScript + ' param1=request param2=' + currentAlarmURL + \
+                ' param3=' + secret + ' terminal=false refresh=true'
+            print "--• {}{}".format(alarmState.title(), currentAlarmStateDisplay), buildFontOptions(3), \
+                colorText, currentAlarmURL
+            colorSwitch = not colorSwitch
+
 # Output Contact Sensors
-hortSeparatorBar()
 sensorName = "Contacts"
 countSensors = len(contacts)
 if countSensors > 0:
+    hortSeparatorBar()
     menuTitle = "Contact Sensors"
     subMenuTitle = "More..."
     mainTitle = menuTitle
@@ -646,6 +719,10 @@ if countSensors > 0:
                 buildFontOptions()
             subMenuText = "--"
         print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3), colorText
+        eventGroupByDate(
+            [d for d in sensor['eventlog'] if d['name'] in ['status','contact','acceleration']],
+            subMenuText, ""
+        )
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -653,10 +730,10 @@ if countSensors > 0:
         colorSwitch = not colorSwitch
 
 # Output Motion Sensors
-hortSeparatorBar()
 sensorName = "Motion"
 countSensors = len(motion)
 if countSensors > 0:
+    hortSeparatorBar()
     menuTitle = "Motion Sensors"
     subMenuTitle = "More..."
     mainTitle = menuTitle
@@ -682,11 +759,17 @@ if countSensors > 0:
             print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
             if not subMenuCompact: print "-- " + menuTitle + " (" + str(countSensors - mainMenuMaxItems) + ")"
             subMenuText = "--"
-        print subMenuText, sensor['name'], whiteSpace, sym, '|font=' + fixedPitchFontName, colorText
-        for event in sensor['eventlog']:
-            if event['name'] == 'motion':
-                sym = motionInactiveEmoji if event['value'] == 'inactive' else motionActiveEmoji
-                print subMenuText + '--' + event['date'], sym, buildFontOptions(3)
+        print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3), colorText
+
+        eventGroupByDate(
+            [d for d in sensor['eventlog'] if d['name'] in 'motion'],
+            subMenuText, ""
+        )
+
+#        for event in sensor['eventlog']:
+#            if event['name'] == 'motion':
+#                sym = motionInactiveEmoji if event['value'] == 'inactive' else motionActiveEmoji
+#                print subMenuText + '--' + event['date'], sym, buildFontOptions(3)
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -694,10 +777,10 @@ if countSensors > 0:
         colorSwitch = not colorSwitch
 
 # Output Presence Sensors
-hortSeparatorBar()
 sensorName = "Presences"
 countSensors = len(presences)
 if countSensors > 0:
+    hortSeparatorBar()
     menuTitle = "Presence Sensors"
     subMenuTitle = "More..."
     mainTitle = menuTitle
@@ -737,12 +820,12 @@ if countSensors > 0:
             notPresentMenuText = "--"
         colorText = 'color=#333333' if colorSwitch else 'color=#666666'
         print subMenuText + notPresentMenuText, sensor['name'], whiteSpace, emoji, buildFontOptions(3), colorText
-        for event in sensor['eventlog']:
-            if event['value'] == 'present':
-                emoji = presenscePresentEmoji
-            else:
-                emoji = presensceNotPresentEmoji
-            print "--" + event['date'], emoji, buildFontOptions(3)
+
+        eventGroupByDate(
+            [d for d in sensor['eventlog'] if d['name'] in 'presence'],
+            subMenuText, ""
+        )
+
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText + notPresentMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -830,10 +913,10 @@ redUnlocked = ("iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABYlAAAW
                "wC7BzkxRyLOwWd3ez2DpbaMtLMN++K6Eayy8NzgzwwwzzLAdYQcAAAD//wMAsSkPOUNoFPgAAAAASUVORK5CYII=")
 
 # Output Locks
-hortSeparatorBar()
 sensorName = "Locks"
 countSensors = len(locks)
 if countSensors > 0:
+    hortSeparatorBar()
     menuTitle = sensorName
     subMenuTitle = "More..."
     mainTitle = menuTitle
@@ -877,6 +960,17 @@ if countSensors > 0:
             print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3) + colorText + 'bash=', \
                 callbackScript, ' param1=request param2=', currentLockURL, ' param3=', \
                 secret, ' terminal=false refresh=true'
+        eventGroupByDate(
+            [d for d in sensor['eventlog'] if d['value'] in ['locked','armed', 'unlocked', 'disarmed']],
+            subMenuText, ""
+        )
+#        for event in sensor['eventlog']:
+#            if event['value'] in ['locked','armed', 'unlocked', 'disarmed']:
+#                if event['value'] in ['locked', 'armed']:
+#                    emoji = ':closed_lock_with_key:'
+#                else:
+#                    emoji = ':door:'
+#                print subMenuText + "--" + event['date'], emoji, buildFontOptions(3)
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             if useImages is True:
@@ -997,10 +1091,10 @@ redImage = ("iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABR0AAAUdAG
             "M+GbAMMWpiO9UdRJF+zfAQA3jyMbiOE+0gAAAABJRU5ErkJggg==")
 
 # Output Switches
-hortSeparatorBar()
 sensorName = "Switches"
 countSensors = len(switches)
 if countSensors > 0:
+    hortSeparatorBar()
     menuTitle = sensorName
     mainTitle = menuTitle
     subMenuTitle = "More..."
@@ -1009,6 +1103,7 @@ if countSensors > 0:
     mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
     subMenuText = ''
     for i, sensor in enumerate(switches):
+        indent = ""
         currentLength = len(sensor['name'])
         extraLength = maxLength - currentLength
         whiteSpace = ''
@@ -1040,15 +1135,97 @@ if countSensors > 0:
                 'name'], whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
                 ' param1=request param2=', currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true'
         if sensor['isDimmer'] is True:
-            print str(str(subMenuText) + "--"), 'Set Dimmer Level', buildFontOptions(3), 'size=9'
+            subMenuText = subMenuText + '--'
+            print subMenuText + 'Set Dimmer Level', buildFontOptions(3), smallFontPitchSize
             currentLevel = 10
             while True:
                 currentLevelURL = levelURL + sensor['id'] + '&level=' + str(currentLevel)
-                print subMenuText + "--{}%".format(currentLevel), buildFontOptions(3), 'bash=', callbackScript, \
+                print subMenuText + " {}%".format(currentLevel), buildFontOptions(3), 'bash=', callbackScript, \
                     ' param1=request param2=', currentLevelURL, ' param3=', secret, ' terminal=false refresh=true'
                 if currentLevel is 100:
                     break
                 currentLevel += 10
+            subMenuText = subMenuText[:-2]
+            print subMenuText + "-- Event History", buildFontOptions(3)
+            indent = '--'
+        colorSwitch = not colorSwitch
+
+        eventGroupByDate(
+            [d for d in sensor['eventlog'] if d['name'] in ['door', 'switch']],
+            subMenuText + indent, ""
+        )
+
+
+# Output MusicPlayers
+sensorName = "MusicPlayers"
+countSensors = len(musicplayers)
+if countSensors > 0:
+    hortSeparatorBar()
+    menuTitle = "Music Players"
+    mainTitle = menuTitle
+    subMenuTitle = "More Music Players..."
+    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+    print mainTitle, buildFontOptions()
+    mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
+    subMenuText = ''
+    musicplayers = sorted(musicplayers, key=lambda x: x['name'], reverse=False)
+    for i, sensor in enumerate(sorted(musicplayers, key=lambda x: x['groupBool'], reverse=False)):
+        currentLength = len(sensor['name'])
+        extraLength = maxLength - currentLength
+        whiteSpace = ''
+        img = ''
+        for x in range(0, extraLength): whiteSpace += ' '
+        if sensor['trackData']['status'] == 'playing':
+            sym = '🔛'
+            img = greenImage
+        else:
+            sym = '🔴'
+            img = redImage
+            if mainMenuAutoSizeDict[sensorName] is True:
+                if mainMenuMaxItems > i: mainMenuMaxItems = i
+                subMenuTitle = "More Music Players Inactive..."
+        colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+        if i == mainMenuMaxItems:
+            print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions())
+            if not subMenuCompact: print "--{} ({}) {}".format(
+                menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions(2)
+            )
+            subMenuText = "--"
+        if sensor['groupBool']: sensor['name'] += " - {}{}".format('Grouped',sensor['trackDescription'][1])
+        if useImages is True:
+            print subMenuText, sensor['name'], buildFontOptions(3) + colorText, 'image=', img
+        else:
+            print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3) + colorText
+        if sensor['level'] is not None:
+            print "{}--*Volume Level: ({})".format(subMenuText, sensor['level']), buildFontOptions(3)
+            print "{}----Set Music Level".format(subMenuText), buildFontOptions(3), smallFontPitchSize
+            currentLevel = 0
+            while currentLevel <=100:
+                currentMusicPlayerURL = musicplayerURL + sensor['id'] + '&command=' + 'level'
+                print "{}----{}".format(subMenuText,currentLevel), \
+                    buildFontOptions(3), 'bash=' + callbackScript, 'param1=request param2=' \
+                   + currentMusicPlayerURL, ' param3=' + secret, ' terminal=false refresh=true'
+                currentLevel += 10
+        if sensor['mute'] is not None:
+            command = "mute" if sensor['mute'] is "unmuted" else "unmute"
+            print "{}--*Mute : {}".format(subMenuText, TitleCase(sensor['mute'])), \
+            buildFontOptions(3), 'bash=' + callbackScript, 'param1=request param2=' + musicplayerURL + \
+            sensor['id'] + '&command=' + command, ' param3=' + secret, 'terminal=false refresh=true'
+        if sensor['trackDescription'] is not None:
+#           Check for Music Player playing a Streaming Live Radio Station
+            m = re.search('^x-sonosapi-hls:(.+)\?', sensor['trackDescription'][0])
+            if m:
+                sensor['trackDescription'][0] = m.group(1)
+            else:
+                sensor['trackDescription'][0] = sensor['trackDescription'][0].replace('\n', ' ')
+            print "{}--{}  {}".format(
+                subMenuText, "Track:", sensor['trackDescription'][0]), buildFontOptions(3), "font=9"
+        if sensor["trackData"] is not None:
+                for key, value in sensor["trackData"].items():
+                    if key in ["album", "status", "name", "artist", "station", "trackNumber"]:
+                        if value is not None:
+                            print "{}--{}: {}".format(subMenuText, TitleCase(key), TitleCase(value)), \
+                                buildFontOptions(3)
         colorSwitch = not colorSwitch
 
 # Configuration Options
@@ -1068,9 +1245,11 @@ print "--Launch TextEdit " + cfgFileName + buildFontOptions() + openParamBuilder
     "open -e " + cfgFileName) + ' terminal=false'
 print "--Launch SmartThings IDE" + buildFontOptions() + openParamBuilder(
     "open " + buildIDEURL(smartAppURL)) + ' terminal=false'
-print "--Launch Browser to View STBitBarAPP-V2 " + j['Version'] + " GitHub Software Repo" \
+print "--Launch Browser to View STBitBarAPP-V2 " + j['Version'] + " GitHub Software Resp" \
       + buildFontOptions() + openParamBuilder(
     "open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
 print "--Download ST_Python_Logic.py v{:1.2f}".format(PythonVersion) \
       + " to your 'Downloads' directory " + buildFontOptions(),\
     "bash="+callbackScript, ' param1=github_ST_Python_Logic terminal=false'
+print "--Download ST.5m.sh to your 'Downloads' directory " + buildFontOptions(), \
+    "bash="+callbackScript, ' param1=github_ST5MSH terminal=false'
