@@ -42,12 +42,15 @@
  //        Added Additional Control of Font Names, Colors and Sizes used in BitBar display
  //        Added Battery Warning Emoji Level
  //        Better formatting of the API URL and Secret displayed in the ST Live Logging Screen and GUI
+ // V 2.31 Added Music Players with extended information
+ //        Added Smart Home Monitor Status and State Change
 
 // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
 // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
 //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
-def version() { return "2.30" } // Must be a Floating Number String "2.1", "2.01", "2.113"
+def version() { return "2.31" } // Must be a Floating Number String "2.1", "2.01", "2.113"
 def colorChoiceList() { return ["lightseagreen","floralwhite","lightgray","darkgoldenrod","paleturquoise","goldenrod","skyblue","indianred","darkgray","khaki","blue","darkred","lightyellow","midnightblue","chartreuse","lightsteelblue","slateblue","firebrick","moccasin","salmon","sienna","slategray","teal","lightsalmon","pink","burlywood","gold","springgreen","lightcoral","black","blueviolet","chocolate","aqua","darkviolet","indigo","darkcyan","orange","antiquewhite","peru","silver","purple","saddlebrown","lawngreen","dodgerblue","lime","linen","lightblue","darkslategray","lightskyblue","mintcream","olive","hotpink","papayawhip","mediumseagreen","mediumspringgreen","cornflowerblue","plum","seagreen","palevioletred","bisque","beige","darkorchid","royalblue","darkolivegreen","darkmagenta","orange red","lavender","fuchsia","darkseagreen","lavenderblush","wheat","steelblue","lightgoldenrodyellow","lightcyan","mediumaquamarine","turquoise","dark blue","darkorange","brown","dimgray","deeppink","powderblue","red","darkgreen","ghostwhite","white","navajowhite","navy","ivory","palegreen","whitesmoke","gainsboro","mediumslateblue","olivedrab","mediumpurple","darkslateblue","blanchedalmond","darkkhaki","green","limegreen","snow","tomato","darkturquoise","orchid","yellow","green yellow","azure","mistyrose","cadetblue","oldlace","gray","honeydew","peachpuff","tan","thistle","palegoldenrod","mediumorchid","rosybrown","mediumturquoise","lemonchiffon","maroon","mediumvioletred","violet","yellow green","coral","lightgreen","cornsilk","mediumblue","aliceblue","forestgreen","aquamarine","deepskyblue","lightslategray","darksalmon","crimson","sandybrown","lightpink","seashell"].sort()}
+import groovy.json.JsonSlurper
 
 definition(
     name: "BitBar Output App",
@@ -69,13 +72,16 @@ preferences {
   page(name:"eventsPage")
   page(name:"disableAPIPage")
   page(name:"enableAPIPage")
-  page(name:"APIPage")  
+  page(name:"APIPage")
   section ("Display Sensor") {
   input "displayTempName", "string", multiple: false, required: false
     input "displayTemp", "capability.temperatureMeasurement", multiple: false, required: false
   }
   section ("Allow external service to get the temperature ...") {
     input "temps", "capability.temperatureMeasurement", multiple: true, required: false
+  }
+  section ("Allow external service to get the alarm status ...") {
+    input "alarms", "capability.alarm", multiple: true, required: false
   }
   section ("Allow external service to get the contact status ...") {
     input "contacts", "capability.contactSensor", multiple: true, required: false
@@ -105,6 +111,11 @@ mappings {
       GET: "toggleSwitch"
     ]
   }
+  path("/SetMusicPlayer/") {
+    action: [
+      GET: "setMusicPlayer"
+    ]
+  }
   path("/SetLevel/") {
     action: [
       GET: "setLevel"
@@ -123,6 +134,11 @@ mappings {
     path("/SetMode/") {
     action: [
       GET: "setMode"
+    ]
+  }
+    path("/SetAlarm/") {
+    action: [
+      GET: "setAlarm"
     ]
   }
   path("/ToggleLock/") {
@@ -160,6 +176,7 @@ def updated() {
 }
 
 def initialize() {
+	subscribe(location, "alarmSystemStatus", alarmHandler)
 	if(thermos)
     	thermos.each {
 			subscribe(it, "thermostatOperatingState", thermostatOperatingStateHandler)
@@ -173,6 +190,12 @@ def thermostatOperatingStateHandler(evt) {
 	state.lastThermostatOperatingState = now()
 }
 
+def alarmHandler(evt) {
+  log.debug "Alarm Handler value: ${evt.value}"
+  state.shm = location.currentState("alarmSystemStatus")?.value
+  log.debug "alarm state: ${location.currentState("alarmSystemStatus")?.value}"
+}
+
 
 // Respond to action requests
 def setRoutine() {
@@ -182,6 +205,14 @@ def setRoutine() {
     log.debug "setRoutine called with command: ${command}"
 	location.helloHome?.execute(command)
     log.debug "CurrentMode After setRoutine  : ${location.mode}"
+}
+
+def setAlarm() {
+	def command = params.id
+    log.debug "setAlarm called with id ${command}"
+    log.debug "Current Alarm State: ${location.currentState("alarmSystemStatus")?.value}"
+    sendLocationEvent(name: "alarmSystemStatus", value: command)
+    log.debug "Changed Alarm State: ${location.currentState("alarmSystemStatus")?.value}"
 }
 
 def setMode() {
@@ -208,6 +239,38 @@ def toggleSwitch() {
 		}
     }
     log.debug "Error! Did not find a switch with id ${command}."
+}
+def setMusicPlayer() {
+    def id = params.id
+	def command = params.command
+    def level = params.level
+    log.debug "setMusicPlayer called with command ${command} for id ${id} and level ${level}"
+    musicplayers.each {
+        if(it.id == id)  {
+            log.debug "Found Music Player: ${it.displayName} with id: ${it.id} with current volume level: ${it.currentLevel}"
+            switch (command) {
+                case 'mute':
+                it.mute()
+                return
+                break
+                case 'unmute':
+                it.unmute()
+                return
+                break
+                case 'level':
+                def iLevel = Int.valueOf(level)
+                log.debug "Setting Mute level to ${iLevel}"
+                it.setLevel(iLevel)
+                return
+                break
+                default:
+                log.debug "Music Player command ${command} was not valid...Ignoring"
+                    break
+                return
+            }
+            log.debug "Music Player Error: Did not find a music player with id ${id}. "
+        }
+    }
 }
 def setLevel() {
 	def command = params.id
@@ -299,23 +362,27 @@ def getBatteryInfo(dev) {
     else return "N/A"
 }
 
-// Respond to data requests
+def getAlarmData() {
+	def resp = []
+    alarms.each {
+        resp << [name: it.displayName, value: it.currentAlarm, battery: getBatteryInfo(it)];
+        log.debug "Alarm: ${resp}"
+    }
+    resp << [ name: "shm", value: state.shm]
+    return resp
+}
 def getTempData() {
-//	log.debug "getTemps called"
 	def resp = []
     temps.each {
-        resp << [name: it.displayName, value: it.currentTemperature, battery: getBatteryInfo(it)];
+        resp << [name: it.displayName, value: it.currentTemperature, battery: getBatteryInfo(it), eventlog: getEventsOfDevice(it)];
     }
-//    log.debug resp
-    // Sort decending by temp value
     resp.sort { -it.value }
-//    log.debug "getTemps complete"
     return resp
 }
 def getContactData() {
 	def resp = []
     contacts.each {
-        resp << [name: it.displayName, value: it.currentContact, battery: getBatteryInfo(it)];
+        resp << [name: it.displayName, value: it.currentContact, battery: getBatteryInfo(it), eventlog: getEventsOfDevice(it)];
     }
     return resp
 }
@@ -325,13 +392,8 @@ def getPresenceData() {
     def timeFormatString = timeFormatBool?'EEE MMM dd HH:mm z':'EEE MMM dd hh:mm a z'
     presences.each {
 		it.events().each {
-//        	eventlogData << [date: it.date.format(timeFormatString , location.timeZone), value: it.description]
-//        	log.debug "name: ${it.displayName}, Date: ${it.date.format('M-d-yyyy h:mm:ss a', location.timeZone)}, Raw Value: ${it.description}, Value: ${it.description=="presence: 1"?"Present":"Not Present"}"
         }
         resp << [name: it.displayName, value: it.currentPresence, battery: getBatteryInfo(it), eventlog: getEventsOfDevice(it)];
-//        resp << [name: it.displayName, value: it.currentPresence, battery: getBatteryInfo(it), eventlog: eventlogData];
-//        log.debug "${it.displayName}: ${eventlogData}"
-//        eventlogData = []
     }
     return resp
 }
@@ -352,14 +414,35 @@ def getSwitchData() {
             if(it.currentSwitch == 'on') currentName += " (" + it.currentLevel + "%)"
         }
 
-        resp << [name: currentName, value: it.currentSwitch, id : it.id, isDimmer : isDimmer];
+        resp << [name: currentName, value: it.currentSwitch, id : it.id, isDimmer : isDimmer, eventlog: getEventsOfDevice(it)];
     }
     return resp
 }
 def getLockData() {
 	def resp = []
     locks.each {
-        resp << [name: it.displayName, value: it.currentLock, id : it.id, battery: getBatteryInfo(it)];
+        resp << [name: it.displayName, value: it.currentLock, id : it.id, battery: getBatteryInfo(it), eventlog: getEventsOfDevice(it)];
+    }
+    return resp
+}
+def getMusicPlayerData() {
+	def resp = []
+    def slurper = new JsonSlurper()
+    musicplayers.each {
+        if (it.currentTrackData != null) {
+            slurper = new groovy.json.JsonSlurper().parseText(it.currentTrackData)
+        }
+//        log.debug "slurper = ${slurper}"
+        resp << [
+            name				: it.displayName,
+            groupBool			: it.currentTrackDescription.contains("Grouped"),
+            id 					: it.id,
+            level				: it.currentLevel,
+            mute				: it.currentMute,
+            status				: it.status,
+            trackData			: slurper,
+            trackDescription	: it.currentTrackDescription.split('Grouped')
+        ];
     }
     return resp
 }
@@ -403,6 +486,7 @@ def getStatus() {
     state.pythonAppVersion = pythonAppVersion
     state.pythonAppPath = pythonAppPath
 
+    def alarmData = getAlarmData()
     def tempData = getTempData()
     def contactData = getContactData()
     def presenceData = getPresenceData()
@@ -411,10 +495,12 @@ def getStatus() {
     def lockData = getLockData()
     def thermoData = getThermoData()
     def mainDisplay = getMainDisplayData()
+    def musicData = getMusicPlayerData()
     def optionsData = [ "useImages" 				: useImages,
                        "sortSensorsName" 			: sortSensorsName,
                        "sortSensorsActive" 			: sortSensorsActive,
                        "mainMenuMaxItemsTemps" 		: mainMenuMaxItemsTemps,
+                       "mainMenuMaxItemsMusicPlayers": mainMenuMaxItemsMusicPlayers,
                        "mainMenuMaxItemsContacts" 	: mainMenuMaxItemsContacts,
                        "mainMenuMaxItemsSwitches" 	: mainMenuMaxItemsSwitches,
                        "mainMenuMaxItemsMotion" 	: mainMenuMaxItemsMotion,
@@ -442,15 +528,18 @@ def getStatus() {
                        "fixedPitchFontColor"		: fixedPitchFontColor,
                        "hortSeparatorBarBool"       : hortSeparatorBarBool,
                        "batteryWarningPct"			: batteryWarningPct,
-                       "batteryWarningPctEmoji"		: batteryWarningPctEmoji
+                       "batteryWarningPctEmoji"		: batteryWarningPctEmoji,
+                       "shmDisplayBool"				: shmDisplayBool
                       ]
     def resp = [ "Version" : version(),
+                "Alarm Sensors" : alarmData,
                 "Temp Sensors" : tempData,
                 "Contact Sensors" : contactData,
                 "Presence Sensors" : presenceData,
                 "Motion Sensors" : motionData,
                 "Switches" : switchData,
                 "Locks" : lockData,
+                "Music Players" : musicData,
                 "Thermostats" : thermoData,
                 "Routines" : location.helloHome?.getPhrases()*.label,
                 "Modes" : location.modes,
@@ -547,13 +636,33 @@ def devicesPage() {
 
 		section ("Choose Devices") {
 			paragraph "Select devices that you want to be displayed below the Main Menu Bar (in the BitBar Sub-menu)."
+			input "thermos", "capability.thermostat",
+				title: "Which Thermostats?",
+				multiple: true,
+				hideWhenEmpty: true,
+				required: false
 			input "temps", "capability.temperatureMeasurement",
 				title: "Which Temperature Sensors?",
 				multiple: true,
 				hideWhenEmpty: true,
 				required: false
+			input "alarms", "capability.alarmSensor",
+				title: "Which Alarm Sensors?",
+				multiple: true,
+				hideWhenEmpty: true,
+				required: false
 			input "contacts", "capability.contactSensor",
 				title: "Which Contact Sensors?",
+				multiple: true,
+				hideWhenEmpty: true,
+				required: false
+			input "locks", "capability.lock",
+				title: "Which Locks?",
+				multiple: true,
+				hideWhenEmpty: true,
+				required: false
+			input "musicplayers", "capability.musicPlayer",
+				title: "Which Music Players?",
 				multiple: true,
 				hideWhenEmpty: true,
 				required: false
@@ -567,18 +676,8 @@ def devicesPage() {
 				multiple: true,
 				hideWhenEmpty: true,
 				required: false
-			input "locks", "capability.lock",
-				title: "Which Locks?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
 			input "presences", "capability.presenceSensor",
 				title: "Which Presence Sensors?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "thermos", "capability.thermostat",
-				title: "Which Thermostats?",
 				multiple: true,
 				hideWhenEmpty: true,
 				required: false
@@ -597,8 +696,8 @@ def iconsPage() {
                  url: "http://www.webpagefx.com/tools/emoji-cheat-sheet/",
                  description: "tap here to view valid list of Emoji names in your mobile browser"
                 )
-        }                
-        section("Optional: Sensor Status Icon Display Options") {
+        }
+        section("Optional: Sensor Status Emoji Display Options") {
             input "motionActiveEmoji", "text",
                 title: "Emoji ShortCode ':xxx:' to Display for Motion Sensor = 'Active' Default='⇠⇢'",
                 required: false
@@ -657,7 +756,7 @@ def fontsPage() {
             input "fixedPitchFontName", "enum",
                 title: "Data: Fixed Font Name (default font is 'Menlo' if field is left empty).",
                 default: "Menlo",
-                options: ["Menlo","Monaco","Consolas","Courier","MingLIU"],                
+                options: ["Menlo","Monaco","Consolas","Courier","MingLIU"],
                 required: false
             input "fixedPitchFontSize", "number",
                 title: "Data: Fixed Font Pitch Size (default is '14').",
@@ -704,23 +803,26 @@ def fontsPage() {
 def categoryPage() {
     dynamicPage(name:"categoryPage", hideWhenEmpty: true) {
         section("Optional: Number of Items per ST Sensor category to display in the Main Menu before moving additional sensors to a More... sub-menu.  Leave these number fields blank for Auto-Size (Show only Active Sensors in Main Menu)") {
-            input "mainMenuMaxItemsTemps", "number",
-                title: "Min Number of Temperature Sensors to Display - Leave blank to Show All Temperature Sensors",
-                required: false
             input "mainMenuMaxItemsContacts", "number",
                 title: "Min Number of Contact Sensors to Display - Leave blank to Auto-Size",
-                required: false
-            input "mainMenuMaxItemsSwitches", "number",
-                title: "Min Number of Switch Sensors to Display - Leave blank to Auto-Size",
-                required: false
-            input "mainMenuMaxItemsMotion", "number",
-                title: "Min Number of Motion Sensors to Display - Leave blank to Auto-Size",
                 required: false
             input "mainMenuMaxItemsLocks", "number",
                 title: "Min Number of Locks to Display - Leave blank to Auto-Size",
                 required: false
+            input "mainMenuMaxItemsMusicPlayers", "number",
+                title: "Min Number of Music Players to Display - Leave blank to Auto-Size",
+                required: false
+            input "mainMenuMaxItemsMotion", "number",
+                title: "Min Number of Motion Sensors to Display - Leave blank to Auto-Size",
+                required: false
             input "mainMenuMaxItemsPresences", "number",
                 title: "Min Number of Presence Sensors to Display - Leave blank to Auto-Size",
+                required: false
+            input "mainMenuMaxItemsSwitches", "number",
+                title: "Min Number of Switch Sensors to Display - Leave blank to Auto-Size",
+                required: false
+            input "mainMenuMaxItemsTemps", "number",
+                title: "Min Number of Temperature Sensors to Display - Leave blank to Show All Temperature Sensors",
                 required: false
         }
     }
@@ -753,7 +855,7 @@ def eventsPage() {
                  description: "tap here to view valid list of Emoji names in your mobile browser"
                 )
                 }
-        section("Optional: Battery Level Options for Devices") {                
+        section("Optional: Battery Level Options for Devices") {
             input "batteryWarningPctEmoji", "text",
                 title: "Battery: Emoji ShortCode ':xxx:' to Display for Low Battery Warning [Default=':grimacing:']",
                 required: false
@@ -771,9 +873,9 @@ def optionsPage() {
 			input "useImages", "bool",
 				title: "Use images for switch & lock status (green/red images) instead of emojis",
 				required: true
-			input "showSensorCount", "bool",
-				title: "Show the number of sensors in the sensor category title",
-				required: true
+            input "showSensorCount", "bool",
+                title: "Show the number of sensors in the sensor category title",
+                required: true
         }
         section("Required: Sort sensors in menu by Name and Active Status") {
 			input "sortSensorsName", "bool",
@@ -783,6 +885,11 @@ def optionsPage() {
 				title: "Sort sensors in menu by Active Status",
 				required: true
         }
+        section("Show Smart Home Monitor along with House Modes & Routines") {
+            input "shmDisplayBool", "bool",
+                title: "Show Smart Home Monitor Status?",
+                required: true
+        }
         section("Optional: Temperature Values Display Options") {
             input "numberOfDecimals", "number",
                 title: "Round temperature values with the following number of decimals",
@@ -791,13 +898,13 @@ def optionsPage() {
                 title: "Match all temperature sensor values with the same amount of decimals",
                 required: true
         }
-        section("Optional: Number of Items per ST Sensor category to display Settings") {
-            href name: "categoryPageLink", title: "Sensor Status Icon Display Options", description: "", page: "categoryPage"
+        section("Optional: Number of Devices per ST Sensor category to display") {
+            href name: "categoryPageLink", title: "Number of Devices per ST Sensor Categories to Display Options", description: "", page: "categoryPage"
         }
         section("Optional: Event History and Battery Level Options for Devices") {
             href name: "eventsPageLink", title: "Event History and Battery Level Options", description: "", page: "eventsPage"
         }
-        section("Optional: Sensor Status Icon Display Options") {
+        section("Optional: Sensor Status Emoji Display Options") {
             href name: "iconsPageLink", title: "Sensor Status Icon Display Settings", description: "", page: "iconsPage"
         }
         section("Optional: Font Names, Pitch Size and Colors") {
