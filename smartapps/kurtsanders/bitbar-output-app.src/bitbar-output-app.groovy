@@ -44,11 +44,12 @@
  //        Better formatting of the API URL and Secret displayed in the ST Live Logging Screen and GUI
  // V 2.31 Added Music Players with extended information
  //        Added Smart Home Monitor Status and State Change
+ // V 2.32 Added Humidity Sensors, Fixed Military Time Bug
 
 // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
 // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
 //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
-def version() { return "2.31" } // Must be a Floating Number String "2.1", "2.01", "2.113"
+def version() { return "2.32" } // Must be a Floating Number String "2.1", "2.01", "2.113"
 def colorChoiceList() { return ["lightseagreen","floralwhite","lightgray","darkgoldenrod","paleturquoise","goldenrod","skyblue","indianred","darkgray","khaki","blue","darkred","lightyellow","midnightblue","chartreuse","lightsteelblue","slateblue","firebrick","moccasin","salmon","sienna","slategray","teal","lightsalmon","pink","burlywood","gold","springgreen","lightcoral","black","blueviolet","chocolate","aqua","darkviolet","indigo","darkcyan","orange","antiquewhite","peru","silver","purple","saddlebrown","lawngreen","dodgerblue","lime","linen","lightblue","darkslategray","lightskyblue","mintcream","olive","hotpink","papayawhip","mediumseagreen","mediumspringgreen","cornflowerblue","plum","seagreen","palevioletred","bisque","beige","darkorchid","royalblue","darkolivegreen","darkmagenta","orange red","lavender","fuchsia","darkseagreen","lavenderblush","wheat","steelblue","lightgoldenrodyellow","lightcyan","mediumaquamarine","turquoise","dark blue","darkorange","brown","dimgray","deeppink","powderblue","red","darkgreen","ghostwhite","white","navajowhite","navy","ivory","palegreen","whitesmoke","gainsboro","mediumslateblue","olivedrab","mediumpurple","darkslateblue","blanchedalmond","darkkhaki","green","limegreen","snow","tomato","darkturquoise","orchid","yellow","green yellow","azure","mistyrose","cadetblue","oldlace","gray","honeydew","peachpuff","tan","thistle","palegoldenrod","mediumorchid","rosybrown","mediumturquoise","lemonchiffon","maroon","mediumvioletred","violet","yellow green","coral","lightgreen","cornsilk","mediumblue","aliceblue","forestgreen","aquamarine","deepskyblue","lightslategray","darksalmon","crimson","sandybrown","lightpink","seashell"].sort()}
 import groovy.json.JsonSlurper
 
@@ -386,6 +387,13 @@ def getContactData() {
     }
     return resp
 }
+def getRelativeHumidityMeasurementData() {
+	def resp = []
+    relativeHumidityMeasurements.each {
+        resp << [name: it.displayName, value: it.currentHumidity, battery: getBatteryInfo(it), eventlog: getEventsOfDevice(it)];
+    }
+    return resp
+}
 def getPresenceData() {
 	def resp = []
     def eventlogData = []
@@ -496,6 +504,7 @@ def getStatus() {
     def thermoData = getThermoData()
     def mainDisplay = getMainDisplayData()
     def musicData = getMusicPlayerData()
+    def relativeHumidityMeasurementData = getRelativeHumidityMeasurementData()
     def optionsData = [ "useImages" 				: useImages,
                        "sortSensorsName" 			: sortSensorsName,
                        "sortSensorsActive" 			: sortSensorsActive,
@@ -505,6 +514,7 @@ def getStatus() {
                        "mainMenuMaxItemsSwitches" 	: mainMenuMaxItemsSwitches,
                        "mainMenuMaxItemsMotion" 	: mainMenuMaxItemsMotion,
                        "mainMenuMaxItemsLocks" 		: mainMenuMaxItemsLocks,
+                       "mainMenuMaxItemsRelativeHumidityMeasurements" : mainMenuMaxItemsRelativeHumidityMeasurements,
                        "showSensorCount"			: showSensorCount,
                        "mainMenuMaxItemsPresences" 	: mainMenuMaxItemsPresences,
                        "motionActiveEmoji"			: motionActiveEmoji,
@@ -529,7 +539,8 @@ def getStatus() {
                        "hortSeparatorBarBool"       : hortSeparatorBarBool,
                        "batteryWarningPct"			: batteryWarningPct,
                        "batteryWarningPctEmoji"		: batteryWarningPctEmoji,
-                       "shmDisplayBool"				: shmDisplayBool
+                       "shmDisplayBool"				: shmDisplayBool,
+                       "eventsTimeFormat"			: eventsTimeFormat
                       ]
     def resp = [ "Version" : version(),
                 "Alarm Sensors" : alarmData,
@@ -545,6 +556,7 @@ def getStatus() {
                 "Modes" : location.modes,
                 "CurrentMode" : ["name":location.mode],
                 "MainDisplay" : mainDisplay,
+                "RelativeHumidityMeasurements" : relativeHumidityMeasurementData,
                 "Options" : optionsData]
 
     log.debug "getStatus complete"
@@ -636,16 +648,6 @@ def devicesPage() {
 
 		section ("Choose Devices") {
 			paragraph "Select devices that you want to be displayed below the Main Menu Bar (in the BitBar Sub-menu)."
-			input "thermos", "capability.thermostat",
-				title: "Which Thermostats?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "temps", "capability.temperatureMeasurement",
-				title: "Which Temperature Sensors?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
 			input "alarms", "capability.alarmSensor",
 				title: "Which Alarm Sensors?",
 				multiple: true,
@@ -653,6 +655,11 @@ def devicesPage() {
 				required: false
 			input "contacts", "capability.contactSensor",
 				title: "Which Contact Sensors?",
+				multiple: true,
+				hideWhenEmpty: true,
+				required: false
+			input "relativeHumidityMeasurements", "capability.relativeHumidityMeasurement",
+				title: "Which Relative Humidity Measurement Sensors?",
 				multiple: true,
 				hideWhenEmpty: true,
 				required: false
@@ -671,13 +678,23 @@ def devicesPage() {
 				multiple: true,
 				hideWhenEmpty: true,
 				required: false
+			input "presences", "capability.presenceSensor",
+				title: "Which Presence Sensors?",
+				multiple: true,
+				hideWhenEmpty: true,
+				required: false
 			input "switches", "capability.switch",
 				title: "Which Switches?",
 				multiple: true,
 				hideWhenEmpty: true,
 				required: false
-			input "presences", "capability.presenceSensor",
-				title: "Which Presence Sensors?",
+			input "temps", "capability.temperatureMeasurement",
+				title: "Which Temperature Sensors?",
+				multiple: true,
+				hideWhenEmpty: true,
+				required: false
+			input "thermos", "capability.thermostat",
+				title: "Which Thermostats?",
 				multiple: true,
 				hideWhenEmpty: true,
 				required: false
@@ -805,6 +822,9 @@ def categoryPage() {
         section("Optional: Number of Items per ST Sensor category to display in the Main Menu before moving additional sensors to a More... sub-menu.  Leave these number fields blank for Auto-Size (Show only Active Sensors in Main Menu)") {
             input "mainMenuMaxItemsContacts", "number",
                 title: "Min Number of Contact Sensors to Display - Leave blank to Auto-Size",
+                required: false
+            input "mainMenuMaxItemsRelativeHumidityMeasurements", "number",
+                title: "Min Number of Relative Humidity Measurement Sensors to Display - Leave blank to Auto-Size",
                 required: false
             input "mainMenuMaxItemsLocks", "number",
                 title: "Min Number of Locks to Display - Leave blank to Auto-Size",

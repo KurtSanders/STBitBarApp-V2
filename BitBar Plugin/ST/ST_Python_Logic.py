@@ -15,7 +15,7 @@ sys.setdefaultencoding('utf8')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 2.31  # Must be float or Int
+PythonVersion = 2.32  # Must be float or Int
 ##################################
 
 
@@ -220,6 +220,7 @@ try:
     mainDisplay     = j['MainDisplay']
     musicplayers    = j['Music Players']
     locks           = j['Locks']
+    relativeHumidityMeasurements = j['RelativeHumidityMeasurements']
     presences       = j['Presence Sensors']
     thermostats     = j['Thermostats']
     routines        = j['Routines']
@@ -237,6 +238,7 @@ except KeyError, e:
 
 def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
     strLen = len(tempList)-1
+    if strLen <0: return
     for x in range(0, strLen):
         curSplitRecord = tempList[x]['date'].split()
         if x == 0:
@@ -251,9 +253,13 @@ def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
                 prefix, curSplitRecord[0], curSplitRecord[1], curSplitRecord[2]
             ), buildFontOptions(3)
             sys.stdout.write("--")
-        print "--{}{} {} {} = {}{}".format(
-            prefix, curSplitRecord[3], curSplitRecord[4], curSplitRecord[5], tempList[x]['value'],
-            valueSuffix), buildFontOptions(3)
+        if eventsTimeFormat == "12 Hour Clock Format with AM/PM":
+            print "--{}{} {} {} = {}{}".format(
+                prefix, curSplitRecord[3], curSplitRecord[4], curSplitRecord[5], tempList[x]['value'], valueSuffix), \
+                buildFontOptions(3)
+        else:
+            print "--{}{} {} = {}{}".format(
+                prefix, curSplitRecord[3], curSplitRecord[4], tempList[x]['value'], valueSuffix), buildFontOptions(3)
     return
 
 
@@ -281,6 +287,8 @@ subMenuFontColor            = getOptions("subMenuFontColor","Black")
 subMenuMoreColor            = getOptions("subMenuMoreColor","black")
 hortSeparatorBarBool        = getOptions("hortSeparatorBarBool",True)
 shmDisplayBool              = getOptions("shmDisplayBool",True)
+eventsTimeFormat            = getOptions("eventsTimeFormat","12 Hour Clock Format with AM/PM")
+
 # Read Temperature Formatting Settings
 numberOfDecimals            = verifyInteger(getOptions("numberOfDecimals","0"),0)
 
@@ -332,6 +340,7 @@ mainMenuMaxItemsDict = {
     "Switches"      : None,
     "Motion"        : None,
     "Locks"         : None,
+    "RelativeHumidityMeasurements" : None,
     "Presences"     : None
     }
 mainMenuAutoSizeDict = {}
@@ -346,6 +355,7 @@ for sensorName in mainMenuMaxItemsDict:
     else:
         mainMenuAutoSizeDict[sensorName] = False
 
+
 # Sort Sensors & Values in Dictionary/Lists
 if sortSensorsName is True:
     sortkey = 'name'
@@ -356,6 +366,7 @@ if sortSensorsName is True:
     mainDisplay = sorted(mainDisplay, key=lambda k: k[sortkey])
     musicplayers = sorted(musicplayers, key=lambda k: k[sortkey])
     locks = sorted(locks, key=lambda k: k[sortkey])
+    relativeHumidityMeasurements = sorted(relativeHumidityMeasurements, key=lambda k: k[sortkey])
     presences = sorted(presences, key=lambda k: k[sortkey])
     modes = sorted(modes, key=lambda k: k[sortkey])
     routines = sorted(routines)
@@ -366,6 +377,7 @@ if sortSensorsActive is True or mainMenuAutoSize is True:
     switches = sorted(switches, key=lambda k: k[sortkey], reverse=True)
     motion = sorted(motion, key=lambda k: k[sortkey], reverse=True)
     locks = sorted(locks, key=lambda k: k[sortkey], reverse=True)
+    relativeHumidityMeasurements = sorted(relativeHumidityMeasurements, key=lambda k: k[sortkey], reverse=True)
     presences = sorted(presences, key=lambda k: k[sortkey], reverse=True)
     musicplayers = sorted(musicplayers, key=lambda k: k['status'])
 
@@ -445,6 +457,10 @@ for sensor in motion:
 for sensor in locks:
     if len(sensor['name']) > maxLength:
         maxLength = len(sensor['name'])
+for sensor in relativeHumidityMeasurements:
+    if len(sensor['name']) > maxLength:
+        maxLength = len(sensor['name'])
+
 # Increment maxLength by one since contact sensor icon needs to be pulled back a little
 maxLength += 1
 
@@ -617,16 +633,46 @@ if countSensors > 0:
             subMenuText = "--"
         print subMenuText, sensor['name'], whiteSpace, currentValue + degree_symbol, \
             buildFontOptions(3), colorText
-
         eventGroupByDate(
             [d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°"
         )
+        if sensor['battery'] != 'N/A':
+            if sensor['battery'][1] != "": colorText = "color=red"
+            print subMenuText, sensor['name'], whiteSpace, formatPercentage(
+                sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3) + " alternate=true", colorText
+        colorSwitch = not colorSwitch
 
-#        for event in sensor['eventlog']:
-#            if event['name'] == 'temperature':
-#                print subMenuText + '--' + event['date'], \
-#                    '{:>3}'.format(formatter.formatNumber(float(event['value']))) \
-#                    + degree_symbol, buildFontOptions(3)
+# Output relativeHumidityMeasurements Sensors
+sensorName = "RelativeHumidityMeasurements"
+countSensors = len(relativeHumidityMeasurements)
+if countSensors > 0:
+    hortSeparatorBar()
+    menuTitle = "Relative Humidity Sensors"
+    mainTitle = menuTitle
+    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+    print "{} {}".format(mainTitle, buildFontOptions())
+    colorSwitch = False
+    mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
+    subMenuText = ''
+    for i, sensor in enumerate(relativeHumidityMeasurements):
+        currentLength = len(sensor['name'])
+        extraLength = maxLength - currentLength
+        whiteSpace = ''
+        for x in range(0, extraLength): whiteSpace += ' '
+        colorText = ''
+        currentValue = formatter.formatNumber(sensor['value'])
+        colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+        if i == mainMenuMaxItems:
+            # noinspection PyTypeChecker
+            print "{} More...{}".format(countSensors - mainMenuMaxItems, buildFontOptions(2))
+            if not subMenuCompact:
+                # noinspection PyTypeChecker
+                print "--{} ({})".format(menuTitle,str(countSensors - mainMenuMaxItems)), buildFontOptions()
+            subMenuText = "--"
+        print subMenuText, sensor['name'], whiteSpace, currentValue + "%", buildFontOptions(3), colorText
+        eventGroupByDate(
+            [d for d in sensor['eventlog'] if d['name'] in "humidity"], subMenuText, "%"
+        )
 
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
