@@ -15,7 +15,7 @@ sys.setdefaultencoding('utf8')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 2.32  # Must be float or Int
+PythonVersion = 2.33  # Must be float or Int
 ##################################
 
 
@@ -344,14 +344,14 @@ mainMenuMaxItemsDict = {
     "Presences"     : None
     }
 mainMenuAutoSizeDict = {}
-mainMenuAutoSize = False
+# mainMenuAutoSize = False
 
 for sensorName in mainMenuMaxItemsDict:
     mainMenuMaxItemsDict[sensorName] = options.get("mainMenuMaxItems" + sensorName, None)
     if mainMenuMaxItemsDict[sensorName] is None:
         mainMenuMaxItemsDict[sensorName] = 999
         mainMenuAutoSizeDict[sensorName] = True
-        mainMenuAutoSize = True
+#        mainMenuAutoSize = True
     else:
         mainMenuAutoSizeDict[sensorName] = False
 
@@ -371,13 +371,15 @@ if sortSensorsName is True:
     modes = sorted(modes, key=lambda k: k[sortkey])
     routines = sorted(routines)
 
-if sortSensorsActive is True or mainMenuAutoSize is True:
+# if sortSensorsActive is True or mainMenuAutoSize is True:
+if sortSensorsActive is True:
     sortkey = 'value'
+    temps = sorted(temps, key=lambda k: k[sortkey])
     contacts = sorted(contacts, key=lambda k: k[sortkey], reverse=True)
     switches = sorted(switches, key=lambda k: k[sortkey], reverse=True)
     motion = sorted(motion, key=lambda k: k[sortkey], reverse=True)
     locks = sorted(locks, key=lambda k: k[sortkey], reverse=True)
-    relativeHumidityMeasurements = sorted(relativeHumidityMeasurements, key=lambda k: k[sortkey], reverse=True)
+    relativeHumidityMeasurements = sorted(relativeHumidityMeasurements, key=lambda k: k[sortkey])
     presences = sorted(presences, key=lambda k: k[sortkey], reverse=True)
     musicplayers = sorted(musicplayers, key=lambda k: k['status'])
 
