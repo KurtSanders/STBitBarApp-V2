@@ -1,7 +1,7 @@
 /**
  *  BitBar Output App
  *
- *  Copyright 2017 Kurt Sanders
+ *  Copyright 2018 Kurt Sanders
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -23,8 +23,8 @@
  // V 1.6 Merge changes from @kurtsanders adding presence and motion capability
  // V 1.7 Added Routine changes capability from @kurtsanders
  // V 1.8 Add multiple thermostat support
- // V 2.0 Application Migrated & Converted to Use KurtSanders GitHub after repeatedly asking
- //       original developer to pull merge requests without any responses
+ // V 2.0 Application Migrated & Converted to use the "KurtSanders" GitHub after repeatedly asking
+ //       original developer to pull merge requests without any responses.  All code is V2 is now maintained by Kurt Sanders
  // V 2.0 Moved all MacOS display options to the SmartApp, Added Sort by Activity, Changed Version Logic,
  //       Added 'About' SubMenu for Version Checking
  //       Local config file only requires the SmartThings URL and Secret
@@ -45,13 +45,17 @@
  // V 2.31 Added Music Players with extended information
  //        Added Smart Home Monitor Status and State Change
  // V 2.32 Added Humidity Sensors, Fixed Military Time Bug
+ // V 2.33 No Changes, matched version to Python code
+ // V 3.0  Added Sort Direction Capabilities, Favorite Devices, Supress EventLog Display
+
 
 // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
 // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
 //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
-def version() { return "2.32" } // Must be a Floating Number String "2.1", "2.01", "2.113"
+def version() { return "3.00" } // Must be a Floating Number String "2.1", "2.01", "2.113"
 def colorChoiceList() { return ["lightseagreen","floralwhite","lightgray","darkgoldenrod","paleturquoise","goldenrod","skyblue","indianred","darkgray","khaki","blue","darkred","lightyellow","midnightblue","chartreuse","lightsteelblue","slateblue","firebrick","moccasin","salmon","sienna","slategray","teal","lightsalmon","pink","burlywood","gold","springgreen","lightcoral","black","blueviolet","chocolate","aqua","darkviolet","indigo","darkcyan","orange","antiquewhite","peru","silver","purple","saddlebrown","lawngreen","dodgerblue","lime","linen","lightblue","darkslategray","lightskyblue","mintcream","olive","hotpink","papayawhip","mediumseagreen","mediumspringgreen","cornflowerblue","plum","seagreen","palevioletred","bisque","beige","darkorchid","royalblue","darkolivegreen","darkmagenta","orange red","lavender","fuchsia","darkseagreen","lavenderblush","wheat","steelblue","lightgoldenrodyellow","lightcyan","mediumaquamarine","turquoise","dark blue","darkorange","brown","dimgray","deeppink","powderblue","red","darkgreen","ghostwhite","white","navajowhite","navy","ivory","palegreen","whitesmoke","gainsboro","mediumslateblue","olivedrab","mediumpurple","darkslateblue","blanchedalmond","darkkhaki","green","limegreen","snow","tomato","darkturquoise","orchid","yellow","green yellow","azure","mistyrose","cadetblue","oldlace","gray","honeydew","peachpuff","tan","thistle","palegoldenrod","mediumorchid","rosybrown","mediumturquoise","lemonchiffon","maroon","mediumvioletred","violet","yellow green","coral","lightgreen","cornsilk","mediumblue","aliceblue","forestgreen","aquamarine","deepskyblue","lightslategray","darksalmon","crimson","sandybrown","lightpink","seashell"].sort()}
 import groovy.json.JsonSlurper
+//import groovy.json.JsonBuilder
 
 definition(
     name: "BitBar Output App",
@@ -367,7 +371,7 @@ def getAlarmData() {
 	def resp = []
     alarms.each {
         resp << [name: it.displayName, value: it.currentAlarm, battery: getBatteryInfo(it)];
-        log.debug "Alarm: ${resp}"
+//        log.debug "Alarm: ${resp}"
     }
     resp << [ name: "shm", value: state.shm]
     return resp
@@ -540,7 +544,10 @@ def getStatus() {
                        "batteryWarningPct"			: batteryWarningPct,
                        "batteryWarningPctEmoji"		: batteryWarningPctEmoji,
                        "shmDisplayBool"				: shmDisplayBool,
-                       "eventsTimeFormat"			: eventsTimeFormat
+                       "eventsTimeFormat"			: eventsTimeFormat,
+                       "favoriteDevices"			: favoriteDevices,
+                       "eventsShow"					: eventsShow,
+                       "sortTemperatureAscending"	: (sortTemperatureAscending == null) ? false : sortTemperatureAscending
                       ]
     def resp = [ "Version" : version(),
                 "Alarm Sensors" : alarmData,
@@ -850,10 +857,15 @@ def categoryPage() {
 
 def eventsPage() {
     dynamicPage(name:"eventsPage", hideWhenEmpty: true) {
-        section("Optional: Event History Options for Devices") {
+        section("Optional: Display Event History for Devices") {
+            input "eventsShow", "bool",
+                title: "Events: Show Event History?",
+                required: false
+                }
+        section(hideable: true, hidden: true, "Optional: Event History Options for Devices") {
             input "eventsMax", "number",
-                title: "Events: Maximum number of Device Events to Display [Default: 25, Max 100]",
-                default: "25",
+                title: "Events: Maximum number of Device Events to Display [Default: 10, Max 100]",
+                default: "10",
                 required: false
             input "eventsDays", "number",
                 title: "Events: Number of Days from Today to Retrieve Device Events [Default: 1, Max 7]",
@@ -917,6 +929,10 @@ def optionsPage() {
             input "matchOutputNumberOfDecimals", "bool",
                 title: "Match all temperature sensor values with the same amount of decimals",
                 required: true
+            input "sortTemperatureAscending", "bool",
+                title: "Sort all temperature sensor values in High -> Low (decending) direction. Default: Low -> High",
+                default: false,
+                required: false
         }
         section("Optional: Number of Devices per ST Sensor category to display") {
             href name: "categoryPageLink", title: "Number of Devices per ST Sensor Categories to Display Options", description: "", page: "categoryPage"
@@ -924,12 +940,20 @@ def optionsPage() {
         section("Optional: Event History and Battery Level Options for Devices") {
             href name: "eventsPageLink", title: "Event History and Battery Level Options", description: "", page: "eventsPage"
         }
-        section("Optional: Sensor Status Emoji Display Options") {
-            href name: "iconsPageLink", title: "Sensor Status Icon Display Settings", description: "", page: "iconsPage"
-        }
         section("Optional: Font Names, Pitch Size and Colors") {
             href name: "fontsPageLink", title: "BitBar Output Menu Text Display Settings", description: "", page: "fontsPage"
         }
+        section("Optional: Sensor Status Emoji Display Options") {
+            href name: "iconsPageLink", title: "Sensor Status Icon Display Settings", description: "", page: "iconsPage"
+        }
+        section("Optional: Select Favorite Devices") {
+            input "favoriteDevices", "enum",
+                title: "Select Favorite Devices",
+                options: getAllDevices(),
+                required: false,
+                multiple: true
+        }
+
     }
 }
 
@@ -953,15 +977,18 @@ private initializeAppEndpoint() {
 def getEventsOfDevice(device) {
 //   log.debug "Start: state.eventsDays = ${state.eventsDays}"
 //   log.debug "Start: state.eventsMax = ${state.eventsMax}"
+
+    if (eventsShow==null || eventsShow==false) {return}
+
     if (state.eventsDays==null) {
-    	state.eventsDays = 7
+    	state.eventsDays = 1
 //        log.debug "Null: state.eventsDays = ${state.eventsDays}"
         }
     if (state.eventsMax==null) {
-    	state.eventsMax = 100
+    	state.eventsMax = 10
 //        log.debug "Null: state.eventsMax = ${state.eventsMax}"
         }
-    if (state.eventsDays > 7) {state.eventsDays = 7}
+    if (state.eventsDays > 7) {state.eventsDays = 1}
     if (state.eventsMax > 100) {state.eventsMax = 100}
 
 //    log.debug "StartQuery: state.eventsDays = ${state.eventsDays}"
@@ -970,4 +997,32 @@ def getEventsOfDevice(device) {
 	def then = timeToday(today.format("HH:mm"), TimeZone.getTimeZone('UTC')) - state.eventsDays
     def timeFormatString = eventsTimeFormat=="12 Hour Clock Format with AM/PM"?'EEE MMM dd hh:mm a z':'EEE MMM dd HH:mm z'
 	device.eventsBetween(then, today, [max: state.eventsMax])?.findAll{"$it.source" == "DEVICE"}?.collect{[date: it.date.format(timeFormatString , location.timeZone), name: it.name, value: it.value]}
+}
+
+private getAllDevices() {
+    //contactSensors + presenceSensors + temperatureSensors + accelerationSensors + waterSensors + lightSensors + humiditySensors
+     def dev_list =
+     	([] + switches
+        + dimmers
+        + motions
+        + accelerations
+        + contacts
+        + illuminants
+        + temps
+        + relativeHumidityMeasurements
+        + locks
+        + alarms
+        + batteries
+        + thermos
+        + medias
+        + musicplayers
+        + speeches
+        + colors
+        + valves
+        + waters
+        + presences
+        + leaks)?.findAll()?.unique { it.id }
+        dev_list = dev_list.collect{ it.toString() }
+//        log.debug dev_list
+        return dev_list.sort()
 }

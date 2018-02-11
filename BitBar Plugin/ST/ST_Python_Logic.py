@@ -6,16 +6,22 @@ import re
 import subprocess
 import sys
 import time
+import tempfile
 from subprocess import check_output
 from urlparse import urlparse
 import urllib
+import locale
+
 reload(sys)
 sys.setdefaultencoding('utf8')
+locale.setlocale(locale.LC_ALL, '')
 
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 2.33  # Must be float or Int
+PythonVersion = 3.00  # Must be float or Int
+
+
 ##################################
 
 
@@ -160,7 +166,7 @@ smartAppURL = cfgGetValue('smartAppURL', "", True)
 secret = cfgGetValue('secret', "", True)
 
 # Set URLs
-statusURL = smartAppURL + "GetStatus/?pythonAppVersion="+PythonVersion.__str__() + "&path=" + sys.argv[0]
+statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + PythonVersion.__str__() + "&path=" + sys.argv[0]
 contactURL = smartAppURL + "ToggleSwitch/?id="
 levelURL = smartAppURL + "SetLevel/?id="
 musicplayerURL = smartAppURL + "SetMusicPlayer/?id="
@@ -212,21 +218,21 @@ if "error" in j:
 
 # Get the sensor arrays from the JSON data
 try:
-    alarms          = j['Alarm Sensors']
-    temps           = j['Temp Sensors']
-    contacts        = j['Contact Sensors']
-    switches        = j['Switches']
-    motion          = j['Motion Sensors']
-    mainDisplay     = j['MainDisplay']
-    musicplayers    = j['Music Players']
-    locks           = j['Locks']
+    alarms = j['Alarm Sensors']
+    temps = j['Temp Sensors']
+    contacts = j['Contact Sensors']
+    switches = j['Switches']
+    motion = j['Motion Sensors']
+    mainDisplay = j['MainDisplay']
+    musicplayers = j['Music Players']
+    locks = j['Locks']
     relativeHumidityMeasurements = j['RelativeHumidityMeasurements']
-    presences       = j['Presence Sensors']
-    thermostats     = j['Thermostats']
-    routines        = j['Routines']
-    modes           = j['Modes']
-    currentmode     = j['CurrentMode']
-    options         = j['Options']
+    presences = j['Presence Sensors']
+    thermostats = j['Thermostats']
+    routines = j['Routines']
+    modes = j['Modes']
+    currentmode = j['CurrentMode']
+    options = j['Options']
 
 except KeyError, e:
     print "Error in ST API Data"
@@ -236,9 +242,11 @@ except KeyError, e:
     raise SystemExit(0)
 
 
+# noinspection PyShadowingNames
 def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
-    strLen = len(tempList)-1
-    if strLen <0: return
+    strLen = len(tempList) - 1
+    if strLen < 0: return
+    # noinspection PyShadowingNames
     for x in range(0, strLen):
         curSplitRecord = tempList[x]['date'].split()
         if x == 0:
@@ -246,7 +254,7 @@ def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
                 prefix, curSplitRecord[0], curSplitRecord[1], curSplitRecord[2]
             ), buildFontOptions(3)
             sys.stdout.write("--")
-        elif curSplitRecord[2] == tempList[x-1]['date'].split()[2]:
+        elif curSplitRecord[2] == tempList[x - 1]['date'].split()[2]:
             sys.stdout.write("--")
         else:
             print "--{}{} {} {}".format(
@@ -264,43 +272,58 @@ def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
 
 
 # Set User Display Options sent from BitBar Output SmartApp
-useImages                   = getOptions("useImages",True)
-sortSensorsName             = getOptions("sortSensorsName",True)
-subMenuCompact              = getOptions("subMenuCompact",False)
-sortSensorsActive           = getOptions("sortSensorsActive",True)
-showSensorCount             = getOptions("showSensorCount",True)
-motionActiveEmoji           = getOptions("motionActiveEmoji",'⇠⇢')
-motionInactiveEmoji         = getOptions("motionInactiveEmoji",'⇢⇠')
-contactOpenEmoji            = getOptions("contactOpenEmoji",'⇠⇢')
-contactClosedEmoji          = getOptions("contactClosedEmoji",'⇢⇠')
-presenscePresentEmoji       = getOptions("presenscePresentEmoji",':house:')
-presensceNotPresentEmoji    = getOptions("presensceNotPresentEmoji",':x:')
-presenceDisplayMode         = getOptions("presenceDisplayMode", 0)
-mainFontName                = "'{}'".format(getOptions("mainFontName","Menlo"))
-mainFontSize                = getOptions("mainFontSize","14").__str__()
-fixedPitchFontSize          = getOptions("fixedPitchFontSize", "14").__str__()
-fixedPitchFontName          = "'{}' ".format(getOptions("fixedPitchFontName", "Menlo"))
-fixedPitchFontColor         = getOptions("fixedPitchFontColor","Black")
-subMenuFontName             = "'{}'".format(getOptions("subMenuFontName","Monaco"))
-subMenuFontSize             = getOptions("subMenuFontSize","14").__str__()
-subMenuFontColor            = getOptions("subMenuFontColor","Black")
-subMenuMoreColor            = getOptions("subMenuMoreColor","black")
-hortSeparatorBarBool        = getOptions("hortSeparatorBarBool",True)
-shmDisplayBool              = getOptions("shmDisplayBool",True)
-eventsTimeFormat            = getOptions("eventsTimeFormat","12 Hour Clock Format with AM/PM")
+useImages = getOptions("useImages", True)
+sortSensorsName = getOptions("sortSensorsName", True)
+subMenuCompact = getOptions("subMenuCompact", False)
+sortSensorsActive = getOptions("sortSensorsActive", True)
+showSensorCount = getOptions("showSensorCount", True)
+motionActiveEmoji = getOptions("motionActiveEmoji", '⇠⇢')
+motionInactiveEmoji = getOptions("motionInactiveEmoji", '⇢⇠')
+contactOpenEmoji = getOptions("contactOpenEmoji", '⇠⇢')
+contactClosedEmoji = getOptions("contactClosedEmoji", '⇢⇠')
+presenscePresentEmoji = getOptions("presenscePresentEmoji", ':house:')
+presensceNotPresentEmoji = getOptions("presensceNotPresentEmoji", ':x:')
+presenceDisplayMode = getOptions("presenceDisplayMode", 0)
+mainFontName = "'{}'".format(getOptions("mainFontName", "Menlo"))
+mainFontSize = getOptions("mainFontSize", "14").__str__()
+fixedPitchFontSize = getOptions("fixedPitchFontSize", "14").__str__()
+fixedPitchFontName = "'{}' ".format(getOptions("fixedPitchFontName", "Menlo"))
+fixedPitchFontColor = getOptions("fixedPitchFontColor", "Black")
+subMenuFontName = "'{}'".format(getOptions("subMenuFontName", "Monaco"))
+subMenuFontSize = getOptions("subMenuFontSize", "14").__str__()
+subMenuFontColor = getOptions("subMenuFontColor", "Black")
+subMenuMoreColor = getOptions("subMenuMoreColor", "black")
+hortSeparatorBarBool = getOptions("hortSeparatorBarBool", True)
+shmDisplayBool = getOptions("shmDisplayBool", True)
+eventsTimeFormat = getOptions("eventsTimeFormat", "12 Hour Clock Format with AM/PM")
+sortTemperatureAscending = getOptions("sortTemperatureAscending", False)
+favoriteDevices = getOptions("favoriteDevices", None)
+
+if favoriteDevices is not None:
+    favoriteDevicesBool = True
+    original_stdout = sys.stdout
+    favoriteDevicesOutputDict = {}
+    #    temp_filename = tempfile._get_default_tempdir() + next(tempfile._get_candidate_names())
+    #    fo = open(temp_filename, 'w')
+    fo = tempfile.TemporaryFile()
+    sys.stdout = fo
+else:
+    favoriteDevicesBool = False
 
 # Read Temperature Formatting Settings
-numberOfDecimals            = verifyInteger(getOptions("numberOfDecimals","0"),0)
+numberOfDecimals = verifyInteger(getOptions("numberOfDecimals", "0"), 0)
 
 matchOutputNumberOfDecimals = getOptions("matchOutputNumberOfDecimals", False)
-colorSwitch                 = True
-smallFontPitchSize          = "size={}".format(int(fixedPitchFontSize) - 2)
-alarmStates                 = ['away', 'off', 'stay']
+colorSwitch = True
+smallFontPitchSize = "size={}".format(int(fixedPitchFontSize) - 2)
+alarmStates = ['away', 'off', 'stay']
+
 
 # Generates a Horizontal Separator Bar if desired by GUI
 def hortSeparatorBar():
-    if hortSeparatorBarBool:print "---"
+    if hortSeparatorBarBool: print "---"
     return
+
 
 # Check if MacOS is in DarkMode
 # noinspection PyBroadException
@@ -320,13 +343,14 @@ def buildFontOptions(level=1):
         return " | font={} size={}".format(mainFontName, mainFontSize)
     # Level 1: SubMenu Titles (default)
     elif level == 1:
-        return " | font={} size={} color={} ".format(subMenuFontName,subMenuFontSize, subMenuFontColor)
+        return " | font={} size={} color={} ".format(subMenuFontName, subMenuFontSize, subMenuFontColor)
     # Level 2: SubMenu More Text
     elif level == 2:
         return " | font={} size={} color={} ".format(subMenuFontName, subMenuFontSize, subMenuMoreColor)
     # Level 3: Data Fixed Pitch Text
     elif level == 3:
-        return " | font={} size={} color={} ".format(fixedPitchFontName, fixedPitchFontSize, fixedPitchFontColor)
+        return " | font={} size={} color={} ".format(fixedPitchFontName, fixedPitchFontSize,
+                                                     fixedPitchFontColor)
     # Level >3: No Formatting
     else:
         return " | "
@@ -334,15 +358,15 @@ def buildFontOptions(level=1):
 
 # Setup the Main Menu and Sub Menu Display Relationship
 mainMenuMaxItemsDict = {
-    "Temps"         : None,
-    "MusicPlayers"  : None,
-    "Contacts"      : None,
-    "Switches"      : None,
-    "Motion"        : None,
-    "Locks"         : None,
-    "RelativeHumidityMeasurements" : None,
-    "Presences"     : None
-    }
+    "Temps"                       : None,
+    "MusicPlayers"                : None,
+    "Contacts"                    : None,
+    "Switches"                    : None,
+    "Motion"                      : None,
+    "Locks"                       : None,
+    "RelativeHumidityMeasurements": None,
+    "Presences"                   : None
+}
 mainMenuAutoSizeDict = {}
 # mainMenuAutoSize = False
 
@@ -351,10 +375,9 @@ for sensorName in mainMenuMaxItemsDict:
     if mainMenuMaxItemsDict[sensorName] is None:
         mainMenuMaxItemsDict[sensorName] = 999
         mainMenuAutoSizeDict[sensorName] = True
-#        mainMenuAutoSize = True
+    #        mainMenuAutoSize = True
     else:
         mainMenuAutoSizeDict[sensorName] = False
-
 
 # Sort Sensors & Values in Dictionary/Lists
 if sortSensorsName is True:
@@ -370,11 +393,13 @@ if sortSensorsName is True:
     presences = sorted(presences, key=lambda k: k[sortkey])
     modes = sorted(modes, key=lambda k: k[sortkey])
     routines = sorted(routines)
+    if favoriteDevicesBool:
+        favoriteDevices = sorted(favoriteDevices, cmp=locale.strcoll)
 
 # if sortSensorsActive is True or mainMenuAutoSize is True:
 if sortSensorsActive is True:
     sortkey = 'value'
-    temps = sorted(temps, key=lambda k: k[sortkey])
+    temps = sorted(temps, key=lambda k: k[sortkey], reverse=sortTemperatureAscending)
     contacts = sorted(contacts, key=lambda k: k[sortkey], reverse=True)
     switches = sorted(switches, key=lambda k: k[sortkey], reverse=True)
     motion = sorted(motion, key=lambda k: k[sortkey], reverse=True)
@@ -432,11 +457,11 @@ if mainDisplay[0]['name'] is not None and mainDisplay[0]['name'] != "N/A":
     formattedMainDisplay += mainDisplay[0]['name'] + ":"
 
 # Check if there is a value
-if isinstance(mainDisplay[0]['value'],int) or isinstance(mainDisplay[0]['value'],float):
+if isinstance(mainDisplay[0]['value'], int) or isinstance(mainDisplay[0]['value'], float):
     formattedMainDisplay += formatter.formatNumber(mainDisplay[0]['value']) + degree_symbol
 if formattedMainDisplay == '':
     formattedMainDisplay = "ST BitBar"
-print "{} {} {}".format(formattedMainDisplay.encode('utf-8'),buildFontOptions(0), thermoColor)
+print "{} {} {}".format(formattedMainDisplay.encode('utf-8'), buildFontOptions(0), thermoColor)
 
 # Find the max length sensor so values are lined up correctly
 maxLength = 0
@@ -480,58 +505,58 @@ print '---'
 if len(thermostats) > 0:
     # noinspection SpellCheckingInspection
     thermoImage = ("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"
-    "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"
+                   "SUNDIHByb2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUEG8igiAOOjoCMFVEs"
+                   "DIoK2AfkIaKOg6OIisr74Xuja9a89+bN/rXXPues852zzwfACAyWSDNRNYAMqUIeEeCDx8TG4eQuQIEKJHAAEAizZCFz/SMBAPh+PDwrIsAHvgAB"
+                   "eNMLCADATZvAMByH/w/qQplcAYCEAcB0kThLCIAUAEB6jkKmAEBGAYCdmCZTAKAEAGDLY2LjAFAtAGAnf+bTAICd+Jl7AQBblCEVAaCRACATZYhEA"
+                   "Gg7AKzPVopFAFgwABRmS8Q5ANgtADBJV2ZIALC3AMDOEAuyAAgMADBRiIUpAAR7AGDIIyN4AISZABRG8lc88SuuEOcqAAB4mbI8uSQ5RYFbCC1xB1"
+                   "dXLh4ozkkXKxQ2YQJhmkAuwnmZGTKBNA/g88wAAKCRFRHgg/P9eM4Ors7ONo62Dl8t6r8G/yJiYuP+5c+rcEAAAOF0ftH+LC+zGoA7BoBt/qIl7gR"
+                   "oXgugdfeLZrIPQLUAoOnaV/Nw+H48PEWhkLnZ2eXk5NhKxEJbYcpXff5nwl/AV/1s+X48/Pf14L7iJIEyXYFHBPjgwsz0TKUcz5IJhGLc5o9H/L"
+                   "cL//wd0yLESWK5WCoU41EScY5EmozzMqUiiUKSKcUl0v9k4t8s+wM+3zUAsGo+AXuRLahdYwP2SycQWHTA4vcAAPK7b8HUKAgDgGiD4c93/+8//Ue"
+                   "gJQCAZkmScQAAXkQkLlTKsz/HCAAARKCBKrBBG/TBGCzABhzBBdzBC/xgNoRCJMTCQhBCCmSAHHJgKayCQiiGzbAdKmAv1EAdNMBRaIaTcA4uwlW4"
+                   "Dj1wD/phCJ7BKLyBCQRByAgTYSHaiAFiilgjjggXmYX4IcFIBBKLJCDJiBRRIkuRNUgxUopUIFVIHfI9cgI5h1xGupE7yAAygvyGvEcxlIGyUT3UD"
+                   "LVDuag3GoRGogvQZHQxmo8WoJvQcrQaPYw2oefQq2gP2o8+Q8cwwOgYBzPEbDAuxsNCsTgsCZNjy7EirAyrxhqwVqwDu4n1Y8+xdwQSgUXACTYEd0"
+                   "IgYR5BSFhMWE7YSKggHCQ0EdoJNwkDhFHCJyKTqEu0JroR+cQYYjIxh1hILCPWEo8TLxB7iEPENyQSiUMyJ7mQAkmxpFTSEtJG0m5SI+ksqZs0SBo"
+                   "jk8naZGuyBzmULCAryIXkneTD5DPkG+Qh8lsKnWJAcaT4U+IoUspqShnlEOU05QZlmDJBVaOaUt2ooVQRNY9aQq2htlKvUYeoEzR1mjnNgxZJS6Wt"
+                   "opXTGmgXaPdpr+h0uhHdlR5Ol9BX0svpR+iX6AP0dwwNhhWDx4hnKBmbGAcYZxl3GK+YTKYZ04sZx1QwNzHrmOeZD5lvVVgqtip8FZHKCpVKlSaVG"
+                   "yovVKmqpqreqgtV81XLVI+pXlN9rkZVM1PjqQnUlqtVqp1Q61MbU2epO6iHqmeob1Q/pH5Z/YkGWcNMw09DpFGgsV/jvMYgC2MZs3gsIWsNq4Z1gT"
+                   "XEJrHN2Xx2KruY/R27iz2qqaE5QzNKM1ezUvOUZj8H45hx+Jx0TgnnKKeX836K3hTvKeIpG6Y0TLkxZVxrqpaXllirSKtRq0frvTau7aedpr1Fu1n"
+                   "7gQ5Bx0onXCdHZ4/OBZ3nU9lT3acKpxZNPTr1ri6qa6UbobtEd79up+6Ynr5egJ5Mb6feeb3n+hx9L/1U/W36p/VHDFgGswwkBtsMzhg8xTVxbzwdL"
+                   "8fb8VFDXcNAQ6VhlWGX4YSRudE8o9VGjUYPjGnGXOMk423GbcajJgYmISZLTepN7ppSTbmmKaY7TDtMx83MzaLN1pk1mz0x1zLnm+eb15vft2BaeF"
+                   "ostqi2uGVJsuRaplnutrxuhVo5WaVYVVpds0atna0l1rutu6cRp7lOk06rntZnw7Dxtsm2qbcZsOXYBtuutm22fWFnYhdnt8Wuw+6TvZN9un2N/T0"
+                   "HDYfZDqsdWh1+c7RyFDpWOt6azpzuP33F9JbpL2dYzxDP2DPjthPLKcRpnVOb00dnF2e5c4PziIuJS4LLLpc+Lpsbxt3IveRKdPVxXeF60vWdm7Ob"
+                   "wu2o26/uNu5p7ofcn8w0nymeWTNz0MPIQ+BR5dE/C5+VMGvfrH5PQ0+BZ7XnIy9jL5FXrdewt6V3qvdh7xc+9j5yn+M+4zw33jLeWV/MN8C3yLfLT"
+                   "8Nvnl+F30N/I/9k/3r/0QCngCUBZwOJgUGBWwL7+Hp8Ib+OPzrbZfay2e1BjKC5QRVBj4KtguXBrSFoyOyQrSH355jOkc5pDoVQfujW0Adh5mGLw3"
+                   "4MJ4WHhVeGP45wiFga0TGXNXfR3ENz30T6RJZE3ptnMU85ry1KNSo+qi5qPNo3ujS6P8YuZlnM1VidWElsSxw5LiquNm5svt/87fOH4p3iC+N7F5gv"
+                   "yF1weaHOwvSFpxapLhIsOpZATIhOOJTwQRAqqBaMJfITdyWOCnnCHcJnIi/RNtGI2ENcKh5O8kgqTXqS7JG8NXkkxTOlLOW5hCepkLxMDUzdmzqeFp"
+                   "p2IG0yPTq9MYOSkZBxQqohTZO2Z+pn5mZ2y6xlhbL+xW6Lty8elQfJa7OQrAVZLQq2QqboVFoo1yoHsmdlV2a/zYnKOZarnivN7cyzytuQN5z"
+                   "vn//tEsIS4ZK2pYZLVy0dWOa9rGo5sjxxedsK4xUFK4ZWBqw8uIq2Km3VT6vtV5eufr0mek1rgV7ByoLBtQFr6wtVCuWFfevc1+1dT1gvWd+1YfqG"
+                   "nRs+FYmKrhTbF5cVf9go3HjlG4dvyr+Z3JS0qavEuWTPZtJm6ebeLZ5bDpaql+aXDm4N2dq0Dd9WtO319kXbL5fNKNu7g7ZDuaO/PLi8ZafJzs07P"
+                   "1SkVPRU+lQ27tLdtWHX+G7R7ht7vPY07NXbW7z3/T7JvttVAVVN1WbVZftJ+7P3P66Jqun4lvttXa1ObXHtxwPSA/0HIw6217nU1R3SPVRSj9Yr60"
+                   "cOxx++/p3vdy0NNg1VjZzG4iNwRHnk6fcJ3/ceDTradox7rOEH0x92HWcdL2pCmvKaRptTmvtbYlu6T8w+0dbq3nr8R9sfD5w0PFl5SvNUyWna6YL"
+                   "Tk2fyz4ydlZ19fi753GDborZ752PO32oPb++6EHTh0kX/i+c7vDvOXPK4dPKy2+UTV7hXmq86X23qdOo8/pPTT8e7nLuarrlca7nuer21e2b36Rue"
+                   "N87d9L158Rb/1tWeOT3dvfN6b/fF9/XfFt1+cif9zsu72Xcn7q28T7xf9EDtQdlD3YfVP1v+3Njv3H9qwHeg89HcR/cGhYPP/pH1jw9DBY+Zj8uGD"
+                   "Ybrnjg+OTniP3L96fynQ89kzyaeF/6i/suuFxYvfvjV69fO0ZjRoZfyl5O/bXyl/erA6xmv28bCxh6+yXgzMV70VvvtwXfcdx3vo98PT+R8IH8"
+                   "o/2j5sfVT0Kf7kxmTk/8EA5jz/GMzLdsAAAAgY0hSTQAAeiUAAICDAAD5/wAAgOkAAHUwAADqYAAAOpgAABdvkl/FRgAAAplJREFUeNq0lj+IXFUU"
+                   "xn/fuffNTGJkIY0QQRRslGAErSQEm1hsIdjYCGpllc7Kws42jSJiLSKIptNCBIOCYGEhEtRCAgaxUIi6u+7szLvns5jZ7LpFZoYZv1s9ONwf57vnz"
+                   "5Nt7qbHLzwGQEQg2P7r9t+vhtiKUq6pxFuIncPYH3786a53VRYoWwLQ+vbEwf749RBvlkG90ab91RC9Iq4CjSW0ELa3s3sYd0nSN6WUDzBEiXcwL7"
+                   "jPc8CtjcAiAiAQnaQ/jbHB1m2JCSJYUpXllZKKgZaJIJAkic3DDBgLOLxeZiUtbQEzioxJe85eTXXFeNKmRMzIx7LcMEyAevC9iK2QmpP8f2zE+xE"
+                   "6U6K82/r2dUhPKbRr8LKWxuJ85sfqM/Os0w9h3W/rYYHnZynaQhuPlbYwtm1w2m7IK5Xk4nHlO8+iUJzohQ1X47HM/N9vbR52bClImmfqGWrjfaYT"
+                   "vkniaC2t1tqLMzu6zELMBtYdxEq0xQUCnBoN1fo2zEwjJwZES9MNuy5q11Fq2URTC+OLmbkt6QZmC1yxf8vWD8EvShouM/2XgPnBg/HBa8Zfgrdtn"
+                   "wcxnUxf6Wr9bjKZXsrM55bZNQthg66+7OTnzHy079tlSWg2Os71fX+l1vrVeDx+fjKZPrI2zC3P1678YvvZWSsY20gimx9ozlFrbWtvd/fy2gXSbH"
+                   "W1650uJ//EjGnTHgPDwWC4dmalxE3b91l8mnm0UTKTUsrvUcofrW/7CdfXhrXW3mv99EnbX5RSP2duY5T4dTAavIF4+vSZez5pmd9uYFz5+1Lr2+"
+                   "7blQhdJ+pnBDUzp+N/xs+cOj26ORgO3297ra0NAzJCH1LLrcx8CXOBhJZtfzQafVxr/cj2zjIT5N8BAHKxU5l8uYd2AAAAAElFTkSuQmCC"
                    )
     thermoModeList = ["auto", "cool", "heat", "off"]
     for i, thermostat in enumerate(thermostats):
         if "thermostatMode" in thermostat and \
-                        "thermostatOperatingState" in thermostat:
+                "thermostatOperatingState" in thermostat:
             setpointText = ''
             setpointAction = ' @ '
             currentSetpoint = 0
             # Set the action text based on operation state
             # Example: cooling to 75, idle @ 72, heating to 68
             if thermostat['thermostatOperatingState'] == 'cooling' or thermostat['thermostatOperatingState'] \
-                == 'heating' : setpointAction = ' to '
+                    == 'heating': setpointAction = ' to '
             # Pick the correction setpoint value
             if thermostat['thermostatMode'] == 'cool':
                 currentSetpoint = thermostat['coolingSetpoint']
@@ -543,7 +568,7 @@ if len(thermostats) > 0:
                 if thermostat['thermostatOperatingState'] == 'heating':
                     currentSetpoint = thermostat['heatingSetpoint']
             # Set the display string
-            if thermostat['thermostatOperatingState'] not in ["idle","off"]:
+            if thermostat['thermostatOperatingState'] not in ["idle", "off"]:
                 setpointText = "(" + str(thermostat['thermostatOperatingState']) + setpointAction + str(
                     currentSetpoint) + degree_symbol + ")"
             else:
@@ -563,8 +588,8 @@ if len(thermostats) > 0:
                 for thermoMode in thermoModeList:
                     if thermoMode != thermostat['thermostatMode']:
                         print "----{}".format(TitleCase(thermoMode)), buildFontOptions(3), \
-                            "bash=" + callbackScript, " param1=request param2=" + thermoModeURL +\
-                            thermoMode.lower(), " param3=" + secret, ' terminal=false refresh=true'
+                            "bash=" + callbackScript, " param1=request param2=" + thermoModeURL + thermoMode.lower(), \
+                            " param3=" + secret, ' terminal=false refresh=true'
             # Cooling Setpoint Menu
             if "coolingSetpoint" in thermostat:
                 if thermostat['coolingSetpoint'] is not None:
@@ -575,12 +600,12 @@ if len(thermostats) > 0:
                     print "----Change Setpoint | ", smallFontPitchSize
                     for c in range(currentCoolingSetPoint - 5, currentCoolingSetPoint):
                         id = currentCoolingSetPoint - c
-                        print "----", str(c) + degree_symbol, buildFontOptions(3),\
+                        print "----", str(c) + degree_symbol, buildFontOptions(3), \
                             "color=", numberToColorGrad(id, "blue"), \
                             "bash=", callbackScript, " param1=request param2=", str(
                             coolSetpointURL + str(c)), " param3=", secret, " terminal=false refresh=true"
                     print "----", str(currentCoolingSetPoint) + degree_symbol, "(current)|color=", \
-                        numberToColorGrad(0,"blue")
+                        numberToColorGrad(0, "blue")
                     for c in range(currentCoolingSetPoint + 1, currentCoolingSetPoint + 6):
                         print "----", str(c) + degree_symbol, buildFontOptions(3), "color=gray", \
                             "bash=", callbackScript, " param1=request param2=", str(
@@ -591,7 +616,7 @@ if len(thermostats) > 0:
                     heatingSetpointURL = currentThermoURL + "&type=heatingSetpoint&val="
                     currentHeatingSetPoint = int(thermostat['heatingSetpoint'])
                     print "--Heating Set Point (" + str(currentHeatingSetPoint) + degree_symbol + ")", \
-                        buildFontOptions(3),"color=red"
+                        buildFontOptions(3), "color=red"
                     print "----Change Setpoint | ", smallFontPitchSize
                     for c in range(currentHeatingSetPoint + 5, currentHeatingSetPoint, -1):
                         id = c - currentHeatingSetPoint
@@ -600,7 +625,7 @@ if len(thermostats) > 0:
                             "bash=" + callbackScript, " param1=request param2=" + str(
                             heatingSetpointURL + str(c)), " param3=" + secret, " terminal=false refresh=true"
                     print "----", str(currentHeatingSetPoint) + degree_symbol, "(current)|color=", \
-                        numberToColorGrad(0,"red")
+                        numberToColorGrad(0, "red")
                     for c in range(currentHeatingSetPoint - 1, currentHeatingSetPoint - 6, -1):
                         print "----", str(c) + degree_symbol, buildFontOptions(3), "color=gray", \
                             "bash=" + callbackScript, " param1=request param2=" + str(
@@ -631,13 +656,18 @@ if countSensors > 0:
             print "{} More...{}".format(countSensors - mainMenuMaxItems, buildFontOptions(2))
             if not subMenuCompact:
                 # noinspection PyTypeChecker
-                print "--{} ({})".format(menuTitle,str(countSensors - mainMenuMaxItems)), buildFontOptions()
+                print "--{} ({})".format(menuTitle, str(countSensors - mainMenuMaxItems)), buildFontOptions()
             subMenuText = "--"
         print subMenuText, sensor['name'], whiteSpace, currentValue + degree_symbol, \
             buildFontOptions(3), colorText
-        eventGroupByDate(
-            [d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°"
-        )
+        if sensor['name'] in favoriteDevices:
+            # noinspection PyUnboundLocalVariable
+            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                        currentValue + degree_symbol + buildFontOptions(3) + colorText
+        if sensor['eventlog'] is not None:
+            eventGroupByDate(
+                [d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°"
+            )
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -669,12 +699,16 @@ if countSensors > 0:
             print "{} More...{}".format(countSensors - mainMenuMaxItems, buildFontOptions(2))
             if not subMenuCompact:
                 # noinspection PyTypeChecker
-                print "--{} ({})".format(menuTitle,str(countSensors - mainMenuMaxItems)), buildFontOptions()
+                print "--{} ({})".format(menuTitle, str(countSensors - mainMenuMaxItems)), buildFontOptions()
             subMenuText = "--"
         print subMenuText, sensor['name'], whiteSpace, currentValue + "%", buildFontOptions(3), colorText
-        eventGroupByDate(
-            [d for d in sensor['eventlog'] if d['name'] in "humidity"], subMenuText, "%"
-        )
+        if sensor['name'] in favoriteDevices:
+            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                        currentValue + "%" + buildFontOptions(3) + colorText
+        if sensor['eventlog'] is not None:
+            eventGroupByDate(
+                [d for d in sensor['eventlog'] if d['name'] in "humidity"], subMenuText, "%"
+            )
 
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
@@ -707,18 +741,19 @@ if len(routines) > 0:
     for i, routine in enumerate(routines):
         colorText = ''
         colorText = 'color=#333333' if colorSwitch else 'color=#666666'
-        currentRoutineURL = routineURL+urllib.quote(routine.encode('utf8'))
+        currentRoutineURL = routineURL + urllib.quote(routine.encode('utf8'))
         print "--• " + routine, buildFontOptions(3), colorText, ' bash=', callbackScript, ' param1=request param2=', \
             currentRoutineURL, ' param3=', secret, ' terminal=false refresh=true'
         colorSwitch = not colorSwitch
 
 # Output Smart Home Monitor
+shmCurrentState = None
 if shmDisplayBool:
     colorText = ''
     for i, alarm in enumerate(alarms):
         if alarm['name'] == 'shm':
             shmCurrentState = alarm['value']
-# Verify the SHM is configured:
+    # Verify the SHM is configured:
     if shmCurrentState != "unconfigured":
         print "--Smart Home Monitor (Select to Change)" + buildFontOptions()
         for alarmState in alarmStates:
@@ -730,7 +765,7 @@ if shmDisplayBool:
                 currentAlarmURL = alarmURL + alarmState
                 currentAlarmStateDisplay = ""
                 currentAlarmURL = 'bash= ' + callbackScript + ' param1=request param2=' + currentAlarmURL + \
-                ' param3=' + secret + ' terminal=false refresh=true'
+                                  ' param3=' + secret + ' terminal=false refresh=true'
             print "--• {}{}".format(alarmState.title(), currentAlarmStateDisplay), buildFontOptions(3), \
                 colorText, currentAlarmURL
             colorSwitch = not colorSwitch
@@ -763,14 +798,18 @@ if countSensors > 0:
         colorText = 'color=#333333' if colorSwitch else 'color=#666666'
         if i == mainMenuMaxItems:
             print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
-            if not subMenuCompact: print "--{} ({})".format(menuTitle,str(countSensors - mainMenuMaxItems)), \
+            if not subMenuCompact: print "--{} ({})".format(menuTitle, str(countSensors - mainMenuMaxItems)), \
                 buildFontOptions()
             subMenuText = "--"
         print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3), colorText
-        eventGroupByDate(
-            [d for d in sensor['eventlog'] if d['name'] in ['status','contact','acceleration']],
-            subMenuText, ""
-        )
+        if sensor['name'] in favoriteDevices:
+            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                        sym + buildFontOptions(3) + colorText
+        if sensor['eventlog'] is not None:
+            eventGroupByDate(
+                [d for d in sensor['eventlog'] if d['name'] in ['status', 'contact', 'acceleration']],
+                subMenuText, ""
+            )
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -808,16 +847,19 @@ if countSensors > 0:
             if not subMenuCompact: print "-- " + menuTitle + " (" + str(countSensors - mainMenuMaxItems) + ")"
             subMenuText = "--"
         print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3), colorText
+        if sensor['name'] in favoriteDevices:
+            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                        sym + buildFontOptions(3) + colorText
+        if sensor['eventlog'] is not None:
+            eventGroupByDate(
+                [d for d in sensor['eventlog'] if d['name'] in 'motion'],
+                subMenuText, ""
+            )
 
-        eventGroupByDate(
-            [d for d in sensor['eventlog'] if d['name'] in 'motion'],
-            subMenuText, ""
-        )
-
-#        for event in sensor['eventlog']:
-#            if event['name'] == 'motion':
-#                sym = motionInactiveEmoji if event['value'] == 'inactive' else motionActiveEmoji
-#                print subMenuText + '--' + event['date'], sym, buildFontOptions(3)
+        #        for event in sensor['eventlog']:
+        #            if event['name'] == 'motion':
+        #                sym = motionInactiveEmoji if event['value'] == 'inactive' else motionActiveEmoji
+        #                print subMenuText + '--' + event['date'], sym, buildFontOptions(3)
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -868,12 +910,14 @@ if countSensors > 0:
             notPresentMenuText = "--"
         colorText = 'color=#333333' if colorSwitch else 'color=#666666'
         print subMenuText + notPresentMenuText, sensor['name'], whiteSpace, emoji, buildFontOptions(3), colorText
-
-        eventGroupByDate(
-            [d for d in sensor['eventlog'] if d['name'] in 'presence'],
-            subMenuText, ""
-        )
-
+        if sensor['name'] in favoriteDevices:
+            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                        emoji + buildFontOptions(3) + colorText
+        if sensor['eventlog'] is not None:
+            eventGroupByDate(
+                [d for d in sensor['eventlog'] if d['name'] in 'presence'],
+                subMenuText, ""
+            )
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText + notPresentMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -1008,17 +1052,21 @@ if countSensors > 0:
             print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3) + colorText + 'bash=', \
                 callbackScript, ' param1=request param2=', currentLockURL, ' param3=', \
                 secret, ' terminal=false refresh=true'
-        eventGroupByDate(
-            [d for d in sensor['eventlog'] if d['value'] in ['locked','armed', 'unlocked', 'disarmed']],
-            subMenuText, ""
-        )
-#        for event in sensor['eventlog']:
-#            if event['value'] in ['locked','armed', 'unlocked', 'disarmed']:
-#                if event['value'] in ['locked', 'armed']:
-#                    emoji = ':closed_lock_with_key:'
-#                else:
-#                    emoji = ':door:'
-#                print subMenuText + "--" + event['date'], emoji, buildFontOptions(3)
+        if sensor['name'] in favoriteDevices:
+            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                        sym + buildFontOptions(3) + colorText
+        if sensor['eventlog'] is not None:
+            eventGroupByDate(
+                [d for d in sensor['eventlog'] if d['value'] in ['locked', 'armed', 'unlocked', 'disarmed']],
+                subMenuText, ""
+            )
+        #        for event in sensor['eventlog']:
+        #            if event['value'] in ['locked','armed', 'unlocked', 'disarmed']:
+        #                if event['value'] in ['locked', 'armed']:
+        #                    emoji = ':closed_lock_with_key:'
+        #                else:
+        #                    emoji = ':door:'
+        #                print subMenuText + "--" + event['date'], emoji, buildFontOptions(3)
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             if useImages is True:
@@ -1030,7 +1078,6 @@ if countSensors > 0:
                     sensor['battery'][0]) + sensor['battery'][1], \
                     buildFontOptions(3) + " alternate=true", colorText
         colorSwitch = not colorSwitch
-
 
 # Set base64 images for status green/red
 greenImage = ("iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABR0AAAUdAG5O1bwAAAKT2lDQ1BQaG90b3Nob3AgSUNDI"
@@ -1178,10 +1225,16 @@ if countSensors > 0:
             print subMenuText, sensor[
                 'name'], buildFontOptions(3) + colorText + ' bash=', callbackScript, ' param1=request param2=', \
                 currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true image=', img
+            if sensor['name'] in favoriteDevices:
+                favoriteDevicesOutputDict[sensor['name']] = sym + " " + sensor['name'] + buildFontOptions(3) + colorText
         else:
             print subMenuText, sensor[
                 'name'], whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
                 ' param1=request param2=', currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true'
+            if sensor['name'] in favoriteDevices:
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + sym + \
+                                                            buildFontOptions(3) + colorText + ' image= ' + img
+
         if sensor['isDimmer'] is True:
             subMenuText = subMenuText + '--'
             print subMenuText + 'Set Dimmer Level', buildFontOptions(3), smallFontPitchSize
@@ -1197,12 +1250,11 @@ if countSensors > 0:
             print subMenuText + "-- Event History", buildFontOptions(3)
             indent = '--'
         colorSwitch = not colorSwitch
-
-        eventGroupByDate(
-            [d for d in sensor['eventlog'] if d['name'] in ['door', 'switch']],
-            subMenuText + indent, ""
-        )
-
+        if sensor['eventlog'] is not None:
+            eventGroupByDate(
+                [d for d in sensor['eventlog'] if d['name'] in ['door', 'switch']],
+                subMenuText + indent, ""
+            )
 
 # Output MusicPlayers
 sensorName = "MusicPlayers"
@@ -1216,7 +1268,9 @@ if countSensors > 0:
     print mainTitle, buildFontOptions()
     mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
     subMenuText = ''
+    # noinspection PyShadowingNames
     musicplayers = sorted(musicplayers, key=lambda x: x['name'], reverse=False)
+    # noinspection PyShadowingNames
     for i, sensor in enumerate(sorted(musicplayers, key=lambda x: x['groupBool'], reverse=False)):
         currentLength = len(sensor['name'])
         extraLength = maxLength - currentLength
@@ -1239,28 +1293,34 @@ if countSensors > 0:
                 menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions(2)
             )
             subMenuText = "--"
-        if sensor['groupBool']: sensor['name'] += " - {}{}".format('Grouped',sensor['trackDescription'][1])
+        if sensor['groupBool']: sensor['name'] += " - {}{}".format('Grouped', sensor['trackDescription'][1])
         if useImages is True:
             print subMenuText, sensor['name'], buildFontOptions(3) + colorText, 'image=', img
         else:
             print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3) + colorText
+
+        if sensor['name'] in favoriteDevices:
+            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + \
+                                                        whiteSpace + " " + sym + buildFontOptions(3) + colorText
+
         if sensor['level'] is not None:
             print "{}--*Volume Level: ({})".format(subMenuText, sensor['level']), buildFontOptions(3)
             print "{}----Set Music Level".format(subMenuText), buildFontOptions(3), smallFontPitchSize
             currentLevel = 0
-            while currentLevel <=100:
+            while currentLevel <= 100:
                 currentMusicPlayerURL = musicplayerURL + sensor['id'] + '&command=' + 'level'
-                print "{}----{}".format(subMenuText,currentLevel), \
-                    buildFontOptions(3), 'bash=' + callbackScript, 'param1=request param2=' \
-                   + currentMusicPlayerURL, ' param3=' + secret, ' terminal=false refresh=true'
+                print "{}----{}".format(subMenuText, currentLevel), buildFontOptions(3), \
+                    'bash=' + callbackScript, 'param1=request param2=' + currentMusicPlayerURL, \
+                    ' param3=' + secret, ' terminal=false refresh=true'
                 currentLevel += 10
         if sensor['mute'] is not None:
             command = "mute" if sensor['mute'] is "unmuted" else "unmute"
             print "{}--*Mute : {}".format(subMenuText, TitleCase(sensor['mute'])), \
-            buildFontOptions(3), 'bash=' + callbackScript, 'param1=request param2=' + musicplayerURL + \
-            sensor['id'] + '&command=' + command, ' param3=' + secret, 'terminal=false refresh=true'
+                buildFontOptions(3), 'bash=' + callbackScript, \
+                'param1=request param2=' + musicplayerURL + sensor['id'] + '&command=' + command, \
+                ' param3=' + secret, 'terminal=false refresh=true'
         if sensor['trackDescription'] is not None:
-#           Check for Music Player playing a Streaming Live Radio Station
+            #           Check for Music Player playing a Streaming Live Radio Station
             m = re.search('^x-sonosapi-hls:(.+)\?', sensor['trackDescription'][0])
             if m:
                 sensor['trackDescription'][0] = m.group(1)
@@ -1269,11 +1329,11 @@ if countSensors > 0:
             print "{}--{}  {}".format(
                 subMenuText, "Track:", sensor['trackDescription'][0]), buildFontOptions(3), "font=9"
         if sensor["trackData"] is not None:
-                for key, value in sensor["trackData"].items():
-                    if key in ["album", "status", "name", "artist", "station", "trackNumber"]:
-                        if value is not None:
-                            print "{}--{}: {}".format(subMenuText, TitleCase(key), TitleCase(value)), \
-                                buildFontOptions(3)
+            for key, value in sensor["trackData"].items():
+                if key in ["album", "status", "name", "artist", "station", "trackNumber"]:
+                    if value is not None:
+                        print "{}--{}: {}".format(subMenuText, TitleCase(key), TitleCase(value)), \
+                            buildFontOptions(3)
         colorSwitch = not colorSwitch
 
 # Configuration Options
@@ -1297,7 +1357,28 @@ print "--Launch Browser to View STBitBarAPP-V2 " + j['Version'] + " GitHub Softw
       + buildFontOptions() + openParamBuilder(
     "open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
 print "--Download ST_Python_Logic.py v{:1.2f}".format(PythonVersion) \
-      + " to your 'Downloads' directory " + buildFontOptions(),\
-    "bash="+callbackScript, ' param1=github_ST_Python_Logic terminal=false'
+      + " to your 'Downloads' directory " + buildFontOptions(), \
+    "bash=" + callbackScript, ' param1=github_ST_Python_Logic terminal=false'
 print "--Download ST.5m.sh to your 'Downloads' directory " + buildFontOptions(), \
-    "bash="+callbackScript, ' param1=github_ST5MSH terminal=false'
+    "bash=" + callbackScript, ' param1=github_ST5MSH terminal=false'
+
+if favoriteDevicesBool:
+    # noinspection PyUnboundLocalVariable
+    sys.stdout = original_stdout
+    # noinspection PyUnboundLocalVariable
+    fo.seek(0, 0)
+    for x in range(0, 2):
+        print fo.readline()[:-1]
+    countSensors = len(favoriteDevices)
+    mainTitle = "My Favorite Devices"
+    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+    print mainTitle, buildFontOptions()
+    for key in favoriteDevices:
+        # noinspection PyBroadException
+        try:
+            print favoriteDevicesOutputDict[key]
+        except:
+            continue
+    hortSeparatorBar()
+    print fo.read()
+    fo.close()
