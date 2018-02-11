@@ -2,15 +2,14 @@
 import ConfigParser
 import decimal
 import json
+import locale
 import re
 import subprocess
 import sys
-import time
 import tempfile
-from subprocess import check_output
-from urlparse import urlparse
 import urllib
-import locale
+import urllib2
+from urlparse import urlparse
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -19,9 +18,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.00  # Must be float or Int
-
-
+PythonVersion = 3.01  # Must be float or Int
 ##################################
 
 
@@ -164,6 +161,7 @@ cfgFileObj = Setting(cfgFileName)
 cfgGetValue = cfgFileObj.get_setting
 smartAppURL = cfgGetValue('smartAppURL', "", True)
 secret = cfgGetValue('secret', "", True)
+header = {"Authorization": "Bearer " + secret}
 
 # Set URLs
 statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + PythonVersion.__str__() + "&path=" + sys.argv[0]
@@ -182,30 +180,31 @@ alarmURL = smartAppURL + "SetAlarm/?id="
 callbackScript = sys.argv[1]
 
 # Make the call the to the API and retrieve JSON data
-attempt = 0
-maxRetries = 10
-connected = False
-output = None
-while connected is False:
-    try:
-        # print 'curl', '-s', statusURL, '-H', 'Authorization: Bearer ' + secret
-        output = check_output(['curl', '-s', statusURL, '-H', 'Authorization: Bearer ' + secret])
-        connected = True
-    except subprocess.CalledProcessError as grepexc:
-        attempt += 1
-        if attempt == maxRetries:
-            print "Unable to Connect to SmartThings"
-            print "---"
-            print "Please check connection and try again (⌘R)"
-            print "Debug information: Error code ", grepexc.returncode, grepexc.output
-            raise SystemExit(0)
-        time.sleep(3)
-        continue
+# Create the urllib2 Request
+request = urllib2.Request(statusURL, None, header)
+# Getting the response
+try:
+    response = urllib2.urlopen(request)
+except urllib2.HTTPError as err:
+    print ":ghost:"
+    print "Error Communicating with ST API, {}".format(err)
+    print '---'
+    exit(99)
+
+# Check for Return Code Status
+# noinspection PyUnboundLocalVariable
+if response.code != 200:
+    print ":ghost:"
+    print "Error Communicating with ST API, HTTP rc={}".format(response.code)
+    print response.content
+    print '---'
+    exit(99)
 
 # Parse the JSON data
-j = json.loads(output)
-
+j = json.loads(response.read())
 # API Return Error Handling
+
+
 if "error" in j:
     print "Error while communicating with ST API"
     print '---'
@@ -238,7 +237,6 @@ except KeyError, e:
     print "Error in ST API Data"
     print "---"
     print "Error Details: ", e
-    print "Source Data: ", output
     raise SystemExit(0)
 
 
@@ -325,10 +323,10 @@ def hortSeparatorBar():
     return
 
 
-# Check if MacOS is in DarkMode
+# Check if MacOS is in Dark Mode
 # noinspection PyBroadException
 try:
-    if "Dark" in check_output(['defaults', 'read', '-g', 'AppleInterfaceStyle'], stderr=subprocess.STDOUT):
+    if not subprocess.call("defaults read -g AppleInterfaceStyle  > /dev/null 2>&1", shell=True):
         if "black" in subMenuFontColor.lower(): subMenuFontColor = "white"
         if "black" in subMenuMoreColor.lower(): subMenuMoreColor = "white"
         if "black" in fixedPitchFontColor.lower(): fixedPitchFontColor = "white"
@@ -431,7 +429,6 @@ except KeyError, e:
     print "Error in ST API Data | color=red"
     print "---"
     print "Error Details: ", e
-    print "Source Data: ", output
     raise SystemExit(0)
 
 # Create a new NumberFormatter object
@@ -1349,6 +1346,11 @@ for option in sorted(options.iterkeys()):
     print printFormatString.format(
         option, options[option] if options[option] is not None else "{Default Set in GUI}", buildFontOptions(3)
     )
+# Get the ST rateLimits from the returned headers
+print "------SmartThings HTTP Server Response", buildFontOptions()
+for response_info_name in response.info():
+    if response_info_name[0:6] == 'x-rate':
+        print printFormatString.format(response_info_name, response.info()[response_info_name], buildFontOptions(3))
 print "--Launch TextEdit " + cfgFileName + buildFontOptions() + openParamBuilder(
     "open -e " + cfgFileName) + ' terminal=false'
 print "--Launch SmartThings IDE" + buildFontOptions() + openParamBuilder(
