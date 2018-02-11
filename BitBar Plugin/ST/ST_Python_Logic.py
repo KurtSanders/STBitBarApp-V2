@@ -18,7 +18,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.01  # Must be float or Int
+PythonVersion = 3.02  # Must be float or Int
 ##################################
 
 
@@ -657,7 +657,7 @@ if countSensors > 0:
             subMenuText = "--"
         print subMenuText, sensor['name'], whiteSpace, currentValue + degree_symbol, \
             buildFontOptions(3), colorText
-        if sensor['name'] in favoriteDevices:
+        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             # noinspection PyUnboundLocalVariable
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         currentValue + degree_symbol + buildFontOptions(3) + colorText
@@ -699,7 +699,7 @@ if countSensors > 0:
                 print "--{} ({})".format(menuTitle, str(countSensors - mainMenuMaxItems)), buildFontOptions()
             subMenuText = "--"
         print subMenuText, sensor['name'], whiteSpace, currentValue + "%", buildFontOptions(3), colorText
-        if sensor['name'] in favoriteDevices:
+        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         currentValue + "%" + buildFontOptions(3) + colorText
         if sensor['eventlog'] is not None:
@@ -799,7 +799,7 @@ if countSensors > 0:
                 buildFontOptions()
             subMenuText = "--"
         print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3), colorText
-        if sensor['name'] in favoriteDevices:
+        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         sym + buildFontOptions(3) + colorText
         if sensor['eventlog'] is not None:
@@ -844,7 +844,7 @@ if countSensors > 0:
             if not subMenuCompact: print "-- " + menuTitle + " (" + str(countSensors - mainMenuMaxItems) + ")"
             subMenuText = "--"
         print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3), colorText
-        if sensor['name'] in favoriteDevices:
+        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         sym + buildFontOptions(3) + colorText
         if sensor['eventlog'] is not None:
@@ -907,7 +907,7 @@ if countSensors > 0:
             notPresentMenuText = "--"
         colorText = 'color=#333333' if colorSwitch else 'color=#666666'
         print subMenuText + notPresentMenuText, sensor['name'], whiteSpace, emoji, buildFontOptions(3), colorText
-        if sensor['name'] in favoriteDevices:
+        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         emoji + buildFontOptions(3) + colorText
         if sensor['eventlog'] is not None:
@@ -1049,7 +1049,7 @@ if countSensors > 0:
             print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3) + colorText + 'bash=', \
                 callbackScript, ' param1=request param2=', currentLockURL, ' param3=', \
                 secret, ' terminal=false refresh=true'
-        if sensor['name'] in favoriteDevices:
+        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         sym + buildFontOptions(3) + colorText
         if sensor['eventlog'] is not None:
@@ -1222,13 +1222,13 @@ if countSensors > 0:
             print subMenuText, sensor[
                 'name'], buildFontOptions(3) + colorText + ' bash=', callbackScript, ' param1=request param2=', \
                 currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true image=', img
-            if sensor['name'] in favoriteDevices:
+            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
                 favoriteDevicesOutputDict[sensor['name']] = sym + " " + sensor['name'] + buildFontOptions(3) + colorText
         else:
             print subMenuText, sensor[
                 'name'], whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
                 ' param1=request param2=', currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true'
-            if sensor['name'] in favoriteDevices:
+            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
                 favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + sym + \
                                                             buildFontOptions(3) + colorText + ' image= ' + img
 
@@ -1296,7 +1296,7 @@ if countSensors > 0:
         else:
             print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3) + colorText
 
-        if sensor['name'] in favoriteDevices:
+        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + \
                                                         whiteSpace + " " + sym + buildFontOptions(3) + colorText
 
