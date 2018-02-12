@@ -18,7 +18,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.02  # Must be float or Int
+PythonVersion = 3.03  # Must be float or Int
 ##################################
 
 
@@ -1274,9 +1274,9 @@ if countSensors > 0:
         whiteSpace = ''
         img = ''
         for x in range(0, extraLength): whiteSpace += ' '
-        if sensor['trackData']['status'] == 'playing':
-            sym = '🔛'
-            img = greenImage
+        if "status" in sensor['trackData'] and sensor['trackData']['status'] == 'playing':
+                sym = '🔛'
+                img = greenImage
         else:
             sym = '🔴'
             img = redImage
