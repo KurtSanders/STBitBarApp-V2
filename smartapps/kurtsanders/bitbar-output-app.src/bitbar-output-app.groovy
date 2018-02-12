@@ -47,12 +47,13 @@
  // V 2.32 Added Humidity Sensors, Fixed Military Time Bug
  // V 2.33 No Changes, matched version to Python code
  // V 3.0  Added Sort Direction Capabilities, Favorite Devices, Supress EventLog Display
+ // V 3.01 Added Debuging Information Option which displays in Live Logging IDE
 
 
 // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
 // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
 //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
-def version() { return "3.00" } // Must be a Floating Number String "2.1", "2.01", "2.113"
+def version() { return "3.01" } // Must be a Floating Number String "2.1", "2.01", "2.113"
 def colorChoiceList() { return ["lightseagreen","floralwhite","lightgray","darkgoldenrod","paleturquoise","goldenrod","skyblue","indianred","darkgray","khaki","blue","darkred","lightyellow","midnightblue","chartreuse","lightsteelblue","slateblue","firebrick","moccasin","salmon","sienna","slategray","teal","lightsalmon","pink","burlywood","gold","springgreen","lightcoral","black","blueviolet","chocolate","aqua","darkviolet","indigo","darkcyan","orange","antiquewhite","peru","silver","purple","saddlebrown","lawngreen","dodgerblue","lime","linen","lightblue","darkslategray","lightskyblue","mintcream","olive","hotpink","papayawhip","mediumseagreen","mediumspringgreen","cornflowerblue","plum","seagreen","palevioletred","bisque","beige","darkorchid","royalblue","darkolivegreen","darkmagenta","orange red","lavender","fuchsia","darkseagreen","lavenderblush","wheat","steelblue","lightgoldenrodyellow","lightcyan","mediumaquamarine","turquoise","dark blue","darkorange","brown","dimgray","deeppink","powderblue","red","darkgreen","ghostwhite","white","navajowhite","navy","ivory","palegreen","whitesmoke","gainsboro","mediumslateblue","olivedrab","mediumpurple","darkslateblue","blanchedalmond","darkkhaki","green","limegreen","snow","tomato","darkturquoise","orchid","yellow","green yellow","azure","mistyrose","cadetblue","oldlace","gray","honeydew","peachpuff","tan","thistle","palegoldenrod","mediumorchid","rosybrown","mediumturquoise","lemonchiffon","maroon","mediumvioletred","violet","yellow green","coral","lightgreen","cornsilk","mediumblue","aliceblue","forestgreen","aquamarine","deepskyblue","lightslategray","darksalmon","crimson","sandybrown","lightpink","seashell"].sort()}
 import groovy.json.JsonSlurper
 //import groovy.json.JsonBuilder
@@ -444,7 +445,6 @@ def getMusicPlayerData() {
         if (it.currentTrackData != null) {
             slurper = new groovy.json.JsonSlurper().parseText(it.currentTrackData)
         }
-//        log.debug "slurper = ${slurper}"
         resp << [
             name				: it.displayName,
             groupBool			: it.currentTrackDescription.contains("Grouped"),
@@ -566,6 +566,17 @@ def getStatus() {
                 "RelativeHumidityMeasurements" : relativeHumidityMeasurementData,
                 "Options" : optionsData]
 
+    if (debugDevices != "null") {
+        log.debug "debugDevices = ${resp."${debugDevices}"}"
+        resp."${debugDevices}".each{
+            k ->
+            k.each{
+                m, n ->
+                if (m == "name") {return}
+                log.debug "${k.name}-> ${m} : ${n}"
+            }
+        }
+    }
     log.debug "getStatus complete"
     return resp
 }
@@ -953,6 +964,14 @@ def optionsPage() {
                 required: false,
                 multiple: true
         }
+        section(hideable: true, hidden: true, "Optional: Debuging") {
+            input "debugDevices", "enum",
+                title: "Select a Category to send Debuging Information to IDE Live Logging Window",
+                options: ["Alarm Sensors", "Temp Sensors", "Contact Sensors", "Presence Sensors", "Motion Sensors", "Switches", "Locks",
+                "Music Players", "Thermostats", "RelativeHumidityMeasurements"].sort(),
+                required: false,
+                multiple: false
+        }
 
     }
 }
@@ -1023,6 +1042,5 @@ private getAllDevices() {
         + presences
         + leaks)?.findAll()?.unique { it.id }
         dev_list = dev_list.collect{ it.toString() }
-//        log.debug dev_list
         return dev_list.sort()
 }
