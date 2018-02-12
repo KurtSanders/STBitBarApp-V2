@@ -187,17 +187,17 @@ try:
     response = urllib2.urlopen(request)
 except urllib2.HTTPError as err:
     print ":ghost:"
-    print "Error Communicating with ST API, {}".format(err)
     print '---'
+    print "Error Communicating with ST API, {}".format(err)
     exit(99)
 
 # Check for Return Code Status
 # noinspection PyUnboundLocalVariable
 if response.code != 200:
     print ":ghost:"
+    print '---'
     print "Error Communicating with ST API, HTTP rc={}".format(response.code)
     print response.content
-    print '---'
     exit(99)
 
 # Parse the JSON data
