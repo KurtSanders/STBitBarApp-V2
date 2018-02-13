@@ -18,7 +18,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.03  # Must be float or Int
+PythonVersion = 3.04  # Must be float or Int
 ##################################
 
 
@@ -185,10 +185,12 @@ request = urllib2.Request(statusURL, None, header)
 # Getting the response
 try:
     response = urllib2.urlopen(request)
-except urllib2.HTTPError as err:
+except (urllib2.HTTPError, urllib2.URLError) as err:
     print ":ghost:"
     print '---'
-    print "Error Communicating with ST API, {}".format(err)
+    print "Error Communicating with ST API"
+    print "{}".format(err)
+    print "Please check your Internet Connectivity and Refresh BitBar again"
     exit(99)
 
 # Check for Return Code Status
