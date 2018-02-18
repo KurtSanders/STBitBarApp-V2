@@ -5,6 +5,7 @@ import json
 import locale
 import re
 import subprocess
+# noinspection PyUnresolvedReferences
 import sys
 import tempfile
 import urllib
@@ -186,36 +187,35 @@ request = urllib2.Request(statusURL, None, header)
 try:
     response = urllib2.urlopen(request)
 except (urllib2.HTTPError, urllib2.URLError) as err:
-    print ":ghost:"
-    print '---'
-    print "Error Communicating with ST API"
-    print "{}".format(err)
-    print "Please check your Internet Connectivity and Refresh BitBar again"
+    print ":rage:"
+    print "---"
+    print ":thumbsdown: Error Communicating with ST API: {}".format(str(err))
+    print "Please check your Internet Connectivity and Refresh BitBar again when Online"
     exit(99)
 
 # Check for Return Code Status
 # noinspection PyUnboundLocalVariable
 if response.code != 200:
-    print ":ghost:"
+    print ":rage:"
     print '---'
-    print "Error Communicating with ST API, HTTP rc={}".format(response.code)
+    print ":thumbsdown: Error Communicating with ST API, HTTP rc={}".format(response.code)
     print response.content
     exit(99)
 
 # Parse the JSON data
 j = json.loads(response.read())
+
 # API Return Error Handling
-
-
 if "error" in j:
-    print "Error while communicating with ST API"
+    print ":rage:"
     print '---'
     if j['error'] == 'invalid_token':
-        print "Please check your SmartApp URL and Secret are both correct and try again."
+        print ":thumbsdown: Please verify that both the SmartApp URL and Secret in ST_Python_Logic.cfg are correct."
+        print " Please re-try again after verification of these strings."
     print "Error Details: ", j['error']
     if "error_description" in j:
-        print "Error Description: ", j['error_description']
-    raise SystemExit(0)
+        print ":thumbsdown: Error Description: ", j['error_description']
+    exit(99)
 
 # Get the sensor arrays from the JSON data
 try:
@@ -236,10 +236,10 @@ try:
     options = j['Options']
 
 except KeyError, e:
-    print "Error in ST API Data"
+    print ":rage:"
     print "---"
-    print "Error Details: ", e
-    raise SystemExit(0)
+    print ":thumbsdown: Json File Error Details: ", e
+    exit(99)
 
 
 # noinspection PyShadowingNames
@@ -662,7 +662,7 @@ if countSensors > 0:
         if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             # noinspection PyUnboundLocalVariable
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
-                                                        currentValue + degree_symbol + buildFontOptions(3) + colorText
+                    currentValue + degree_symbol + buildFontOptions(3) + colorText
         if sensor['eventlog'] is not None:
             eventGroupByDate(
                 [d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°"
@@ -1345,14 +1345,18 @@ print "----BitBar Plugin GUI Options" + buildFontOptions()
 print "------" + sys.argv[0] + buildFontOptions()
 printFormatString = "------{:" + len(max(options, key=len)).__str__() + "} = {} {}"
 for option in sorted(options.iterkeys()):
-    print printFormatString.format(
-        option, options[option] if options[option] is not None else "{Default Set in GUI}", buildFontOptions(3)
-    )
+    if option == 'favoriteDevices' and len(favoriteDevices) > 1 and options[option] is not None:
+        for i, v in enumerate(options[option]):
+                print printFormatString.format(option + "(" + str(i+1) + ")", v, buildFontOptions(3))
+    else:
+        print printFormatString.format(
+            option, options[option] if options[option] is not None else "{Default Set in GUI}", buildFontOptions(3)
+        )
 # Get the ST rateLimits from the returned headers
-print "------SmartThings HTTP Server Response", buildFontOptions()
+print "----SmartThings HTTP Server Response", buildFontOptions()
 for response_info_name in response.info():
     if response_info_name[0:6] == 'x-rate':
-        print printFormatString.format(response_info_name, response.info()[response_info_name], buildFontOptions(3))
+        print "------{:20} = {:>3} {}".format(response_info_name, response.info()[response_info_name], buildFontOptions(3))
 print "--Launch TextEdit " + cfgFileName + buildFontOptions() + openParamBuilder(
     "open -e " + cfgFileName) + ' terminal=false'
 print "--Launch SmartThings IDE" + buildFontOptions() + openParamBuilder(
