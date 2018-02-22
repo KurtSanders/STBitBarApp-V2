@@ -19,7 +19,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.04  # Must be float or Int
+PythonVersion = 3.05  # Must be float or Int
 ##################################
 
 
@@ -1345,7 +1345,7 @@ print "----BitBar Plugin GUI Options" + buildFontOptions()
 print "------" + sys.argv[0] + buildFontOptions()
 printFormatString = "------{:" + len(max(options, key=len)).__str__() + "} = {} {}"
 for option in sorted(options.iterkeys()):
-    if option == 'favoriteDevices' and len(favoriteDevices) > 1 and options[option] is not None:
+    if options[option] is not None and option == 'favoriteDevices' and len(favoriteDevices) > 1:
         for i, v in enumerate(options[option]):
                 print printFormatString.format(option + "(" + str(i+1) + ")", v, buildFontOptions(3))
     else:
