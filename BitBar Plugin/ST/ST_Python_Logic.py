@@ -19,7 +19,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.05  # Must be float or Int
+PythonVersion = 3.10  # Must be float or Int
 ##################################
 
 
@@ -58,6 +58,33 @@ class NumberFormatter:
 def TitleCase(var):
     return var if var is None else var.capitalize()
 
+
+colorHueList = {
+    "White"     : 52,
+    "Daylight"  : 53,
+    "Soft White": 23,
+    "Warm White": 20,
+    "Blue"      : 69,
+    "DarkBlue"  : 70,
+    "Green"     : 39,
+    "Yellow"    : 25,
+    "Orange"    : 10,
+    "Purple"    : 75,
+    "Pink"      : 83,
+    "Cyan"      : 180,
+    "Red"       : 100
+}
+
+
+def getHueLevel(colorMatch):
+    return "{} ({})".format(colorMatch,colorHueList.get(colorMatch, "?"))
+
+
+def getColorNameHue(hueValue):
+    for k, v in colorHueList.iteritems():
+        if hueValue == v:
+            return "({} Hue: {})".format(k, hueValue)
+    return "{}".format(hueValue)
 
 # Format percentages
 def formatPercentage(val):
@@ -168,6 +195,7 @@ header = {"Authorization": "Bearer " + secret}
 statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + PythonVersion.__str__() + "&path=" + sys.argv[0]
 contactURL = smartAppURL + "ToggleSwitch/?id="
 levelURL = smartAppURL + "SetLevel/?id="
+colorURL = smartAppURL + "SetColor/?id="
 musicplayerURL = smartAppURL + "SetMusicPlayer/?id="
 lockURL = smartAppURL + "ToggleLock/?id="
 thermoURL = smartAppURL + "SetThermo/?id="
@@ -244,8 +272,8 @@ except KeyError, e:
 
 # noinspection PyShadowingNames
 def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
-    strLen = len(tempList) - 1
-    if strLen < 0: return
+    strLen = len(tempList)
+    if strLen == 0: return
     # noinspection PyShadowingNames
     for x in range(0, strLen):
         curSplitRecord = tempList[x]['date'].split()
@@ -261,13 +289,18 @@ def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
                 prefix, curSplitRecord[0], curSplitRecord[1], curSplitRecord[2]
             ), buildFontOptions(3)
             sys.stdout.write("--")
+        if tempList[x]['value'] is not None: tempList[x]['value'] = tempList[x]['value'].replace('\n', '')
+        try:
+            tempList[x]['value'] = "{} ({:4.1f})".format(tempList[x]['name'].title(), float(tempList[x]['value']))
+        except (ValueError, TypeError):
+            pass
         if eventsTimeFormat == "12 Hour Clock Format with AM/PM":
             print "--{}{} {} {} = {}{}".format(
                 prefix, curSplitRecord[3], curSplitRecord[4], curSplitRecord[5], tempList[x]['value'], valueSuffix), \
-                buildFontOptions(3)
+                buildFontOptions(4)
         else:
             print "--{}{} {} = {}{}".format(
-                prefix, curSplitRecord[3], curSplitRecord[4], tempList[x]['value'], valueSuffix), buildFontOptions(3)
+                prefix, curSplitRecord[3], curSplitRecord[4], tempList[x]['value'], valueSuffix), buildFontOptions(4)
     return
 
 
@@ -298,6 +331,7 @@ shmDisplayBool = getOptions("shmDisplayBool", True)
 eventsTimeFormat = getOptions("eventsTimeFormat", "12 Hour Clock Format with AM/PM")
 sortTemperatureAscending = getOptions("sortTemperatureAscending", False)
 favoriteDevices = getOptions("favoriteDevices", None)
+colorChoices=getOptions("colorChoices", None)
 
 if favoriteDevices is not None:
     favoriteDevicesBool = True
@@ -315,7 +349,7 @@ numberOfDecimals = verifyInteger(getOptions("numberOfDecimals", "0"), 0)
 
 matchOutputNumberOfDecimals = getOptions("matchOutputNumberOfDecimals", False)
 colorSwitch = True
-smallFontPitchSize = "size={}".format(int(fixedPitchFontSize) - 2)
+smallFontPitchSize = "size={}".format(int(fixedPitchFontSize) - 1)
 alarmStates = ['away', 'off', 'stay']
 
 
@@ -351,7 +385,11 @@ def buildFontOptions(level=1):
     elif level == 3:
         return " | font={} size={} color={} ".format(fixedPitchFontName, fixedPitchFontSize,
                                                      fixedPitchFontColor)
-    # Level >3: No Formatting
+    # Level 4: Data Fixed Pitch Text, Trim=False
+    elif level == 4:
+        return " | font={} trim={} size={} color={} ".format(fixedPitchFontName, False, fixedPitchFontSize,
+                                                             fixedPitchFontColor)
+    # Level >4: No Formatting
     else:
         return " | "
 
@@ -662,7 +700,7 @@ if countSensors > 0:
         if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             # noinspection PyUnboundLocalVariable
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
-                    currentValue + degree_symbol + buildFontOptions(3) + colorText
+                                                        currentValue + degree_symbol + buildFontOptions(3) + colorText
         if sensor['eventlog'] is not None:
             eventGroupByDate(
                 [d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°"
@@ -1184,12 +1222,12 @@ redImage = ("iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABR0AAAUdAG
             "l4KbPZAiYJdZSm0E5viDpAaOOfhhIcjOSNjnrcjeM/CzEIlFsDkYK37SwjFpdJRiNAJuEAdYVcs7K3D4yuF/ppQLQniFK5CZ05ptAKn"
             "M+GbAMMWpiO9UdRJF+zfAQA3jyMbiOE+0gAAAABJRU5ErkJggg==")
 
-# Output Switches
+# Output Switches & Lights
 sensorName = "Switches"
 countSensors = len(switches)
 if countSensors > 0:
     hortSeparatorBar()
-    menuTitle = sensorName
+    menuTitle = "Lights & {}".format(sensorName)
     mainTitle = menuTitle
     subMenuTitle = "More..."
     if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
@@ -1197,6 +1235,9 @@ if countSensors > 0:
     mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
     subMenuText = ''
     for i, sensor in enumerate(switches):
+        thisSensor = sensor["name"]
+        if sensor['isRGB'] is True: thisSensor += " 🌈"
+        if sensor['isDimmer'] is True: thisSensor += " 🔆"
         indent = ""
         currentLength = len(sensor['name'])
         extraLength = maxLength - currentLength
@@ -1204,10 +1245,10 @@ if countSensors > 0:
         img = ''
         for x in range(0, extraLength): whiteSpace += ' '
         if sensor['value'] == 'on':
-            sym = '🔛'
+            sym = " 💚"
             img = greenImage
         else:
-            sym = '🔴'
+            sym = " 🔴"
             img = redImage
             if mainMenuAutoSizeDict[sensorName] is True:
                 if mainMenuMaxItems > i: mainMenuMaxItems = i
@@ -1221,39 +1262,53 @@ if countSensors > 0:
             )
             subMenuText = "--"
         if useImages is True:
-            print subMenuText, sensor[
-                'name'], buildFontOptions(3) + colorText + ' bash=', callbackScript, ' param1=request param2=', \
+            print subMenuText, thisSensor, buildFontOptions(3) + colorText + \
+                ' bash=', callbackScript, ' param1=request param2=', \
                 currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true image=', img
-            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-                favoriteDevicesOutputDict[sensor['name']] = sym + " " + sensor['name'] + buildFontOptions(3) + colorText
         else:
-            print subMenuText, sensor[
-                'name'], whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
+            print subMenuText, thisSensor, whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
                 ' param1=request param2=', currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true'
-            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + sym + \
-                                                            buildFontOptions(3) + colorText + ' image= ' + img
-
+        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
+            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + sym + buildFontOptions(
+                3) + colorText
+        indent = ""
         if sensor['isDimmer'] is True:
             subMenuText = subMenuText + '--'
-            print subMenuText + 'Set Dimmer Level', buildFontOptions(3), smallFontPitchSize
-            currentLevel = 10
-            while True:
+            print subMenuText + '🔆 Current Dimmer Level ({})'.format(sensor["dimmerLevel"]), \
+                buildFontOptions(3), smallFontPitchSize
+            subMenuText = subMenuText + '--'
+            print subMenuText + '🔆 Set Dimmer Level to:', buildFontOptions(3), smallFontPitchSize
+            counter = 1
+            for currentLevel in range(10,110,10):
                 currentLevelURL = levelURL + sensor['id'] + '&level=' + str(currentLevel)
-                print subMenuText + " {}%".format(currentLevel), buildFontOptions(3), 'bash=', callbackScript, \
-                    ' param1=request param2=', currentLevelURL, ' param3=', secret, ' terminal=false refresh=true'
-                if currentLevel is 100:
-                    break
-                currentLevel += 10
-            subMenuText = subMenuText[:-2]
-            print subMenuText + "-- Event History", buildFontOptions(3)
+                print subMenuText + "{:>3}. {:>4}".format(counter, str(currentLevel) + "%"), buildFontOptions(4), \
+                    'bash=', callbackScript, ' param1=request param2=', currentLevelURL, \
+                    ' param3=', secret, ' terminal=false refresh=true'
+                counter += 1
+            subMenuText = subMenuText[:-4]
             indent = '--'
+        if sensor['isRGB'] is True and colorChoices > 0:
+            subMenuText = subMenuText + '--'
+            print subMenuText + '🌈 Current Hue Value {} '.format(getColorNameHue(sensor["hue"])), \
+                buildFontOptions(3), smallFontPitchSize
+            subMenuText = subMenuText + '--'
+            print subMenuText + '🌈 Set Hue to:', buildFontOptions(3), smallFontPitchSize
+            for count, colorChoice in enumerate(colorChoices):
+                if colorChoice == 'White':
+                    colorChoiceSafe = 'Black'
+                else: colorChoiceSafe = colorChoice.split(' ', 1)[0]
+                currentColorURL = colorURL + sensor['id'] + '&colorName=' + urllib.quote(colorChoice.encode('utf8'))
+                print subMenuText + "{:>3}. {} ".format(count+1, getHueLevel(colorChoice)), buildFontOptions(4), \
+                    'bash=', callbackScript, ' param1=request param2=', currentColorURL, ' param3=', secret, \
+                    ' terminal=false refresh=true', \
+                    'color=' + colorChoiceSafe
+            subMenuText = subMenuText[:-4]
+            indent = '--'
+        if len(sensor['eventlog']) != 0:
+            print subMenuText + "-- 🎯 Event History", buildFontOptions(3)
+            eventGroupByDate(sensor['eventlog'], subMenuText + indent, "")
         colorSwitch = not colorSwitch
-        if sensor['eventlog'] is not None:
-            eventGroupByDate(
-                [d for d in sensor['eventlog'] if d['name'] in ['door', 'switch']],
-                subMenuText + indent, ""
-            )
+#        print '==>', sensor["name"], sensor
 
 # Output MusicPlayers
 sensorName = "MusicPlayers"
@@ -1277,8 +1332,8 @@ if countSensors > 0:
         img = ''
         for x in range(0, extraLength): whiteSpace += ' '
         if "status" in sensor['trackData'] and sensor['trackData']['status'] == 'playing':
-                sym = '🔛'
-                img = greenImage
+            sym = '🔛'
+            img = greenImage
         else:
             sym = '🔴'
             img = redImage
@@ -1347,7 +1402,7 @@ printFormatString = "------{:" + len(max(options, key=len)).__str__() + "} = {} 
 for option in sorted(options.iterkeys()):
     if options[option] is not None and option == 'favoriteDevices' and len(favoriteDevices) > 1:
         for i, v in enumerate(options[option]):
-                print printFormatString.format(option + "(" + str(i+1) + ")", v, buildFontOptions(3))
+            print printFormatString.format(option + "(" + str(i + 1) + ")", v, buildFontOptions(3))
     else:
         print printFormatString.format(
             option, options[option] if options[option] is not None else "{Default Set in GUI}", buildFontOptions(3)
@@ -1356,7 +1411,8 @@ for option in sorted(options.iterkeys()):
 print "----SmartThings HTTP Server Response", buildFontOptions()
 for response_info_name in response.info():
     if response_info_name[0:6] == 'x-rate':
-        print "------{:20} = {:>3} {}".format(response_info_name, response.info()[response_info_name], buildFontOptions(3))
+        print "------{:20} = {:>3} {}".format(response_info_name, response.info()[response_info_name],
+                                              buildFontOptions(3))
 print "--Launch TextEdit " + cfgFileName + buildFontOptions() + openParamBuilder(
     "open -e " + cfgFileName) + ' terminal=false'
 print "--Launch SmartThings IDE" + buildFontOptions() + openParamBuilder(
@@ -1380,7 +1436,6 @@ if favoriteDevicesBool:
     countSensors = len(favoriteDevices)
     mainTitle = "My Favorite Devices"
     if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
-    print mainTitle, buildFontOptions()
     for key in favoriteDevices:
         # noinspection PyBroadException
         try:

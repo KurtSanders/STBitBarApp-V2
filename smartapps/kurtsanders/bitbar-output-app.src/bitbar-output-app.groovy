@@ -48,15 +48,16 @@
  // V 2.33 No Changes, matched version to Python code
  // V 3.0  Added Sort Direction Capabilities, Favorite Devices, Supress EventLog Display
  // V 3.01 Added Debuging Information Option which displays in Live Logging IDE
-
+ // V 3.10 Added RGB Support for Device with Color Changes, Added Emoji icons for Device Capabilities of Dimmer and Color Devices
 
 // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
 // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
 //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
-def version() { return "3.01" } // Must be a Floating Number String "2.1", "2.01", "2.113"
-def colorChoiceList() { return ["lightseagreen","floralwhite","lightgray","darkgoldenrod","paleturquoise","goldenrod","skyblue","indianred","darkgray","khaki","blue","darkred","lightyellow","midnightblue","chartreuse","lightsteelblue","slateblue","firebrick","moccasin","salmon","sienna","slategray","teal","lightsalmon","pink","burlywood","gold","springgreen","lightcoral","black","blueviolet","chocolate","aqua","darkviolet","indigo","darkcyan","orange","antiquewhite","peru","silver","purple","saddlebrown","lawngreen","dodgerblue","lime","linen","lightblue","darkslategray","lightskyblue","mintcream","olive","hotpink","papayawhip","mediumseagreen","mediumspringgreen","cornflowerblue","plum","seagreen","palevioletred","bisque","beige","darkorchid","royalblue","darkolivegreen","darkmagenta","orange red","lavender","fuchsia","darkseagreen","lavenderblush","wheat","steelblue","lightgoldenrodyellow","lightcyan","mediumaquamarine","turquoise","dark blue","darkorange","brown","dimgray","deeppink","powderblue","red","darkgreen","ghostwhite","white","navajowhite","navy","ivory","palegreen","whitesmoke","gainsboro","mediumslateblue","olivedrab","mediumpurple","darkslateblue","blanchedalmond","darkkhaki","green","limegreen","snow","tomato","darkturquoise","orchid","yellow","green yellow","azure","mistyrose","cadetblue","oldlace","gray","honeydew","peachpuff","tan","thistle","palegoldenrod","mediumorchid","rosybrown","mediumturquoise","lemonchiffon","maroon","mediumvioletred","violet","yellow green","coral","lightgreen","cornsilk","mediumblue","aliceblue","forestgreen","aquamarine","deepskyblue","lightslategray","darksalmon","crimson","sandybrown","lightpink","seashell"].sort()}
+def version() { return "3.10" } // Must be a Floating Number String "2.1", "2.01", "2.113"
 import groovy.json.JsonSlurper
 //import groovy.json.JsonBuilder
+import java.awt.Color;
+import java.util.ArrayList;
 
 definition(
     name: "BitBar Output App",
@@ -107,54 +108,59 @@ preferences {
 }
 mappings {
 
-  path("/GetStatus/") {
-    action: [
-      GET: "getStatus"
-    ]
-  }
-  path("/ToggleSwitch/") {
-    action: [
-      GET: "toggleSwitch"
-    ]
-  }
-  path("/SetMusicPlayer/") {
-    action: [
-      GET: "setMusicPlayer"
-    ]
-  }
-  path("/SetLevel/") {
-    action: [
-      GET: "setLevel"
-    ]
-  }
+    path("/GetStatus/") {
+        action: [
+            GET: "getStatus"
+        ]
+    }
+    path("/ToggleSwitch/") {
+        action: [
+            GET: "toggleSwitch"
+        ]
+    }
+    path("/SetMusicPlayer/") {
+        action: [
+            GET: "setMusicPlayer"
+        ]
+    }
+    path("/SetLevel/") {
+        action: [
+            GET: "setLevel"
+        ]
+    }
+    path("/SetColor/") {
+        action: [
+            GET: "setColor"
+        ]
+    }
     path("/SetThermo/") {
-    action: [
-      GET: "setThermo"
-    ]
-  }
+        action: [
+            GET: "setThermo"
+        ]
+    }
     path("/SetRoutine/") {
-    action: [
-      GET: "setRoutine"
-    ]
-  }
+        action: [
+            GET: "setRoutine"
+        ]
+    }
     path("/SetMode/") {
-    action: [
-      GET: "setMode"
-    ]
-  }
+        action: [
+            GET: "setMode"
+        ]
+    }
     path("/SetAlarm/") {
-    action: [
-      GET: "setAlarm"
-    ]
-  }
-  path("/ToggleLock/") {
-    action: [
-      GET: "toggleLock"
-    ]
-  }
+        action: [
+            GET: "setAlarm"
+        ]
+    }
+    path("/ToggleLock/") {
+        action: [
+            GET: "toggleLock"
+        ]
+    }
 }
 def installed() {
-//	log.debug "Installed with settings: ${settings}\n"
+    //	log.debug "Installed with settings: ${settings}\n"
 	initialize()
 }
 def uninstalled() {
@@ -232,7 +238,6 @@ def setMode() {
 def toggleSwitch() {
 	def command = params.id
 	log.debug "toggleSwitch called with id ${command}"
-
     switches.each {
     	if(it.id == command)
         {
@@ -244,7 +249,6 @@ def toggleSwitch() {
             return
 		}
     }
-    log.debug "Error! Did not find a switch with id ${command}."
 }
 def setMusicPlayer() {
     def id = params.id
@@ -274,7 +278,6 @@ def setMusicPlayer() {
                     break
                 return
             }
-            log.debug "Music Player Error: Did not find a music player with id ${id}. "
         }
     }
 }
@@ -282,7 +285,6 @@ def setLevel() {
 	def command = params.id
     def level = params.level
 	log.debug "setLevel called with id ${command} and level ${level}"
-
     switches.each {
     	if(it.id == command)
         {
@@ -293,14 +295,30 @@ def setLevel() {
             return
 		}
     }
-    log.debug "Error: Did not find a switch with id ${command}. "
+}
+def setColor() {
+	def pid = params.id
+    def colorName = params.colorName
+    log.debug "========================================================="
+	log.debug "setColor called with id ${pid} and colorName ${colorName}"
+    switches.each {
+        if(it.id == pid)
+        {
+            log.debug "Found switch ${it.displayName} with id ${it.id} with current color of ${it.currentColor} and is ${it.currentSwitch}"
+            log.debug "Setting ${it.displayName}'s color to ${colorName} which is RGB value: ${colorUtil.hexToRgb(it.currentColor)}"
+            it.currentSwitch=="on"?:it.on()
+			it.setColor(getHueSatLevel(colorName))
+            log.debug "${it.displayName}'s color is now RGB value: ${colorUtil.hexToRgb(it.currentColor)}"
+            return
+        }
+    }
+    log.debug "========================================================="
 }
 def setThermo() {
 	def id = params.id
     def cmdType = params.type
     def val = params.val.toInteger()
 	log.debug "setThermo called with id ${id} command ${cmdType} and value ${val}"
-
     if(thermos) {
     thermos.each {
             if(it.id == id) {
@@ -352,7 +370,6 @@ def toggleLock() {
             return
 		}
     }
-    log.debug "Error: Did not find a lock with id ${command}."
 }
 
 def getBatteryInfo(dev) {
@@ -418,16 +435,21 @@ def getMotionData() {
     return resp
 }
 def getSwitchData() {
-	def resp = []
+    def resp = []
     switches.each {
-    	def isDimmer = false
-        def currentName = it.displayName
-    	if(it.currentLevel) {
-        	isDimmer = true
-            if(it.currentSwitch == 'on') currentName += " (" + it.currentLevel + "%)"
-        }
-
-        resp << [name: currentName, value: it.currentSwitch, id : it.id, isDimmer : isDimmer, eventlog: getEventsOfDevice(it)];
+        def isRGBbool = it.hasCommand('setColor')
+        def hue = it.currentHue
+        resp << [
+            name		: it.displayName,
+            value		: it.currentSwitch,
+            id 			: it.id,
+            isDimmer 	: it.hasCommand('setLevel'),
+            dimmerLevel : it.currentLevel,
+            isRGB		: isRGBbool,
+            hue			: hue ? it.currentHue.toFloat().round() : hue,
+            currentColor: colorMap,
+            eventlog	: getEventsOfDevice(it)
+        ]
     }
     return resp
 }
@@ -547,6 +569,9 @@ def getStatus() {
                        "eventsTimeFormat"			: eventsTimeFormat,
                        "favoriteDevices"			: favoriteDevices,
                        "eventsShow"					: eventsShow,
+                       "colorChoices"				: colorChoices ? colorChoices : [
+                           "Soft White","White","Daylight","Warm White","Red","Green","Blue","Yellow","Orange","Purple","Pink","Cyan"
+                       ],
                        "sortTemperatureAscending"	: (sortTemperatureAscending == null) ? false : sortTemperatureAscending
                       ]
     def resp = [ "Version" : version(),
@@ -566,7 +591,7 @@ def getStatus() {
                 "RelativeHumidityMeasurements" : relativeHumidityMeasurementData,
                 "Options" : optionsData]
 
-    if (debugDevices != "null") {
+    if (debugDevices != null) {
         log.debug "debugDevices = ${resp."${debugDevices}"}"
         resp."${debugDevices}".each{
             k ->
@@ -702,7 +727,7 @@ def devicesPage() {
 				hideWhenEmpty: true,
 				required: false
 			input "switches", "capability.switch",
-				title: "Which Switches?",
+				title: "Which Lights & Switches?",
 				multiple: true,
 				hideWhenEmpty: true,
 				required: false
@@ -789,7 +814,7 @@ def fontsPage() {
         }
         section("Optional Data Display: DISPLAY FONTS, COLORS & SEPARATOR BARS: Mac Font Name for Display (warning: The Font Name MUST exist on the Mac.  Leave blank for 'Menlo'") {
             input "fixedPitchFontName", "enum",
-                title: "Data: Fixed Font Name (default font is 'Menlo' if field is left empty).",
+                title: "Data: Fixed Font Name (default font is 'Menlo' if field is left empty)",
                 default: "Menlo",
                 options: ["Menlo","Monaco","Consolas","Courier","MingLIU"],
                 required: false
@@ -800,7 +825,7 @@ def fontsPage() {
             input "fixedPitchFontColor", "enum",
                 title: "Data: Fixed Font Color (default Color is 'Black' if field left blank.  If Mac is in 'Dark Mode', Font Color will be set to 'White')",
                 default: "black",
-				options: colorChoiceList(),
+                options: colorChoiceList(),
                 multiple: false,
                 required: false
         }
@@ -832,6 +857,7 @@ def fontsPage() {
                 multiple: false,
                 required: false
         }
+
     }
 }
 
@@ -957,10 +983,21 @@ def optionsPage() {
         section("Optional: Sensor Status Emoji Display Options") {
             href name: "iconsPageLink", title: "Sensor Status Icon Display Settings", description: "", page: "iconsPage"
         }
-        section("Optional: Select Favorite Devices") {
+        section("Optional: Select Your Favorite Devices (Mix & Matxh) to display in separate 1st category") {
             input "favoriteDevices", "enum",
-                title: "Select Favorite Devices",
+                title: "Select Favorite 'Mix & Match' Devices",
                 options: getAllDevices(),
+                required: false,
+                multiple: true
+        }
+        section("Optional: Limit Color Choices for 'Color Control' capable devices") {
+            input "colorChoices", "enum",
+                title: "Only show these checked color choices in list (Default: All]",
+                options: [["Soft White":"Soft White - Default"],
+                ["White":"White - Concentrate"],
+                ["Daylight":"Daylight - Energize"],
+                ["Warm White":"Warm White - Relax"],
+                "Red","Green","Blue","Yellow","Orange","Purple","Pink","Cyan"],
                 required: false,
                 multiple: true
         }
@@ -1043,4 +1080,70 @@ private getAllDevices() {
         + leaks)?.findAll()?.unique { it.id }
         dev_list = dev_list.collect{ it.toString() }
         return dev_list.sort()
+}
+
+def getHueSatLevel(color) {
+    def hueColor = 0
+    def saturation = 100
+	switch(color) {
+		case "White":
+			hueColor = 52
+			saturation = 19
+			break;
+		case "Daylight":
+			hueColor = 53
+			saturation = 91
+			break;
+		case "Soft White":
+			hueColor = 23
+			saturation = 56
+			break;
+		case "Warm White":
+			hueColor = 20
+			saturation = 80 //83
+			break;
+		case "Blue":
+			hueColor = 69
+			saturation = 95
+			break;
+		case "DarkBlue":
+			hueColor = 70
+			break;
+		case "Green":
+			hueColor = 39
+			break;
+		case "Yellow":
+			hueColor = 25
+			break;
+		case "Orange":
+			hueColor = 10
+			break;
+		case "Purple":
+			hueColor = 75
+			break;
+		case "Cyan":
+			hueColor = 180
+			break;
+		case "Pink":
+			hueColor = 83
+			break;
+		case "Red":
+			hueColor = 100
+			break;
+	}
+    return [hue: hueColor, saturation: saturation, level:100]
+}
+
+def colorChoiceList() {
+    return ["lightseagreen","floralwhite","lightgray","darkgoldenrod","paleturquoise","goldenrod","skyblue","indianred","darkgray","khaki","blue",
+            "darkred","lightyellow","midnightblue","chartreuse","lightsteelblue","slateblue","firebrick","moccasin","salmon","sienna","slategray","teal","lightsalmon",
+            "pink","burlywood","gold","springgreen","lightcoral","black","blueviolet","chocolate","aqua","darkviolet","indigo","darkcyan","orange","antiquewhite","peru",
+            "silver","purple","saddlebrown","lawngreen","dodgerblue","lime","linen","lightblue","darkslategray","lightskyblue","mintcream","olive","hotpink","papayawhip",
+            "mediumseagreen","mediumspringgreen","cornflowerblue","plum","seagreen","palevioletred","bisque","beige","darkorchid","royalblue","darkolivegreen","darkmagenta",
+            "orange red","lavender","fuchsia","darkseagreen","lavenderblush","wheat","steelblue","lightgoldenrodyellow","lightcyan","mediumaquamarine","turquoise","dark blue",
+            "darkorange","brown","dimgray","deeppink","powderblue","red","darkgreen","ghostwhite","white","navajowhite","navy","ivory","palegreen","whitesmoke","gainsboro",
+            "mediumslateblue","olivedrab","mediumpurple","darkslateblue","blanchedalmond","darkkhaki","green","limegreen","snow","tomato","darkturquoise","orchid","yellow",
+            "green yellow","azure","mistyrose","cadetblue","oldlace","gray","honeydew","peachpuff","tan","thistle","palegoldenrod","mediumorchid","rosybrown","mediumturquoise",
+            "lemonchiffon","maroon","mediumvioletred","violet","yellow green","coral","lightgreen","cornsilk","mediumblue","aliceblue","forestgreen","aquamarine","deepskyblue",
+            "lightslategray","darksalmon","crimson","sandybrown","lightpink","seashell"].sort()
 }
