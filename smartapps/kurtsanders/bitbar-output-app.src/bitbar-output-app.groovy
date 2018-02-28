@@ -49,11 +49,12 @@
  // V 3.0  Added Sort Direction Capabilities, Favorite Devices, Supress EventLog Display
  // V 3.01 Added Debuging Information Option which displays in Live Logging IDE
  // V 3.10 Added RGB Support for Device with Color Changes, Added Emoji icons for Device Capabilities of Dimmer and Color Devices
-
-// Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
-// Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
-//           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
-def version() { return "3.10" } // Must be a Floating Number String "2.1", "2.01", "2.113"
+ // V 3.11 Added Saturation control to BitBar sub-menu for devices with a Capability of Color Changes
+ //
+ // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
+ // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
+ //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
+def version() { return "3.11" } // Must be a Floating Number String "2.1", "2.01", "2.113"
 import groovy.json.JsonSlurper
 //import groovy.json.JsonBuilder
 import java.awt.Color;
@@ -298,17 +299,24 @@ def setLevel() {
 }
 def setColor() {
 	def pid = params.id
-    def colorName = params.colorName
+    def colorName = params?.colorName
+    def saturation = params?.saturation
     log.debug "========================================================="
-	log.debug "setColor called with id ${pid} and colorName ${colorName}"
+	log.debug "setColor() called with id ${pid}, colorName ${colorName} and saturation ${saturation}"
     switches.each {
         if(it.id == pid)
         {
             log.debug "Found switch ${it.displayName} with id ${it.id} with current color of ${it.currentColor} and is ${it.currentSwitch}"
-            log.debug "Setting ${it.displayName}'s color to ${colorName} which is RGB value: ${colorUtil.hexToRgb(it.currentColor)}"
-            it.currentSwitch=="on"?:it.on()
-			it.setColor(getHueSatLevel(colorName))
-            log.debug "${it.displayName}'s color is now RGB value: ${colorUtil.hexToRgb(it.currentColor)}"
+            if (it.currentSwitch=="off"){it.on()}
+			if (colorName  != null) {
+                log.debug "Setting ${it.displayName}'s color to ${colorName} which is RGB value: ${colorUtil.hexToRgb(it.currentColor)}"
+                it.setColor(getHueSatLevel(colorName))
+            }
+            if (saturation != null) {
+                log.debug "Setting ${it.displayName}'s saturation to: ${saturation.toInteger()}"
+                it.setSaturation(saturation.toInteger())
+            }
+            log.debug "${it.displayName}'s color is now RGB value: ${it.currentColor} = ${colorUtil.hexToRgb(it.currentColor)}, saturation level ${it.currentSaturation}, dimmer level ${it.currentLevel}"
             return
         }
     }
@@ -439,6 +447,7 @@ def getSwitchData() {
     switches.each {
         def isRGBbool = it.hasCommand('setColor')
         def hue = it.currentHue
+        def saturation = it.currentSaturation
         resp << [
             name		: it.displayName,
             value		: it.currentSwitch,
@@ -446,8 +455,8 @@ def getSwitchData() {
             isDimmer 	: it.hasCommand('setLevel'),
             dimmerLevel : it.currentLevel,
             isRGB		: isRGBbool,
-            hue			: hue ? it.currentHue.toFloat().round() : hue,
-            currentColor: colorMap,
+            hue			: hue ? hue.toFloat().round() : hue,
+            saturation	: saturation ? saturation.toFloat().round() : saturation,
             eventlog	: getEventsOfDevice(it)
         ]
     }

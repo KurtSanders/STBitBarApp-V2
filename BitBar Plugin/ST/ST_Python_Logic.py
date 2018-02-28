@@ -19,7 +19,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.10  # Must be float or Int
+PythonVersion = 3.11  # Must be float or Int
 ##################################
 
 
@@ -60,19 +60,19 @@ def TitleCase(var):
 
 
 colorHueList = {
+    "Orange"    : 10,
+    "Warm White": 20,
+    "Soft White": 23,
+    "Yellow"    : 25,
+    "Green"     : 39,
     "White"     : 52,
     "Daylight"  : 53,
-    "Soft White": 23,
-    "Warm White": 20,
     "Blue"      : 69,
     "DarkBlue"  : 70,
-    "Green"     : 39,
-    "Yellow"    : 25,
-    "Orange"    : 10,
     "Purple"    : 75,
     "Pink"      : 83,
-    "Cyan"      : 180,
-    "Red"       : 100
+    "Red"       : 100,
+    "Cyan"      : 180
 }
 
 
@@ -1276,16 +1276,19 @@ if countSensors > 0:
             subMenuText = subMenuText + '--'
             print subMenuText + '🔆 Current Dimmer Level ({})'.format(sensor["dimmerLevel"]), \
                 buildFontOptions(3), smallFontPitchSize
-            subMenuText = subMenuText + '--'
+            if sensor['isRGB']: subMenuText = subMenuText + '--'
             print subMenuText + '🔆 Set Dimmer Level to:', buildFontOptions(3), smallFontPitchSize
-            counter = 1
+            count = 0
             for currentLevel in range(10,110,10):
                 currentLevelURL = levelURL + sensor['id'] + '&level=' + str(currentLevel)
-                print subMenuText + "{:>3}. {:>4}".format(counter, str(currentLevel) + "%"), buildFontOptions(4), \
+                count += 1
+                print subMenuText + "{:>3}. {:>4}".format(count, str(currentLevel) + "%"), buildFontOptions(4), \
                     'bash=', callbackScript, ' param1=request param2=', currentLevelURL, \
                     ' param3=', secret, ' terminal=false refresh=true'
-                counter += 1
-            subMenuText = subMenuText[:-4]
+            if sensor['isRGB']:
+                subMenuText = subMenuText[:-4]
+            else :
+                subMenuText = subMenuText[:-2]
             indent = '--'
         if sensor['isRGB'] is True and colorChoices > 0:
             subMenuText = subMenuText + '--'
@@ -1300,8 +1303,19 @@ if countSensors > 0:
                 currentColorURL = colorURL + sensor['id'] + '&colorName=' + urllib.quote(colorChoice.encode('utf8'))
                 print subMenuText + "{:>3}. {} ".format(count+1, getHueLevel(colorChoice)), buildFontOptions(4), \
                     'bash=', callbackScript, ' param1=request param2=', currentColorURL, ' param3=', secret, \
-                    ' terminal=false refresh=true', \
-                    'color=' + colorChoiceSafe
+                    ' terminal=false refresh=true', 'color=' + colorChoiceSafe
+            subMenuText = subMenuText[:-2]
+            print subMenuText + '🌈 Current Sat Value ({}) '.format(sensor["saturation"]), \
+                buildFontOptions(3), smallFontPitchSize
+            subMenuText = subMenuText + '--'
+            print subMenuText + '🌈 Set Saturation to:', buildFontOptions(3), smallFontPitchSize
+            count = 0
+            for currentLevel in range(0,110,10):
+                currentColorURL = colorURL + sensor['id'] + '&saturation=' + str(currentLevel)
+                count += 1
+                print subMenuText + "{:>3}. {:>4}".format(count, str(currentLevel)), buildFontOptions(4), \
+                    'bash=', callbackScript, ' param1=request param2=', currentColorURL, ' param3=', secret, \
+                    ' terminal=false refresh=true'
             subMenuText = subMenuText[:-4]
             indent = '--'
         if len(sensor['eventlog']) != 0:
