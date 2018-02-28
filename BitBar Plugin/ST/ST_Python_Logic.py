@@ -19,7 +19,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.11  # Must be float or Int
+PythonVersion = 3.12  # Must be float or Int
 ##################################
 
 
@@ -701,10 +701,8 @@ if countSensors > 0:
             # noinspection PyUnboundLocalVariable
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         currentValue + degree_symbol + buildFontOptions(3) + colorText
-        if sensor['eventlog'] is not None:
-            eventGroupByDate(
-                [d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°"
-            )
+        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+            eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°")
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -742,11 +740,8 @@ if countSensors > 0:
         if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         currentValue + "%" + buildFontOptions(3) + colorText
-        if sensor['eventlog'] is not None:
-            eventGroupByDate(
-                [d for d in sensor['eventlog'] if d['name'] in "humidity"], subMenuText, "%"
-            )
-
+        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+            eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in "humidity"], subMenuText, "%")
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -842,11 +837,9 @@ if countSensors > 0:
         if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         sym + buildFontOptions(3) + colorText
-        if sensor['eventlog'] is not None:
-            eventGroupByDate(
-                [d for d in sensor['eventlog'] if d['name'] in ['status', 'contact', 'acceleration']],
-                subMenuText, ""
-            )
+        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+            eventGroupByDate([d for d in sensor['eventlog']
+                              if d['name'] in ['status', 'contact', 'acceleration']], subMenuText, "")
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -887,16 +880,8 @@ if countSensors > 0:
         if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         sym + buildFontOptions(3) + colorText
-        if sensor['eventlog'] is not None:
-            eventGroupByDate(
-                [d for d in sensor['eventlog'] if d['name'] in 'motion'],
-                subMenuText, ""
-            )
-
-        #        for event in sensor['eventlog']:
-        #            if event['name'] == 'motion':
-        #                sym = motionInactiveEmoji if event['value'] == 'inactive' else motionActiveEmoji
-        #                print subMenuText + '--' + event['date'], sym, buildFontOptions(3)
+        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+            eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in 'motion'], subMenuText, "")
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -950,11 +935,8 @@ if countSensors > 0:
         if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         emoji + buildFontOptions(3) + colorText
-        if sensor['eventlog'] is not None:
-            eventGroupByDate(
-                [d for d in sensor['eventlog'] if d['name'] in 'presence'],
-                subMenuText, ""
-            )
+        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+            eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in 'presence'], subMenuText, "")
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText + notPresentMenuText, sensor['name'], whiteSpace, formatPercentage(
@@ -1092,18 +1074,10 @@ if countSensors > 0:
         if favoriteDevicesBool and sensor['name'] in favoriteDevices:
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         sym + buildFontOptions(3) + colorText
-        if sensor['eventlog'] is not None:
+        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
             eventGroupByDate(
-                [d for d in sensor['eventlog'] if d['value'] in ['locked', 'armed', 'unlocked', 'disarmed']],
-                subMenuText, ""
-            )
-        #        for event in sensor['eventlog']:
-        #            if event['value'] in ['locked','armed', 'unlocked', 'disarmed']:
-        #                if event['value'] in ['locked', 'armed']:
-        #                    emoji = ':closed_lock_with_key:'
-        #                else:
-        #                    emoji = ':door:'
-        #                print subMenuText + "--" + event['date'], emoji, buildFontOptions(3)
+                [d for d in sensor['eventlog'] if d['value'] in \
+                 ['locked', 'armed', 'unlocked', 'disarmed']],subMenuText, "")
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             if useImages is True:
@@ -1318,7 +1292,7 @@ if countSensors > 0:
                     ' terminal=false refresh=true'
             subMenuText = subMenuText[:-4]
             indent = '--'
-        if len(sensor['eventlog']) != 0:
+        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
             print subMenuText + "-- 🎯 Event History", buildFontOptions(3)
             eventGroupByDate(sensor['eventlog'], subMenuText + indent, "")
         colorSwitch = not colorSwitch
