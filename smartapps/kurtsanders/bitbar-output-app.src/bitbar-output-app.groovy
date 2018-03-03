@@ -445,18 +445,18 @@ def getMotionData() {
 }
 def getSwitchData() {
     def resp = []
+    def x, isRGBbool, hue, saturation, colorRGBName, r, g, b, RGBHex, colorRGBList
     switches.each {
-        def isRGBbool = it.hasCommand('setColor')
-        def hue = it.currentHue
-        def saturation = it.currentSaturation
-        def colorRGBName
+        isRGBbool = it.hasCommand('setColor')
+        hue = it.currentHue
+        saturation = it.currentSaturation
         if (isRGBbool) {
         	it.refresh()
-        	def RGBHex = it.currentColor
-            def colorRGBList = colorUtil.hexToRgb(RGBHex)
-            def r = colorRGBList[0]
-            def g = colorRGBList[1]
-            def b = colorRGBList[2]
+        	RGBHex = it.currentColor
+            colorRGBList = colorUtil.hexToRgb(RGBHex)
+            r = colorRGBList[0]
+            g = colorRGBList[1]
+            b = colorRGBList[2]
             if      (r>=g & g>=b) {colorRGBName = "Red–yellow"}
             else if (g>r  & r>=b) {colorRGBName = "Yellow–green"}
             else if (g>=b & b>r ) {colorRGBName = "Green–cyan"}
@@ -464,9 +464,8 @@ def getSwitchData() {
             else if (b>r  & r>=g) {colorRGBName = "Blue–magenta"}
             else if (r>=b & b>g ) {colorRGBName = "Magenta–red"}
             else {colorRGBName = ""}
-            log.debug "colorRGBName = ${colorRGBName}"
-
-            def x = [
+            log.debug "colorRGBName = ${colorRGBName.padRight(20,"-")}"
+            x = [
                 name		: it.displayName,
                 value		: it.currentSwitch,
                 colorRGBList: colorRGBList,
@@ -475,7 +474,7 @@ def getSwitchData() {
                 hue			: hue ? hue.toFloat().round() : hue,
                 saturation	: saturation ? saturation.toFloat().round() : saturation
             ]
-            x.each {k, v -> log.debug "${k} : ${v}" }
+            x.each {k, v -> log.debug "${k.padRight(20,"-")}: ${v}" }
         }
         resp << [
             name		: it.displayName,
@@ -552,13 +551,12 @@ def getMainDisplayData() {
     return resp
 }
 def getStatus() {
-    log.debug "getStatus called"
     def pythonAppVersion = params.pythonAppVersion
     def pythonAppPath = params.path
-	log.debug "getStatus called with version ${pythonAppVersion} and path ${pythonAppPath}"
     state.pythonAppVersion = pythonAppVersion
     state.pythonAppPath = pythonAppPath
-
+	log.debug "BitBar Output App v${version()}, ST_Python_Logic.py ${pythonAppVersion} installed @ ${pythonAppPath}"
+    log.debug "getStatus() called"
     def alarmData = getAlarmData()
     def tempData = getTempData()
     def contactData = getContactData()
