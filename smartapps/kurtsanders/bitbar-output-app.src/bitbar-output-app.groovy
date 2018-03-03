@@ -50,11 +50,12 @@
  // V 3.01 Added Debuging Information Option which displays in Live Logging IDE
  // V 3.10 Added RGB Support for Device with Color Changes, Added Emoji icons for Device Capabilities of Dimmer and Color Devices
  // V 3.11 Added Saturation control to BitBar sub-menu for devices with a Capability of Color Changes
+ // V 3.13 Added Fuzzy logic to determine ColorName from hue values
  //
  // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
  // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
  //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
-def version() { return "3.11" } // Must be a Floating Number String "2.1", "2.01", "2.113"
+def version() { return "3.13" } // Must be a Floating Number String "2.1", "2.01", "2.113"
 import groovy.json.JsonSlurper
 //import groovy.json.JsonBuilder
 import java.awt.Color;
@@ -309,7 +310,7 @@ def setColor() {
             log.debug "Found switch ${it.displayName} with id ${it.id} with current color of ${it.currentColor} and is ${it.currentSwitch}"
             if (it.currentSwitch=="off"){it.on()}
 			if (colorName  != null) {
-                log.debug "Setting ${it.displayName}'s color to ${colorName} which is RGB value: ${colorUtil.hexToRgb(it.currentColor)}"
+                log.debug "Setting ${it.displayName}'s color to ${colorName}, Hue: ${getHueSatLevel(colorName)} and RGB values: ${colorUtil.hexToRgb(it.currentColor)}"
                 it.setColor(getHueSatLevel(colorName))
             }
             if (saturation != null) {
@@ -448,11 +449,40 @@ def getSwitchData() {
         def isRGBbool = it.hasCommand('setColor')
         def hue = it.currentHue
         def saturation = it.currentSaturation
+        def colorRGBName
+        if (isRGBbool) {
+        	it.refresh()
+        	def RGBHex = it.currentColor
+            def colorRGBList = colorUtil.hexToRgb(RGBHex)
+            def r = colorRGBList[0]
+            def g = colorRGBList[1]
+            def b = colorRGBList[2]
+            if      (r>=g & g>=b) {colorRGBName = "Red–yellow"}
+            else if (g>r  & r>=b) {colorRGBName = "Yellow–green"}
+            else if (g>=b & b>r ) {colorRGBName = "Green–cyan"}
+            else if (b>g  & g>r ) {colorRGBName = "Cyan–blue"}
+            else if (b>r  & r>=g) {colorRGBName = "Blue–magenta"}
+            else if (r>=b & b>g ) {colorRGBName = "Magenta–red"}
+            else {colorRGBName = ""}
+            log.debug "colorRGBName = ${colorRGBName}"
+
+            def x = [
+                name		: it.displayName,
+                value		: it.currentSwitch,
+                colorRGBList: colorRGBList,
+                RGBHex		: RGBHex,
+                dimmerLevel : it.currentLevel,
+                hue			: hue ? hue.toFloat().round() : hue,
+                saturation	: saturation ? saturation.toFloat().round() : saturation
+            ]
+            x.each {k, v -> log.debug "${k} : ${v}" }
+        }
         resp << [
             name		: it.displayName,
             value		: it.currentSwitch,
             id 			: it.id,
             isDimmer 	: it.hasCommand('setLevel'),
+            colorRGBName: colorRGBName,
             dimmerLevel : it.currentLevel,
             isRGB		: isRGBbool,
             hue			: hue ? hue.toFloat().round() : hue,

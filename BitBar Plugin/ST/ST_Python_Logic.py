@@ -19,7 +19,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.12  # Must be float or Int
+PythonVersion = 3.13  # Must be float or Int
 ##################################
 
 
@@ -77,14 +77,15 @@ colorHueList = {
 
 
 def getHueLevel(colorMatch):
-    return "{} ({})".format(colorMatch,colorHueList.get(colorMatch, "?"))
+    return "{} ({})".format(colorMatch,colorHueList.get(colorMatch, None))
 
 
 def getColorNameHue(hueValue):
     for k, v in colorHueList.iteritems():
         if hueValue == v:
-            return "({} Hue: {})".format(k, hueValue)
-    return "{}".format(hueValue)
+            return k
+    return None
+
 
 # Format percentages
 def formatPercentage(val):
@@ -337,8 +338,6 @@ if favoriteDevices is not None:
     favoriteDevicesBool = True
     original_stdout = sys.stdout
     favoriteDevicesOutputDict = {}
-    #    temp_filename = tempfile._get_default_tempdir() + next(tempfile._get_candidate_names())
-    #    fo = open(temp_filename, 'w')
     fo = tempfile.TemporaryFile()
     sys.stdout = fo
 else:
@@ -1219,7 +1218,7 @@ if countSensors > 0:
         img = ''
         for x in range(0, extraLength): whiteSpace += ' '
         if sensor['value'] == 'on':
-            sym = " 💚"
+            sym = " ✅"
             img = greenImage
         else:
             sym = " 🔴"
@@ -1266,16 +1265,21 @@ if countSensors > 0:
             indent = '--'
         if sensor['isRGB'] is True and colorChoices > 0:
             subMenuText = subMenuText + '--'
-            print subMenuText + '🌈 Current Hue Value {} '.format(getColorNameHue(sensor["hue"])), \
+            colorName = getColorNameHue(sensor["hue"])
+            if colorName is None : colorName = sensor["colorRGBName"]
+            print subMenuText + "🌈 Current Hue Value ({} Hue: {})".format(colorName, sensor["hue"]), \
                 buildFontOptions(3), smallFontPitchSize
             subMenuText = subMenuText + '--'
             print subMenuText + '🌈 Set Hue to:', buildFontOptions(3), smallFontPitchSize
-            for count, colorChoice in enumerate(colorChoices):
+            count = 0
+            for colorChoice in colorChoices:
+                if colorName == colorChoice: continue
+                count += 1
                 if colorChoice == 'White':
                     colorChoiceSafe = 'Black'
                 else: colorChoiceSafe = colorChoice.split(' ', 1)[0]
                 currentColorURL = colorURL + sensor['id'] + '&colorName=' + urllib.quote(colorChoice.encode('utf8'))
-                print subMenuText + "{:>3}. {} ".format(count+1, getHueLevel(colorChoice)), buildFontOptions(4), \
+                print subMenuText + "{:>3}. {} ".format(count, getHueLevel(colorChoice)), buildFontOptions(4), \
                     'bash=', callbackScript, ' param1=request param2=', currentColorURL, ' param3=', secret, \
                     ' terminal=false refresh=true', 'color=' + colorChoiceSafe
             subMenuText = subMenuText[:-2]
