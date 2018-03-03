@@ -451,7 +451,7 @@ def getSwitchData() {
         hue = it.currentHue
         saturation = it.currentSaturation
         if (isRGBbool) {
-            it.refresh()
+            if (it.hasCommand('refresh')) {it.refresh()}
             RGBHex = it.currentColor
             try {
                 colorRGBList = colorUtil.hexToRgb(RGBHex)
