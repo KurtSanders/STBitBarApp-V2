@@ -445,15 +445,20 @@ def getMotionData() {
 }
 def getSwitchData() {
     def resp = []
-    def x, isRGBbool, hue, saturation, colorRGBName, r, g, b, RGBHex, colorRGBList
     switches.each {
+        def x, isRGBbool, hue, saturation, colorRGBName, r, g, b, RGBHex, colorRGBList = null
         isRGBbool = it.hasCommand('setColor')
         hue = it.currentHue
         saturation = it.currentSaturation
         if (isRGBbool) {
-        	it.refresh()
-        	RGBHex = it.currentColor
-            colorRGBList = colorUtil.hexToRgb(RGBHex)
+            it.refresh()
+            RGBHex = it.currentColor
+            try {
+                colorRGBList = colorUtil.hexToRgb(RGBHex)
+            } catch (all) {
+                log.debug "Trapped Error: colorRGBList = colorUtil.hexToRgb(RGBHex): RGBHex = ${RGBHex}"
+                colorRGBList=[0,0,0]
+            }
             r = colorRGBList[0]
             g = colorRGBList[1]
             b = colorRGBList[2]
