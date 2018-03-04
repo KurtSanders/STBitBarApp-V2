@@ -309,11 +309,11 @@ def setColor() {
         {
             log.debug "Found switch ${it.displayName} with id ${it.id} with current color of ${it.currentColor} and is ${it.currentSwitch}"
             if (it.currentSwitch=="off"){it.on()}
-			if (colorName  != null) {
+			if (it.hasCommand('setColor') & colorName  != null) {
                 log.debug "Setting ${it.displayName}'s color to ${colorName}, Hue: ${getHueSatLevel(colorName)} and RGB values: ${colorUtil.hexToRgb(it.currentColor)}"
                 it.setColor(getHueSatLevel(colorName))
             }
-            if (saturation != null) {
+            if (it.hasCommand('setSaturation') & saturation != null) {
                 log.debug "Setting ${it.displayName}'s saturation to: ${saturation.toInteger()}"
                 it.setSaturation(saturation.toInteger())
             }
