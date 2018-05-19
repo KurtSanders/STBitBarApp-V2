@@ -19,7 +19,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.13  # Must be float or Int
+PythonVersion = 3.14  # Must be float or Int
 ##################################
 
 
@@ -293,7 +293,7 @@ def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
         if tempList[x]['value'] is not None: tempList[x]['value'] = tempList[x]['value'].replace('\n', '')
         try:
             tempList[x]['value'] = "{} ({:4.1f})".format(tempList[x]['name'].title(), float(tempList[x]['value']))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, AttributeError):
             pass
         if eventsTimeFormat == "12 Hour Clock Format with AM/PM":
             print "--{}{} {} {} = {}{}".format(
