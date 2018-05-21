@@ -51,11 +51,13 @@
  // V 3.10 Added RGB Support for Device with Color Changes, Added Emoji icons for Device Capabilities of Dimmer and Color Devices
  // V 3.11 Added Saturation control to BitBar sub-menu for devices with a Capability of Color Changes
  // V 3.13 Added Fuzzy logic to determine ColorName from hue values
+ // V 3.14 Bug Fix
+ // V 3.15 Added Customized emoji for dimmer and RGB switches
  //
  // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
  // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
  //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
-def version() { return "3.13" } // Must be a Floating Number String "2.1", "2.01", "2.113"
+def version() { return "3.15" } // Must be a Floating Number String "2.1", "2.01", "2.113"
 import groovy.json.JsonSlurper
 //import groovy.json.JsonBuilder
 import java.awt.Color;
@@ -591,9 +593,12 @@ def getStatus() {
                        "contactClosedEmoji"		 	: contactClosedEmoji,
                        "presenscePresentEmoji"		: presenscePresentEmoji,
                        "presensceNotPresentEmoji"	: presensceNotPresentEmoji,
+                       "colorBulbEmoji"				: colorBulbEmoji,
+                       "dimmerBulbEmoji"			: dimmerBulbEmoji,
                        "presenceDisplayMode"		: presenceDisplayMode,
                        "numberOfDecimals"			: numberOfDecimals,
                        "matchOutputNumberOfDecimals": matchOutputNumberOfDecimals,
+                       "dimmerValueOnMainMenu"		: dimmerValueOnMainMenu,
                        "mainFontName"				: mainFontName,
                        "mainFontSize"				: mainFontSize,
                        "subMenuFontName"			: subMenuFontName,
@@ -799,7 +804,7 @@ def iconsPage() {
                  description: "tap here to view valid list of Emoji names in your mobile browser"
                 )
         }
-        section("Optional: Sensor Status Emoji Display Options") {
+        section("Optional: Customize Sensor Type/Status Emoji Naming Display Options") {
             input "motionActiveEmoji", "text",
                 title: "Emoji ShortCode ':xxx:' to Display for Motion Sensor = 'Active' Default='⇠⇢'",
                 required: false
@@ -817,6 +822,12 @@ def iconsPage() {
                 required: false
             input "presensceNotPresentEmoji", "text",
                 title: "Emoji ShortCode ':xxx:' to Display for Presence Sensor = 'Not Present' Default=':x:'",
+                required: false
+            input "dimmerBulbEmoji", "text",
+                title: "Emoji ShortCode ':xxx:' to Display for Switch DTH='Dimmer Capable Bulb'. Default=':sunny:'",
+                required: false
+            input "colorBulbEmoji", "text",
+                title: "Emoji ShortCode ':xxx:' to Display for Switch DTH='Color Capable Bulb'. Default=':rainbow:'",
                 required: false
             input "presenceDisplayMode", "enum",
                 title: "Presence Display Mode Number (See Numeric Values Explanation Below)",
@@ -1013,6 +1024,12 @@ def optionsPage() {
                 default: false,
                 required: false
         }
+        section("Optional: Dimmer Level Main Menu Display Option for Dimmer/Level Capable Switches/Lights") {
+            input "dimmerValueOnMainMenu", "bool",
+                title: "Display the dimmer level % value on the Main Menu after the name of the device? Note: The dimmer % value is always displayed on the sub-menu of the dimmer where the level can be changed.",
+                default: false,
+                required: false
+        }
         section("Optional: Number of Devices per ST Sensor category to display") {
             href name: "categoryPageLink", title: "Number of Devices per ST Sensor Categories to Display Options", description: "", page: "categoryPage"
         }
@@ -1022,10 +1039,10 @@ def optionsPage() {
         section("Optional: Font Names, Pitch Size and Colors") {
             href name: "fontsPageLink", title: "BitBar Output Menu Text Display Settings", description: "", page: "fontsPage"
         }
-        section("Optional: Sensor Status Emoji Display Options") {
-            href name: "iconsPageLink", title: "Sensor Status Icon Display Settings", description: "", page: "iconsPage"
+        section("Optional: Customize Sensor Status & Type Emoji Display Options") {
+            href name: "iconsPageLink", title: "Customize Sensor Status & Type Display Settings", description: "", page: "iconsPage"
         }
-        section("Optional: Select Your Favorite Devices (Mix & Matxh) to display in separate 1st category") {
+        section("Optional: Select Your Favorite Devices (Mix & Match) to display in separate 1st category") {
             input "favoriteDevices", "enum",
                 title: "Select Favorite 'Mix & Match' Devices",
                 options: getAllDevices(),

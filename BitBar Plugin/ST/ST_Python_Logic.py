@@ -19,7 +19,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.14  # Must be float or Int
+PythonVersion = 3.15  # Must be float or Int
 ##################################
 
 
@@ -333,6 +333,10 @@ eventsTimeFormat = getOptions("eventsTimeFormat", "12 Hour Clock Format with AM/
 sortTemperatureAscending = getOptions("sortTemperatureAscending", False)
 favoriteDevices = getOptions("favoriteDevices", None)
 colorChoices=getOptions("colorChoices", None)
+colorBulbEmoji = getOptions("colorBulbEmoji", "🌈")
+dimmerBulbEmoji = getOptions("dimmerBulbEmoji", "🔆")
+dimmerValueOnMainMenu = getOptions("dimmerValueOnMainMenu", False)
+
 
 if favoriteDevices is not None:
     favoriteDevicesBool = True
@@ -1209,8 +1213,14 @@ if countSensors > 0:
     subMenuText = ''
     for i, sensor in enumerate(switches):
         thisSensor = sensor["name"]
-        if sensor['isRGB'] is True: thisSensor += " 🌈"
-        if sensor['isDimmer'] is True: thisSensor += " 🔆"
+        if sensor['isRGB'] is True:
+            thisSensor = "{} {}".format(thisSensor, colorBulbEmoji)
+        elif sensor['isDimmer'] is True:
+            thisSensor = "{} {}".format(thisSensor, dimmerBulbEmoji)
+        else:
+            continue
+        if (sensor['isRGB'] or sensor['isDimmer']) and dimmerValueOnMainMenu:
+            thisSensor = "{} ({}%)".format(thisSensor, sensor["dimmerLevel"])
         indent = ""
         currentLength = len(sensor['name'])
         extraLength = maxLength - currentLength
@@ -1247,10 +1257,10 @@ if countSensors > 0:
         indent = ""
         if sensor['isDimmer'] is True:
             subMenuText = subMenuText + '--'
-            print subMenuText + '🔆 Current Dimmer Level ({})'.format(sensor["dimmerLevel"]), \
+            print subMenuText + dimmerBulbEmoji + ' Current Dimmer Level ({}%)'.format(sensor["dimmerLevel"]), \
                 buildFontOptions(3), smallFontPitchSize
             if sensor['isRGB']: subMenuText = subMenuText + '--'
-            print subMenuText + '🔆 Set Dimmer Level to:', buildFontOptions(3), smallFontPitchSize
+            print subMenuText + dimmerBulbEmoji + ' Set Dimmer Level to:', buildFontOptions(3), smallFontPitchSize
             count = 0
             for currentLevel in range(10,110,10):
                 currentLevelURL = levelURL + sensor['id'] + '&level=' + str(currentLevel)
@@ -1267,10 +1277,10 @@ if countSensors > 0:
             subMenuText = subMenuText + '--'
             colorName = getColorNameHue(sensor["hue"])
             if colorName is None : colorName = sensor["colorRGBName"]
-            print subMenuText + "🌈 Current Hue Value ({} Hue: {})".format(colorName, sensor["hue"]), \
+            print subMenuText + colorBulbEmoji + " Current Hue Value ({} Hue: {})".format(colorName, sensor["hue"]), \
                 buildFontOptions(3), smallFontPitchSize
             subMenuText = subMenuText + '--'
-            print subMenuText + '🌈 Set Hue to:', buildFontOptions(3), smallFontPitchSize
+            print subMenuText + colorBulbEmoji + ' Set Hue to:', buildFontOptions(3), smallFontPitchSize
             count = 0
             for colorChoice in colorChoices:
                 if colorName == colorChoice: continue
@@ -1283,10 +1293,10 @@ if countSensors > 0:
                     'bash=', callbackScript, ' param1=request param2=', currentColorURL, ' param3=', secret, \
                     ' terminal=false refresh=true', 'color=' + colorChoiceSafe
             subMenuText = subMenuText[:-2]
-            print subMenuText + '🌈 Current Sat Value ({}) '.format(sensor["saturation"]), \
+            print subMenuText + colorBulbEmoji + ' Current Sat Value ({}) '.format(sensor["saturation"]), \
                 buildFontOptions(3), smallFontPitchSize
             subMenuText = subMenuText + '--'
-            print subMenuText + '🌈 Set Saturation to:', buildFontOptions(3), smallFontPitchSize
+            print subMenuText + colorBulbEmoji + ' Set Saturation to:', buildFontOptions(3), smallFontPitchSize
             count = 0
             for currentLevel in range(0,110,10):
                 currentColorURL = colorURL + sensor['id'] + '&saturation=' + str(currentLevel)
