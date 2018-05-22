@@ -1218,7 +1218,7 @@ if countSensors > 0:
         elif sensor['isDimmer'] is True:
             thisSensor = "{} {}".format(thisSensor, dimmerBulbEmoji)
         else:
-            continue
+            pass
         if (sensor['isRGB'] or sensor['isDimmer']) and dimmerValueOnMainMenu:
             thisSensor = "{} ({}%)".format(thisSensor, sensor["dimmerLevel"])
         indent = ""
