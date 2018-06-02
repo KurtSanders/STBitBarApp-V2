@@ -19,7 +19,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.15  # Must be float or Int
+PythonVersion = 3.16  # Must be float or Int
 ##################################
 
 
@@ -705,7 +705,10 @@ if countSensors > 0:
             favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                         currentValue + degree_symbol + buildFontOptions(3) + colorText
         if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
-            eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°")
+            try:
+                eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°")
+            except (ValueError, TypeError, AttributeError):
+                pass
         if sensor['battery'] != 'N/A':
             if sensor['battery'][1] != "": colorText = "color=red"
             print subMenuText, sensor['name'], whiteSpace, formatPercentage(
