@@ -53,11 +53,14 @@
  // V 3.13 Added Fuzzy logic to determine ColorName from hue values
  // V 3.14 Bug Fix
  // V 3.15 Added Customized emoji for dimmer and RGB switches
+ // V 3.16-3.17 Bug Fix and Code Formatting
+ // V 3.18 Added Leak Detectors and Water Valves in a separate section, removed error from user inputing single quotes
+ //        from cfg file strings
  //
  // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
  // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
  //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
-def version() { return "3.15" } // Must be a Floating Number String "2.1", "2.01", "2.113"
+def version() { return "3.18" } // Must be a Floating Number String "2.1", "2.01", "2.113"
 import groovy.json.JsonSlurper
 //import groovy.json.JsonBuilder
 import java.awt.Color;
