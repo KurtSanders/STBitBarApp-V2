@@ -53,10 +53,9 @@
  // V 3.13 Added Fuzzy logic to determine ColorName from hue values
  // V 3.14 Bug Fix
  // V 3.15 Added Customized emoji for dimmer and RGB switches
- // V 3.16-3.17 Bug Fix and Code Formatting
- // V 3.18 Added Leak Detectors and Water Valves in a separate section, removed error from user inputing single quotes
- //        from cfg file strings
- //
+ // V 3.16 Bug Fix
+ // V 3.17 Added Water and Valve Sensors
+ // V 3.18 Removed errors associated with single quotes from local cfg file url and secret strings
  // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
  // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
  //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
@@ -165,6 +164,11 @@ mappings {
             GET: "toggleLock"
         ]
     }
+    path("/ToggleValve/") {
+        action: [
+            GET: "toggleCloseOpen"
+        ]
+    }
 }
 def installed() {
     //	log.debug "Installed with settings: ${settings}\n"
@@ -253,6 +257,21 @@ def toggleSwitch() {
             	it.off()
             else
             	it.on()
+            return
+		}
+    }
+}
+def toggleValve() {
+	def command = params.id
+	log.debug "toggleValve called with id ${command}"
+    valves.each {
+    	if(it.id == command)
+        {
+        	log.debug "Found Valve ${it.displayName} with id ${it.id} with current value ${it.currentValve}"
+            if(it.currentValve == "close")
+            	it.open()
+            else
+            	it.close()
             return
 		}
     }
@@ -547,6 +566,21 @@ def getThermoData() {
 //    log.debug "getThermoData: ${resp[2]}"
     return resp
 }
+def getWaterData() {
+	def resp = []
+    waters.each {
+        resp << [name: it.displayName, value: it.currentWater, id : it.id, battery: getBatteryInfo(it), eventlog: getEventsOfDevice(it)];
+    }
+    return resp
+}
+def getValveData() {
+	def resp = []
+    valves.each {
+        resp << [name: it.displayName, value: it.currentValve, id : it.id, battery: getBatteryInfo(it), eventlog: getEventsOfDevice(it)];
+    }
+    return resp
+}
+
 def getMainDisplayData() {
 	def returnName;
     def returnValue;
@@ -578,6 +612,8 @@ def getStatus() {
     def mainDisplay = getMainDisplayData()
     def musicData = getMusicPlayerData()
     def relativeHumidityMeasurementData = getRelativeHumidityMeasurementData()
+    def waterData = getWaterData()
+    def valveData = getValveData()
     def optionsData = [ "useImages" 				: useImages,
                        "sortSensorsName" 			: sortSensorsName,
                        "sortSensorsActive" 			: sortSensorsActive,
@@ -587,6 +623,8 @@ def getStatus() {
                        "mainMenuMaxItemsSwitches" 	: mainMenuMaxItemsSwitches,
                        "mainMenuMaxItemsMotion" 	: mainMenuMaxItemsMotion,
                        "mainMenuMaxItemsLocks" 		: mainMenuMaxItemsLocks,
+                       "mainMenuMaxItemsWaters" 	: mainMenuMaxItemsWaters,
+                       "mainMenuMaxItemsValves" 	: mainMenuMaxItemsValves,
                        "mainMenuMaxItemsRelativeHumidityMeasurements" : mainMenuMaxItemsRelativeHumidityMeasurements,
                        "showSensorCount"			: showSensorCount,
                        "mainMenuMaxItemsPresences" 	: mainMenuMaxItemsPresences,
@@ -639,6 +677,8 @@ def getStatus() {
                 "CurrentMode" : ["name":location.mode],
                 "MainDisplay" : mainDisplay,
                 "RelativeHumidityMeasurements" : relativeHumidityMeasurementData,
+                "Waters" : waterData,
+                "Valves" : valveData,
                 "Options" : optionsData]
 
     if (debugDevices != null) {
@@ -788,6 +828,16 @@ def devicesPage() {
 				required: false
 			input "thermos", "capability.thermostat",
 				title: "Which Thermostats?",
+				multiple: true,
+				hideWhenEmpty: true,
+				required: false
+			input "waters", "capability.waterSensor",
+				title: "Which Water Sensors?",
+				multiple: true,
+				hideWhenEmpty: true,
+				required: false
+			input "valves", "capability.valve",
+				title: "Which Valves?",
 				multiple: true,
 				hideWhenEmpty: true,
 				required: false
@@ -943,6 +993,12 @@ def categoryPage() {
                 required: false
             input "mainMenuMaxItemsTemps", "number",
                 title: "Min Number of Temperature Sensors to Display - Leave blank to Show All Temperature Sensors",
+                required: false
+            input "mainMenuMaxItemsValves", "number",
+                title: "Min Number of Valves to Display - Leave blank to Show All Valves",
+                required: false
+            input "mainMenuMaxItemsWaters", "number",
+                title: "Min Number of Water Sensors to Display - Leave blank to Show All Water Sensors",
                 required: false
         }
     }
