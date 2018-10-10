@@ -220,8 +220,10 @@ try:
 except (urllib2.HTTPError, urllib2.URLError) as err:
     print ":rage:"
     print "---"
-    print ":thumbsdown: Error Communicating with ST API: {}".format(str(err))
-    print "Please check your Internet Connectivity and Refresh BitBar again when Online"
+    print ":thumbsdown: HTTPS Error Encountered: Communicating to ST API caused the following error(s): {}".format(str(err))
+    print "==> Please check your Internet Connectivity and Refresh BitBar again when Online"
+    print "StatusURL: ", statusURL
+    print "Response:", response
     exit(99)
 
 # Check for Return Code Status
@@ -229,8 +231,8 @@ except (urllib2.HTTPError, urllib2.URLError) as err:
 if response.code != 200:
     print ":rage:"
     print '---'
-    print ":thumbsdown: Error Communicating with ST API, HTTP rc={}".format(response.code)
-    print response.content
+    print ":thumbsdown: Error Communicating with ST API, HTTPS rc={}".format(response.code)
+    print "Content:", response.content
     exit(99)
 
 # Parse the JSON data
