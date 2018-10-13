@@ -222,8 +222,10 @@ except (urllib2.HTTPError, urllib2.URLError) as err:
     print "---"
     print ":thumbsdown: HTTPS Error Encountered: Communicating to ST API caused the following error(s): {}".format(str(err))
     print "==> Please check your Internet Connectivity and Refresh BitBar again when Online"
-    print "StatusURL: ", statusURL
-    print "Response:", response
+    print "statusURL: ", statusURL
+    print "header: ", header
+    print "https error Code:", err.code
+    print "https error Text: ", err.read()
     exit(99)
 
 # Check for Return Code Status
