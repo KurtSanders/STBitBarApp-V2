@@ -48,7 +48,10 @@ class NumberFormatter:
 
     # noinspection PyShadowingNames
     def formatNumber(self, number):
-        r = round(number, self.decimalRounding)
+        try:
+            r = round(float(number), self.decimalRounding)
+        except (ValueError, TypeError, AttributeError):
+            return r
         if self.staticDecimalPlaces is not -1:
             formatter = "{0:." + str(self.staticDecimalPlaces) + "f}"
             return formatter.format(r)
