@@ -17,10 +17,11 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 locale.setlocale(locale.LC_ALL, '')
 
+
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.18  # Must be float or Int
+PythonVersion = 3.19  # Must be float or Int
 ##################################
 
 
@@ -38,7 +39,10 @@ class NumberFormatter:
         self.staticDecimalPlaces = places
 
     def getNumberOfDecimals(self, number):
-        r = round(number, self.decimalRounding)
+        try:
+            r = round(float(number), self.decimalRounding)
+        except (ValueError, TypeError, AttributeError):
+            return 0
         if r % 1 == 0: return 0
         return abs(decimal.Decimal(str(r)).as_tuple().exponent)
 
@@ -220,12 +224,26 @@ try:
 except (urllib2.HTTPError, urllib2.URLError) as err:
     print ":rage:"
     print "---"
-    print ":thumbsdown: HTTPS Error Encountered: Communicating to ST API caused the following error(s): {}".format(str(err))
+    try:
+        print ":thumbsdown: HTTPS Error Encountered: Communicating to ST API caused the following error: {}".format(
+            str(err)
+        )
+    except NameError:
+        print ":thumbsdown: HTTPS Error Encountered: Communicating to ST API caused a severre error"
     print "==> Please check your Internet Connectivity and Refresh BitBar again when Online"
+    try:
     print "statusURL: ", statusURL
+    except NameError:
+        print "statusURL is undefined"
+    try:
     print "header: ", header
+    except NameError:
+        print "header is undefined"
+    try:
     print "https error Code:", err.code
     print "https error Text: ", err.read()
+    except NameError:
+        print "err.* variables are undefined"
     exit(99)
 
 # Check for Return Code Status
