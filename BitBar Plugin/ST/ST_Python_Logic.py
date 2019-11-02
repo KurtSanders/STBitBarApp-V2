@@ -51,7 +51,7 @@ class NumberFormatter:
         try:
             r = round(float(number), self.decimalRounding)
         except (ValueError, TypeError, AttributeError):
-            return r
+            return number
         if self.staticDecimalPlaces is not -1:
             formatter = "{0:." + str(self.staticDecimalPlaces) + "f}"
             return formatter.format(r)
