@@ -227,26 +227,8 @@ try:
 except (urllib2.HTTPError, urllib2.URLError) as err:
     print ":rage:"
     print "---"
-    try:
-        print ":thumbsdown: HTTPS Error Encountered: Communicating to ST API caused the following error: {}".format(
-            str(err)
-        )
-    except NameError:
-        print ":thumbsdown: HTTPS Error Encountered: Communicating to ST API caused a severre error"
+    print ":thumbsdown: HTTPS Error Encountered: Communicating to ST API caused the following error: {}".format(str(err))
     print "==> Please check your Internet Connectivity and Refresh BitBar again when Online"
-    try:
-    print "statusURL: ", statusURL
-    except NameError:
-        print "statusURL is undefined"
-    try:
-    print "header: ", header
-    except NameError:
-        print "header is undefined"
-    try:
-    print "https error Code:", err.code
-    print "https error Text: ", err.read()
-    except NameError:
-        print "err.* variables are undefined"
     exit(99)
 
 # Check for Return Code Status
