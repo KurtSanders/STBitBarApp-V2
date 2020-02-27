@@ -21,7 +21,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.19  # Must be float or Int
+PythonVersion = 3.20  # Must be float or Int
 ##################################
 
 
@@ -68,19 +68,19 @@ def TitleCase(var):
 
 
 colorHueList = {
-    "Orange"    : 10,
-    "Warm White": 20,
-    "Soft White": 23,
-    "Yellow"    : 25,
-    "Green"     : 39,
-    "White"     : 52,
-    "Daylight"  : 53,
-    "Blue"      : 69,
-    "DarkBlue"  : 70,
-    "Purple"    : 75,
-    "Pink"      : 83,
-    "Red"       : 100,
-    "Cyan"      : 180
+        "Orange"    : 10,
+        "Warm White": 20,
+        "Soft White": 23,
+        "Yellow"    : 25,
+        "Green"     : 39,
+        "White"     : 52,
+        "Daylight"  : 53,
+        "Blue"      : 69,
+        "DarkBlue"  : 70,
+        "Purple"    : 75,
+        "Pink"      : 83,
+        "Red"       : 100,
+        "Cyan"      : 180
 }
 
 
@@ -256,6 +256,8 @@ if "error" in j:
     exit(99)
 
 # Get the sensor arrays from the JSON data
+# print json.dumps(j['Motion Sensors'], indent=2)
+# exit(99)
 try:
     alarms = j['Alarm Sensors']
     temps = j['Temp Sensors']
@@ -409,16 +411,16 @@ def buildFontOptions(level=1):
 
 # Setup the Main Menu and Sub Menu Display Relationship
 mainMenuMaxItemsDict = {
-    "Temps"                       : None,
-    "MusicPlayers"                : None,
-    "Contacts"                    : None,
-    "Switches"                    : None,
-    "Motion"                      : None,
-    "Locks"                       : None,
-    "Valves"                      : None,
-    "Waters"                      : None,
-    "RelativeHumidityMeasurements": None,
-    "Presences"                   : None
+        "Temps"                       : None,
+        "MusicPlayers"                : None,
+        "Contacts"                    : None,
+        "Switches"                    : None,
+        "Motion"                      : None,
+        "Locks"                       : None,
+        "Valves"                      : None,
+        "Waters"                      : None,
+        "RelativeHumidityMeasurements": None,
+        "Presences"                   : None
 }
 mainMenuAutoSizeDict = {}
 # mainMenuAutoSize = False
@@ -493,7 +495,7 @@ formatter.setRoundingPrecision(numberOfDecimals)
 
 # Format thermostat status color
 thermoColor = ''
-if len(thermostats) > 0:
+if (thermostats is not None) and (len(thermostats) > 0):
     if "thermostatOperatingState" in thermostats[0]:
         if thermostats[0]['thermostatOperatingState'] == "heating":
             thermoColor += "color=red"
@@ -554,7 +556,7 @@ print '---'
 # Begin outputting sensor data
 
 # Output Thermostat data
-if len(thermostats) > 0:
+if (thermostats is not None) and (len(thermostats) > 0):
     # noinspection SpellCheckingInspection
     thermoImage = ("iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABR0AAAUdAG5O1bwAAAKT2lDQ1BQaG90b3Nob3Ag"
                    "SUNDIHByb2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUEG8igiAOOjoCMFVEs"
@@ -684,90 +686,92 @@ if len(thermostats) > 0:
                             heatingSetpointURL + str(c)), " param3=" + secret, " terminal=false refresh=true"
 
 # Output Temp Sensors
-sensorName = "Temps"
-countSensors = len(temps)
-if countSensors > 0:
-    hortSeparatorBar()
-    menuTitle = "Temp Sensors"
-    mainTitle = menuTitle
-    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
-    print "{} {}".format(mainTitle, buildFontOptions())
-    colorSwitch = False
-    mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
-    subMenuText = ''
-    for i, sensor in enumerate(temps):
-        currentLength = len(sensor['name'])
-        extraLength = maxLength - currentLength
-        whiteSpace = ''
-        for x in range(0, extraLength): whiteSpace += ' '
-        colorText = ''
-        currentValue = formatter.formatNumber(sensor['value'])
-        colorText = 'color=#333333' if colorSwitch else 'color=#666666'
-        if i == mainMenuMaxItems:
-            # noinspection PyTypeChecker
-            print "{} More...{}".format(countSensors - mainMenuMaxItems, buildFontOptions(2))
-            if not subMenuCompact:
+if temps is not None:
+    sensorName = "Temps"
+    countSensors = len(temps)
+    if countSensors > 0:
+        hortSeparatorBar()
+        menuTitle = "Temp Sensors"
+        mainTitle = menuTitle
+        if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+        print "{} {}".format(mainTitle, buildFontOptions())
+        colorSwitch = False
+        mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
+        subMenuText = ''
+        for i, sensor in enumerate(temps):
+            currentLength = len(sensor['name'])
+            extraLength = maxLength - currentLength
+            whiteSpace = ''
+            for x in range(0, extraLength): whiteSpace += ' '
+            colorText = ''
+            currentValue = formatter.formatNumber(sensor['value'])
+            colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+            if i == mainMenuMaxItems:
                 # noinspection PyTypeChecker
-                print "--{} ({})".format(menuTitle, str(countSensors - mainMenuMaxItems)), buildFontOptions()
-            subMenuText = "--"
-        print subMenuText, sensor['name'], whiteSpace, currentValue + degree_symbol, \
-            buildFontOptions(3), colorText
-        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-            # noinspection PyUnboundLocalVariable
-            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
-                                                        currentValue + degree_symbol + buildFontOptions(3) + colorText
-        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
-            try:
-                eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°")
-            except (ValueError, TypeError, AttributeError):
-                pass
-        if sensor['battery'] != 'N/A':
-            if sensor['battery'][1] != "": colorText = "color=red"
-            print subMenuText, sensor['name'], whiteSpace, formatPercentage(
-                sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3) + " alternate=true", colorText
-        colorSwitch = not colorSwitch
+                print "{} More...{}".format(countSensors - mainMenuMaxItems, buildFontOptions(2))
+                if not subMenuCompact:
+                    # noinspection PyTypeChecker
+                    print "--{} ({})".format(menuTitle, str(countSensors - mainMenuMaxItems)), buildFontOptions()
+                subMenuText = "--"
+            print subMenuText, sensor['name'], whiteSpace, currentValue + degree_symbol, \
+                buildFontOptions(3), colorText
+            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
+                # noinspection PyUnboundLocalVariable
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                            currentValue + degree_symbol + buildFontOptions(3) + colorText
+            if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+                try:
+                    eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°")
+                except (ValueError, TypeError, AttributeError):
+                    pass
+            if sensor['battery'] != 'N/A':
+                if sensor['battery'][1] != "": colorText = "color=red"
+                print subMenuText, sensor['name'], whiteSpace, formatPercentage(
+                    sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3) + " alternate=true", colorText
+            colorSwitch = not colorSwitch
 
 # Output relativeHumidityMeasurements Sensors
-sensorName = "RelativeHumidityMeasurements"
-countSensors = len(relativeHumidityMeasurements)
-if countSensors > 0:
-    hortSeparatorBar()
-    menuTitle = "Relative Humidity Sensors"
-    mainTitle = menuTitle
-    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
-    print "{} {}".format(mainTitle, buildFontOptions())
-    colorSwitch = False
-    mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
-    subMenuText = ''
-    for i, sensor in enumerate(relativeHumidityMeasurements):
-        currentLength = len(sensor['name'])
-        extraLength = maxLength - currentLength
-        whiteSpace = ''
-        for x in range(0, extraLength): whiteSpace += ' '
-        colorText = ''
-        currentValue = formatter.formatNumber(sensor['value'])
-        colorText = 'color=#333333' if colorSwitch else 'color=#666666'
-        if i == mainMenuMaxItems:
-            # noinspection PyTypeChecker
-            print "{} More...{}".format(countSensors - mainMenuMaxItems, buildFontOptions(2))
-            if not subMenuCompact:
+if relativeHumidityMeasurements is not None:
+    sensorName = "RelativeHumidityMeasurements"
+    countSensors = len(relativeHumidityMeasurements)
+    if countSensors > 0:
+        hortSeparatorBar()
+        menuTitle = "Relative Humidity Sensors"
+        mainTitle = menuTitle
+        if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+        print "{} {}".format(mainTitle, buildFontOptions())
+        colorSwitch = False
+        mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
+        subMenuText = ''
+        for i, sensor in enumerate(relativeHumidityMeasurements):
+            currentLength = len(sensor['name'])
+            extraLength = maxLength - currentLength
+            whiteSpace = ''
+            for x in range(0, extraLength): whiteSpace += ' '
+            colorText = ''
+            currentValue = formatter.formatNumber(sensor['value'])
+            colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+            if i == mainMenuMaxItems:
                 # noinspection PyTypeChecker
-                print "--{} ({})".format(menuTitle, str(countSensors - mainMenuMaxItems)), buildFontOptions()
-            subMenuText = "--"
-        print subMenuText, sensor['name'], whiteSpace, currentValue + "%", buildFontOptions(3), colorText
-        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
-                                                        currentValue + "%" + buildFontOptions(3) + colorText
-        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
-            eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in "humidity"], subMenuText, "%")
-        if sensor['battery'] != 'N/A':
-            if sensor['battery'][1] != "": colorText = "color=red"
-            print subMenuText, sensor['name'], whiteSpace, formatPercentage(
-                sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3) + " alternate=true", colorText
-        colorSwitch = not colorSwitch
+                print "{} More...{}".format(countSensors - mainMenuMaxItems, buildFontOptions(2))
+                if not subMenuCompact:
+                    # noinspection PyTypeChecker
+                    print "--{} ({})".format(menuTitle, str(countSensors - mainMenuMaxItems)), buildFontOptions()
+                subMenuText = "--"
+            print subMenuText, sensor['name'], whiteSpace, currentValue + "%", buildFontOptions(3), colorText
+            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                            currentValue + "%" + buildFontOptions(3) + colorText
+            if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+                eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in "humidity"], subMenuText, "%")
+            if sensor['battery'] != 'N/A':
+                if sensor['battery'][1] != "": colorText = "color=red"
+                print subMenuText, sensor['name'], whiteSpace, formatPercentage(
+                    sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3) + " alternate=true", colorText
+            colorSwitch = not colorSwitch
 
 # Output Modes
-if len(modes) > 0:
+if (modes is not None) and len(modes) > 0:
     hortSeparatorBar()
     if currentmode['name'] == "Home":
         emoji = " :house: "
@@ -786,7 +790,7 @@ if len(modes) > 0:
         colorSwitch = not colorSwitch
 
 # Output Routines
-if len(routines) > 0:
+if (routines is not None) and len(routines) > 0:
     print "--Routines (Select to Run)" + buildFontOptions()
     for i, routine in enumerate(routines):
         colorText = ''
@@ -821,145 +825,148 @@ if shmDisplayBool:
             colorSwitch = not colorSwitch
 
 # Output Contact Sensors
-sensorName = "Contacts"
-countSensors = len(contacts)
-if countSensors > 0:
-    hortSeparatorBar()
-    menuTitle = "Contact Sensors"
-    subMenuTitle = "More..."
-    mainTitle = menuTitle
-    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
-    print mainTitle, buildFontOptions()
-    mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
-    subMenuText = ''
-    for i, sensor in enumerate(contacts):
-        currentLength = len(sensor['name'])
-        extraLength = maxLength - currentLength
-        whiteSpace = ''
-        for x in range(0, extraLength): whiteSpace += ' '
-        sym = ''
-        if sensor['value'] == 'closed':
-            sym = contactClosedEmoji
-            if mainMenuAutoSizeDict[sensorName] is True:
-                if mainMenuMaxItems > i: mainMenuMaxItems = i
-                subMenuTitle = "More Contact Sensors Closed..."
-        else:
-            sym = contactOpenEmoji
-        colorText = 'color=#333333' if colorSwitch else 'color=#666666'
-        if i == mainMenuMaxItems:
-            print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
-            if not subMenuCompact: print "--{} ({})".format(menuTitle, str(countSensors - mainMenuMaxItems)), \
-                buildFontOptions()
-            subMenuText = "--"
-        print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3), colorText
-        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
-                                                        sym + buildFontOptions(3) + colorText
-        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
-            eventGroupByDate([d for d in sensor['eventlog']
-                              if d['name'] in ['status', 'contact', 'acceleration']], subMenuText, "")
-        if sensor['battery'] != 'N/A':
-            if sensor['battery'][1] != "": colorText = "color=red"
-            print subMenuText, sensor['name'], whiteSpace, formatPercentage(
-                sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3) + "alternate=true", colorText
-        colorSwitch = not colorSwitch
+if contacts is not None:
+    sensorName = "Contacts"
+    countSensors = len(contacts)
+    if countSensors > 0:
+        hortSeparatorBar()
+        menuTitle = "Contact Sensors"
+        subMenuTitle = "More..."
+        mainTitle = menuTitle
+        if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+        print mainTitle, buildFontOptions()
+        mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
+        subMenuText = ''
+        for i, sensor in enumerate(contacts):
+            currentLength = len(sensor['name'])
+            extraLength = maxLength - currentLength
+            whiteSpace = ''
+            for x in range(0, extraLength): whiteSpace += ' '
+            sym = ''
+            if sensor['value'] == 'closed':
+                sym = contactClosedEmoji
+                if mainMenuAutoSizeDict[sensorName] is True:
+                    if mainMenuMaxItems > i: mainMenuMaxItems = i
+                    subMenuTitle = "More Contact Sensors Closed..."
+            else:
+                sym = contactOpenEmoji
+            colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+            if i == mainMenuMaxItems:
+                print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
+                if not subMenuCompact: print "--{} ({})".format(menuTitle, str(countSensors - mainMenuMaxItems)), \
+                    buildFontOptions()
+                subMenuText = "--"
+            print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3), colorText
+            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                            sym + buildFontOptions(3) + colorText
+            if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+                eventGroupByDate([d for d in sensor['eventlog']
+                                  if d['name'] in ['status', 'contact', 'acceleration']], subMenuText, "")
+            if sensor['battery'] != 'N/A':
+                if sensor['battery'][1] != "": colorText = "color=red"
+                print subMenuText, sensor['name'], whiteSpace, formatPercentage(
+                    sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3) + "alternate=true", colorText
+            colorSwitch = not colorSwitch
 
 # Output Motion Sensors
-sensorName = "Motion"
-countSensors = len(motion)
-if countSensors > 0:
-    hortSeparatorBar()
-    menuTitle = "Motion Sensors"
-    subMenuTitle = "More..."
-    mainTitle = menuTitle
-    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
-    print mainTitle, buildFontOptions()
-    mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
-    subMenuText = ''
-    for i, sensor in enumerate(motion):
-        currentLength = len(sensor['name'])
-        extraLength = maxLength - currentLength
-        whiteSpace = ''
-        for x in range(0, extraLength): whiteSpace += ' '
-        sym = ''
-        if sensor['value'] == 'inactive':
-            sym = motionInactiveEmoji
-            if mainMenuAutoSizeDict[sensorName] is True:
-                if mainMenuMaxItems > i: mainMenuMaxItems = i
-                subMenuTitle = "More Sensors Inactive..."
-        else:
-            sym = motionActiveEmoji
-        colorText = 'color=#333333' if colorSwitch else 'color=#666666'
-        if i == mainMenuMaxItems:
-            print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
-            if not subMenuCompact: print "-- " + menuTitle + " (" + str(countSensors - mainMenuMaxItems) + ")"
-            subMenuText = "--"
-        print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3), colorText
-        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
-                                                        sym + buildFontOptions(3) + colorText
-        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
-            eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in 'motion'], subMenuText, "")
-        if sensor['battery'] != 'N/A':
-            if sensor['battery'][1] != "": colorText = "color=red"
-            print subMenuText, sensor['name'], whiteSpace, formatPercentage(
-                sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3), " alternate=true", colorText
-        colorSwitch = not colorSwitch
+if motion is not None:
+    sensorName = "Motion"
+    countSensors = len(motion)
+    if countSensors > 0:
+        hortSeparatorBar()
+        menuTitle = "Motion Sensors"
+        subMenuTitle = "More..."
+        mainTitle = menuTitle
+        if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+        print mainTitle, buildFontOptions()
+        mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
+        subMenuText = ''
+        for i, sensor in enumerate(motion):
+            currentLength = len(sensor['name'])
+            extraLength = maxLength - currentLength
+            whiteSpace = ''
+            for x in range(0, extraLength): whiteSpace += ' '
+            sym = ''
+            if sensor['value'] == 'inactive':
+                sym = motionInactiveEmoji
+                if mainMenuAutoSizeDict[sensorName] is True:
+                    if mainMenuMaxItems > i: mainMenuMaxItems = i
+                    subMenuTitle = "More Sensors Inactive..."
+            else:
+                sym = motionActiveEmoji
+            colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+            if i == mainMenuMaxItems:
+                print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
+                if not subMenuCompact: print "-- " + menuTitle + " (" + str(countSensors - mainMenuMaxItems) + ")"
+                subMenuText = "--"
+            print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3), colorText
+            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                            sym + buildFontOptions(3) + colorText
+            if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+                eventGroupByDate([d for d in sensor['eventlog'] if d['name'] == 'motion'], subMenuText, "")
+            if sensor['battery'] != 'N/A':
+                if sensor['battery'][1] != "": colorText = "color=red"
+                print subMenuText, sensor['name'], whiteSpace, formatPercentage(
+                    sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3), " alternate=true", colorText
+            colorSwitch = not colorSwitch
 
 # Output Presence Sensors
-sensorName = "Presences"
-countSensors = len(presences)
-if countSensors > 0:
-    hortSeparatorBar()
-    menuTitle = "Presence Sensors"
-    subMenuTitle = "More..."
-    mainTitle = menuTitle
-    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
-    print mainTitle, buildFontOptions()
-    mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
-    subMenuText = ''
-    notPresentMenuText = ''
-    notPresentSubmenu = False
-    for i, sensor in enumerate(presences):
-        currentLength = len(sensor['name'])
-        extraLength = maxLength - currentLength
-        whiteSpace = ''
-        for x in range(0, extraLength): whiteSpace += ' '
-        sym = ''
-        if sensor['value'] == 'present':
-            emoji = presenscePresentEmoji
-        else:
-            emoji = presensceNotPresentEmoji
-            if mainMenuAutoSizeDict[sensorName] is True:
-                if mainMenuMaxItems > i: mainMenuMaxItems = i
-                subMenuTitle = "More Sensors Not Present..."
-        # Only show the More... menu if there is no presence submenu
-        if i == mainMenuMaxItems and notPresentSubmenu is False:
-            print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
-            if not subMenuCompact: print "--{} ({}) {}".format(
-                menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions()
-            )
-            subMenuText = "--"
-        # If the presence mode is show not present in submenu
-        if presenceDisplayMode == 2 and sensor['value'] != 'present':
-            # If this is the first not present sensor
-            if not notPresentSubmenu:
-                print subMenuText, subMenuTitle, buildFontOptions()
-                notPresentSubmenu = True
-            # Set the submenu text
-            notPresentMenuText = "--"
-        colorText = 'color=#333333' if colorSwitch else 'color=#666666'
-        print subMenuText + notPresentMenuText, sensor['name'], whiteSpace, emoji, buildFontOptions(3), colorText
-        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
-                                                        emoji + buildFontOptions(3) + colorText
-        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
-            eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in 'presence'], subMenuText, "")
-        if sensor['battery'] != 'N/A':
-            if sensor['battery'][1] != "": colorText = "color=red"
-            print subMenuText + notPresentMenuText, sensor['name'], whiteSpace, formatPercentage(
-                sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3) + " alternate=true", colorText
-        colorSwitch = not colorSwitch
+if presences is not None:
+    sensorName = "Presences"
+    countSensors = len(presences)
+    if countSensors > 0:
+        hortSeparatorBar()
+        menuTitle = "Presence Sensors"
+        subMenuTitle = "More..."
+        mainTitle = menuTitle
+        if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+        print mainTitle, buildFontOptions()
+        mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
+        subMenuText = ''
+        notPresentMenuText = ''
+        notPresentSubmenu = False
+        for i, sensor in enumerate(presences):
+            currentLength = len(sensor['name'])
+            extraLength = maxLength - currentLength
+            whiteSpace = ''
+            for x in range(0, extraLength): whiteSpace += ' '
+            sym = ''
+            if sensor['value'] == 'present':
+                emoji = presenscePresentEmoji
+            else:
+                emoji = presensceNotPresentEmoji
+                if mainMenuAutoSizeDict[sensorName] is True:
+                    if mainMenuMaxItems > i: mainMenuMaxItems = i
+                    subMenuTitle = "More Sensors Not Present..."
+            # Only show the More... menu if there is no presence submenu
+            if i == mainMenuMaxItems and notPresentSubmenu is False:
+                print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
+                if not subMenuCompact: print "--{} ({}) {}".format(
+                    menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions()
+                )
+                subMenuText = "--"
+            # If the presence mode is show not present in submenu
+            if presenceDisplayMode == 2 and sensor['value'] != 'present':
+                # If this is the first not present sensor
+                if not notPresentSubmenu:
+                    print subMenuText, subMenuTitle, buildFontOptions()
+                    notPresentSubmenu = True
+                # Set the submenu text
+                notPresentMenuText = "--"
+            colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+            print subMenuText + notPresentMenuText, sensor['name'], whiteSpace, emoji, buildFontOptions(3), colorText
+            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                            emoji + buildFontOptions(3) + colorText
+            if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+                eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in 'presence'], subMenuText, "")
+            if sensor['battery'] != 'N/A':
+                if sensor['battery'][1] != "": colorText = "color=red"
+                print subMenuText + notPresentMenuText, sensor['name'], whiteSpace, formatPercentage(
+                    sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3) + " alternate=true", colorText
+            colorSwitch = not colorSwitch
 
 # Set base64 images for green locked/red unlocked
 # noinspection SpellCheckingInspection
@@ -1042,71 +1049,72 @@ redUnlocked = ("iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABYlAAAW
                "wC7BzkxRyLOwWd3ez2DpbaMtLMN++K6Eayy8NzgzwwwzzLAdYQcAAAD//wMAsSkPOUNoFPgAAAAASUVORK5CYII=")
 
 # Output Locks
-sensorName = "Locks"
-countSensors = len(locks)
-if countSensors > 0:
-    hortSeparatorBar()
-    menuTitle = sensorName
-    subMenuTitle = "More..."
-    mainTitle = menuTitle
-    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
-    print mainTitle, buildFontOptions()
-    mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
-    subMenuText = ''
-    for i, sensor in enumerate(locks):
-        currentLockURL = lockURL + sensor['id']
-        currentLength = len(sensor['name'])
-        extraLength = maxLength - currentLength
-        whiteSpace = ''
-        img = ''
-        sym = ''
-        for x in range(0, extraLength): whiteSpace += ' '
-        if sensor['value'] == 'locked':
-            sym = '🔒'
-            img = greenLocked
-            if mainMenuAutoSizeDict[sensorName] is True:
-                if mainMenuMaxItems > i: mainMenuMaxItems = i
-                subMenuTitle = "More Locked..."
-        elif sensor['value'] == 'unlocked':
-            sym = '🔓'
-            img = redUnlocked
-        elif sensor['value'] is None:
-            sensor['name'] = sensor['name'] + "(No Status)"
-        else:
-            sensor['name'] = sensor['name'] + "(" + str(sensor['value']) + ")"
-        if i == mainMenuMaxItems:
-            print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
-            if not subMenuCompact: print "--{} ({}) {}".format(
-                menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions()
-            )
-            subMenuText = "--"
-        colorText = 'color=#333333' if colorSwitch else 'color=#666666'
-        if useImages is True:
-            print subMenuText, sensor['name'], buildFontOptions(3) + colorText + ' bash=', \
-                callbackScript, ' param1=request param2=', \
-                currentLockURL, ' param3=', secret, ' terminal=false refresh=true image=', img
-        else:
-            print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3) + colorText + 'bash=', \
-                callbackScript, ' param1=request param2=', currentLockURL, ' param3=', \
-                secret, ' terminal=false refresh=true'
-        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
-                                                        sym + buildFontOptions(3) + colorText
-        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
-            eventGroupByDate(
-                [d for d in sensor['eventlog'] if d['value'] in
-                 ['locked', 'armed', 'unlocked', 'disarmed']],subMenuText, "")
-        if sensor['battery'] != 'N/A':
-            if sensor['battery'][1] != "": colorText = "color=red"
-            if useImages is True:
-                print subMenuText, sensor['name'], whiteSpace, formatPercentage(
-                    sensor['battery'][0]) + sensor['battery'][1], \
-                    buildFontOptions(3) + " alternate=true", colorText, "image=" + img
+if locks is not None:
+    sensorName = "Locks"
+    countSensors = len(locks)
+    if countSensors > 0:
+        hortSeparatorBar()
+        menuTitle = sensorName
+        subMenuTitle = "More..."
+        mainTitle = menuTitle
+        if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+        print mainTitle, buildFontOptions()
+        mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
+        subMenuText = ''
+        for i, sensor in enumerate(locks):
+            currentLockURL = lockURL + sensor['id']
+            currentLength = len(sensor['name'])
+            extraLength = maxLength - currentLength
+            whiteSpace = ''
+            img = ''
+            sym = ''
+            for x in range(0, extraLength): whiteSpace += ' '
+            if sensor['value'] == 'locked':
+                sym = '🔒'
+                img = greenLocked
+                if mainMenuAutoSizeDict[sensorName] is True:
+                    if mainMenuMaxItems > i: mainMenuMaxItems = i
+                    subMenuTitle = "More Locked..."
+            elif sensor['value'] == 'unlocked':
+                sym = '🔓'
+                img = redUnlocked
+            elif sensor['value'] is None:
+                sensor['name'] = sensor['name'] + "(No Status)"
             else:
-                print subMenuText, sensor['name'], whiteSpace, sym, formatPercentage(
-                    sensor['battery'][0]) + sensor['battery'][1], \
-                    buildFontOptions(3) + " alternate=true", colorText
-        colorSwitch = not colorSwitch
+                sensor['name'] = sensor['name'] + "(" + str(sensor['value']) + ")"
+            if i == mainMenuMaxItems:
+                print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
+                if not subMenuCompact: print "--{} ({}) {}".format(
+                    menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions()
+                )
+                subMenuText = "--"
+            colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+            if useImages is True:
+                print subMenuText, sensor['name'], buildFontOptions(3) + colorText + ' bash=', \
+                    callbackScript, ' param1=request param2=', \
+                    currentLockURL, ' param3=', secret, ' terminal=false refresh=true image=', img
+            else:
+                print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3) + colorText + 'bash=', \
+                    callbackScript, ' param1=request param2=', currentLockURL, ' param3=', \
+                    secret, ' terminal=false refresh=true'
+            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                            sym + buildFontOptions(3) + colorText
+            if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+                eventGroupByDate(
+                    [d for d in sensor['eventlog'] if d['value'] in
+                     ['locked', 'armed', 'unlocked', 'disarmed']],subMenuText, "")
+            if sensor['battery'] != 'N/A':
+                if sensor['battery'][1] != "": colorText = "color=red"
+                if useImages is True:
+                    print subMenuText, sensor['name'], whiteSpace, formatPercentage(
+                        sensor['battery'][0]) + sensor['battery'][1], \
+                        buildFontOptions(3) + " alternate=true", colorText, "image=" + img
+                else:
+                    print subMenuText, sensor['name'], whiteSpace, sym, formatPercentage(
+                        sensor['battery'][0]) + sensor['battery'][1], \
+                        buildFontOptions(3) + " alternate=true", colorText
+            colorSwitch = not colorSwitch
 
 # Set base64 images for status green/red
 greenImage = ("iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABR0AAAUdAG5O1bwAAAKT2lDQ1BQaG90b3Nob3AgSUNDI"
@@ -1215,293 +1223,297 @@ redImage = ("iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABR0AAAUdAG
             "M+GbAMMWpiO9UdRJF+zfAQA3jyMbiOE+0gAAAABJRU5ErkJggg==")
 
 # Output Switches & Lights
-sensorName = "Switches"
-countSensors = len(switches)
-if countSensors > 0:
-    hortSeparatorBar()
-    menuTitle = "Lights & {}".format(sensorName)
-    mainTitle = menuTitle
-    subMenuTitle = "More..."
-    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
-    print mainTitle, buildFontOptions()
-    mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
-    subMenuText = ''
-    for i, sensor in enumerate(switches):
-        thisSensor = sensor["name"]
-        if sensor['isRGB'] is True:
-            thisSensor = "{} {}".format(thisSensor, colorBulbEmoji)
-        elif sensor['isDimmer'] is True:
-            thisSensor = "{} {}".format(thisSensor, dimmerBulbEmoji)
-        else:
-            pass
-        if (sensor['isRGB'] or sensor['isDimmer']) and dimmerValueOnMainMenu:
-            thisSensor = "{} ({}%)".format(thisSensor, sensor["dimmerLevel"])
-        indent = ""
-        currentLength = len(sensor['name'])
-        extraLength = maxLength - currentLength
-        whiteSpace = ''
-        img = ''
-        for x in range(0, extraLength): whiteSpace += ' '
-        if sensor['value'] == 'on':
-            sym = " ✅"
-            img = greenImage
-        else:
-            sym = " 🔴"
-            img = redImage
-            if mainMenuAutoSizeDict[sensorName] is True:
-                if mainMenuMaxItems > i: mainMenuMaxItems = i
-                subMenuTitle = "More Switches Off..."
-        currentSwitchURL = contactURL + sensor['id']
-        colorText = 'color=#333333' if colorSwitch else 'color=#666666'
-        if i == mainMenuMaxItems:
-            print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions())
-            if not subMenuCompact: print "--{} ({}) {}".format(
-                menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions(2)
-            )
-            subMenuText = "--"
-        if useImages is True:
-            print subMenuText, thisSensor, buildFontOptions(3) + colorText + \
-                ' bash=', callbackScript, ' param1=request param2=', \
-                currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true image=', img
-        else:
-            print subMenuText, thisSensor, whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
-                ' param1=request param2=', currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true'
-        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + sym + buildFontOptions(
-                3) + colorText
-        indent = ""
-        if sensor['isDimmer'] is True:
-            subMenuText = subMenuText + '--'
-            print subMenuText + dimmerBulbEmoji + ' Current Dimmer Level ({}%)'.format(sensor["dimmerLevel"]), \
-                buildFontOptions(3), smallFontPitchSize
-            if sensor['isRGB']: subMenuText = subMenuText + '--'
-            print subMenuText + dimmerBulbEmoji + ' Set Dimmer Level to:', buildFontOptions(3), smallFontPitchSize
-            count = 0
-            for currentLevel in range(10,110,10):
-                currentLevelURL = levelURL + sensor['id'] + '&level=' + str(currentLevel)
-                count += 1
-                print subMenuText + "{:>3}. {:>4}".format(count, str(currentLevel) + "%"), buildFontOptions(4), \
-                    'bash=', callbackScript, ' param1=request param2=', currentLevelURL, \
-                    ' param3=', secret, ' terminal=false refresh=true'
-            if sensor['isRGB']:
-                subMenuText = subMenuText[:-4]
-            else :
+if switches is not None:
+    sensorName = "Switches"
+    countSensors = len(switches)
+    if countSensors > 0:
+        hortSeparatorBar()
+        menuTitle = "Lights & {}".format(sensorName)
+        mainTitle = menuTitle
+        subMenuTitle = "More..."
+        if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+        print mainTitle, buildFontOptions()
+        mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
+        subMenuText = ''
+        for i, sensor in enumerate(switches):
+            thisSensor = sensor["name"]
+            if sensor['isRGB'] is True:
+                thisSensor = "{} {}".format(thisSensor, colorBulbEmoji)
+            elif sensor['isDimmer'] is True:
+                thisSensor = "{} {}".format(thisSensor, dimmerBulbEmoji)
+            else:
+                pass
+            if (sensor['isRGB'] or sensor['isDimmer']) and dimmerValueOnMainMenu:
+                thisSensor = "{} ({}%)".format(thisSensor, sensor["dimmerLevel"])
+            indent = ""
+            currentLength = len(sensor['name'])
+            extraLength = maxLength - currentLength
+            whiteSpace = ''
+            img = ''
+            for x in range(0, extraLength): whiteSpace += ' '
+            if sensor['value'] == 'on':
+                sym = " ✅"
+                img = greenImage
+            else:
+                sym = " 🔴"
+                img = redImage
+                if mainMenuAutoSizeDict[sensorName] is True:
+                    if mainMenuMaxItems > i: mainMenuMaxItems = i
+                    subMenuTitle = "More Switches Off..."
+            currentSwitchURL = contactURL + sensor['id']
+            colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+            if i == mainMenuMaxItems:
+                print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions())
+                if not subMenuCompact: print "--{} ({}) {}".format(
+                    menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions(2)
+                )
+                subMenuText = "--"
+            if useImages is True:
+                print subMenuText, thisSensor, buildFontOptions(3) + colorText + \
+                    ' bash=', callbackScript, ' param1=request param2=', \
+                    currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true image=', img
+            else:
+                print subMenuText, thisSensor, whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
+                    ' param1=request param2=', currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true'
+            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + sym + buildFontOptions(
+                    3) + colorText
+            indent = ""
+            if sensor['isDimmer'] is True:
+                subMenuText = subMenuText + '--'
+                print subMenuText + dimmerBulbEmoji + ' Current Dimmer Level ({}%)'.format(sensor["dimmerLevel"]), \
+                    buildFontOptions(3), smallFontPitchSize
+                if sensor['isRGB']: subMenuText = subMenuText + '--'
+                print subMenuText + dimmerBulbEmoji + ' Set Dimmer Level to:', buildFontOptions(3), smallFontPitchSize
+                count = 0
+                for currentLevel in range(10,110,10):
+                    currentLevelURL = levelURL + sensor['id'] + '&level=' + str(currentLevel)
+                    count += 1
+                    print subMenuText + "{:>3}. {:>4}".format(count, str(currentLevel) + "%"), buildFontOptions(4), \
+                        'bash=', callbackScript, ' param1=request param2=', currentLevelURL, \
+                        ' param3=', secret, ' terminal=false refresh=true'
+                if sensor['isRGB']:
+                    subMenuText = subMenuText[:-4]
+                else :
+                    subMenuText = subMenuText[:-2]
+                indent = '--'
+            if sensor['isRGB'] is True and colorChoices > 0:
+                subMenuText = subMenuText + '--'
+                colorName = getColorNameHue(sensor["hue"])
+                if colorName is None : colorName = sensor["colorRGBName"]
+                print subMenuText + colorBulbEmoji + " Current Hue Value ({} Hue: {})".format(colorName, sensor["hue"]), \
+                    buildFontOptions(3), smallFontPitchSize
+                subMenuText = subMenuText + '--'
+                print subMenuText + colorBulbEmoji + ' Set Hue to:', buildFontOptions(3), smallFontPitchSize
+                count = 0
+                for colorChoice in colorChoices:
+                    if colorName == colorChoice: continue
+                    count += 1
+                    if colorChoice == 'White':
+                        colorChoiceSafe = 'Black'
+                    else: colorChoiceSafe = colorChoice.split(' ', 1)[0]
+                    currentColorURL = colorURL + sensor['id'] + '&colorName=' + urllib.quote(colorChoice.encode('utf8'))
+                    print subMenuText + "{:>3}. {} ".format(count, getHueLevel(colorChoice)), buildFontOptions(4), \
+                        'bash=', callbackScript, ' param1=request param2=', currentColorURL, ' param3=', secret, \
+                        ' terminal=false refresh=true', 'color=' + colorChoiceSafe
                 subMenuText = subMenuText[:-2]
-            indent = '--'
-        if sensor['isRGB'] is True and colorChoices > 0:
-            subMenuText = subMenuText + '--'
-            colorName = getColorNameHue(sensor["hue"])
-            if colorName is None : colorName = sensor["colorRGBName"]
-            print subMenuText + colorBulbEmoji + " Current Hue Value ({} Hue: {})".format(colorName, sensor["hue"]), \
-                buildFontOptions(3), smallFontPitchSize
-            subMenuText = subMenuText + '--'
-            print subMenuText + colorBulbEmoji + ' Set Hue to:', buildFontOptions(3), smallFontPitchSize
-            count = 0
-            for colorChoice in colorChoices:
-                if colorName == colorChoice: continue
-                count += 1
-                if colorChoice == 'White':
-                    colorChoiceSafe = 'Black'
-                else: colorChoiceSafe = colorChoice.split(' ', 1)[0]
-                currentColorURL = colorURL + sensor['id'] + '&colorName=' + urllib.quote(colorChoice.encode('utf8'))
-                print subMenuText + "{:>3}. {} ".format(count, getHueLevel(colorChoice)), buildFontOptions(4), \
-                    'bash=', callbackScript, ' param1=request param2=', currentColorURL, ' param3=', secret, \
-                    ' terminal=false refresh=true', 'color=' + colorChoiceSafe
-            subMenuText = subMenuText[:-2]
-            print subMenuText + colorBulbEmoji + ' Current Sat Value ({}) '.format(sensor["saturation"]), \
-                buildFontOptions(3), smallFontPitchSize
-            subMenuText = subMenuText + '--'
-            print subMenuText + colorBulbEmoji + ' Set Saturation to:', buildFontOptions(3), smallFontPitchSize
-            count = 0
-            for currentLevel in range(0,110,10):
-                currentColorURL = colorURL + sensor['id'] + '&saturation=' + str(currentLevel)
-                count += 1
-                print subMenuText + "{:>3}. {:>4}".format(count, str(currentLevel)), buildFontOptions(4), \
-                    'bash=', callbackScript, ' param1=request param2=', currentColorURL, ' param3=', secret, \
-                    ' terminal=false refresh=true'
-            subMenuText = subMenuText[:-4]
-            indent = '--'
-        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
-            print subMenuText + "-- 🎯 Event History", buildFontOptions(3)
-            eventGroupByDate(sensor['eventlog'], subMenuText + indent, "")
-        colorSwitch = not colorSwitch
-#        print '==>', sensor["name"], sensor
+                print subMenuText + colorBulbEmoji + ' Current Sat Value ({}) '.format(sensor["saturation"]), \
+                    buildFontOptions(3), smallFontPitchSize
+                subMenuText = subMenuText + '--'
+                print subMenuText + colorBulbEmoji + ' Set Saturation to:', buildFontOptions(3), smallFontPitchSize
+                count = 0
+                for currentLevel in range(0,110,10):
+                    currentColorURL = colorURL + sensor['id'] + '&saturation=' + str(currentLevel)
+                    count += 1
+                    print subMenuText + "{:>3}. {:>4}".format(count, str(currentLevel)), buildFontOptions(4), \
+                        'bash=', callbackScript, ' param1=request param2=', currentColorURL, ' param3=', secret, \
+                        ' terminal=false refresh=true'
+                subMenuText = subMenuText[:-4]
+                indent = '--'
+            if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+                print subMenuText + "-- 🎯 Event History", buildFontOptions(3)
+                eventGroupByDate(sensor['eventlog'], subMenuText + indent, "")
+            colorSwitch = not colorSwitch
+    #        print '==>', sensor["name"], sensor
 
 # Output MusicPlayers
-sensorName = "MusicPlayers"
-countSensors = len(musicplayers)
-if countSensors > 0:
-    hortSeparatorBar()
-    menuTitle = "Music Players"
-    mainTitle = menuTitle
-    subMenuTitle = "More Music Players..."
-    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
-    print mainTitle, buildFontOptions()
-    mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
-    subMenuText = ''
-    # noinspection PyShadowingNames
-    musicplayers = sorted(musicplayers, key=lambda x: x['name'], reverse=False)
-    # noinspection PyShadowingNames
-    for i, sensor in enumerate(sorted(musicplayers, key=lambda x: x['groupBool'], reverse=False)):
-        currentLength = len(sensor['name'])
-        extraLength = maxLength - currentLength
-        whiteSpace = ''
-        img = ''
-        for x in range(0, extraLength): whiteSpace += ' '
-        if "status" in sensor['trackData'] and sensor['trackData']['status'] == 'playing':
-            sym = '🔛'
-            img = greenImage
-        else:
-            sym = '🔴'
-            img = redImage
-            if mainMenuAutoSizeDict[sensorName] is True:
-                if mainMenuMaxItems > i: mainMenuMaxItems = i
-                subMenuTitle = "More Music Players Inactive..."
-        colorText = 'color=#333333' if colorSwitch else 'color=#666666'
-        if i == mainMenuMaxItems:
-            print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions())
-            if not subMenuCompact: print "--{} ({}) {}".format(
-                menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions(2)
-            )
-            subMenuText = "--"
-        if sensor['groupBool']: sensor['name'] += " - {}{}".format('Grouped', sensor['trackDescription'][1])
-        if useImages is True:
-            print subMenuText, sensor['name'], buildFontOptions(3) + colorText, 'image=', img
-        else:
-            print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3) + colorText
-
-        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + \
-                                                        whiteSpace + " " + sym + buildFontOptions(3) + colorText
-
-        if sensor['level'] is not None:
-            print "{}--*Volume Level: ({})".format(subMenuText, sensor['level']), buildFontOptions(3)
-            print "{}----Set Music Level".format(subMenuText), buildFontOptions(3), smallFontPitchSize
-            currentLevel = 0
-            while currentLevel <= 100:
-                currentMusicPlayerURL = musicplayerURL + sensor['id'] + '&command=' + 'level'
-                print "{}----{}".format(subMenuText, currentLevel), buildFontOptions(3), \
-                    'bash=' + callbackScript, 'param1=request param2=' + currentMusicPlayerURL, \
-                    ' param3=' + secret, ' terminal=false refresh=true'
-                currentLevel += 10
-        if sensor['mute'] is not None:
-            command = "mute" if sensor['mute'] is "unmuted" else "unmute"
-            print "{}--*Mute : {}".format(subMenuText, TitleCase(sensor['mute'])), \
-                buildFontOptions(3), 'bash=' + callbackScript, \
-                'param1=request param2=' + musicplayerURL + sensor['id'] + '&command=' + command, \
-                ' param3=' + secret, 'terminal=false refresh=true'
-        if sensor['trackDescription'] is not None:
-            #           Check for Music Player playing a Streaming Live Radio Station
-            m = re.search('^x-sonosapi-hls:(.+)\?', sensor['trackDescription'][0])
-            if m:
-                sensor['trackDescription'][0] = m.group(1)
+if musicplayers is not None:
+    sensorName = "MusicPlayers"
+    countSensors = len(musicplayers)
+    if countSensors > 0:
+        hortSeparatorBar()
+        menuTitle = "Music Players"
+        mainTitle = menuTitle
+        subMenuTitle = "More Music Players..."
+        if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+        print mainTitle, buildFontOptions()
+        mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
+        subMenuText = ''
+        # noinspection PyShadowingNames
+        musicplayers = sorted(musicplayers, key=lambda x: x['name'], reverse=False)
+        # noinspection PyShadowingNames
+        for i, sensor in enumerate(sorted(musicplayers, key=lambda x: x['groupBool'], reverse=False)):
+            currentLength = len(sensor['name'])
+            extraLength = maxLength - currentLength
+            whiteSpace = ''
+            img = ''
+            for x in range(0, extraLength): whiteSpace += ' '
+            if "status" in sensor['trackData'] and sensor['trackData']['status'] == 'playing':
+                sym = '🔛'
+                img = greenImage
             else:
-                sensor['trackDescription'][0] = sensor['trackDescription'][0].replace('\n', ' ')
-            print "{}--{}  {}".format(
-                subMenuText, "Track:", sensor['trackDescription'][0]), buildFontOptions(3), "font=9"
-        if sensor["trackData"] is not None:
-            for key, value in sensor["trackData"].items():
-                if key in ["album", "status", "name", "artist", "station", "trackNumber"]:
-                    if value is not None:
-                        print "{}--{}: {}".format(subMenuText, TitleCase(key), TitleCase(value)), \
-                            buildFontOptions(3)
-        colorSwitch = not colorSwitch
+                sym = '🔴'
+                img = redImage
+                if mainMenuAutoSizeDict[sensorName] is True:
+                    if mainMenuMaxItems > i: mainMenuMaxItems = i
+                    subMenuTitle = "More Music Players Inactive..."
+            colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+            if i == mainMenuMaxItems:
+                print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions())
+                if not subMenuCompact: print "--{} ({}) {}".format(
+                    menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions(2)
+                )
+                subMenuText = "--"
+            if sensor['groupBool']: sensor['name'] += " - {}{}".format('Grouped', sensor['trackDescription'][1])
+            if useImages is True:
+                print subMenuText, sensor['name'], buildFontOptions(3) + colorText, 'image=', img
+            else:
+                print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3) + colorText
+
+            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + \
+                                                            whiteSpace + " " + sym + buildFontOptions(3) + colorText
+
+            if sensor['level'] is not None:
+                print "{}--*Volume Level: ({})".format(subMenuText, sensor['level']), buildFontOptions(3)
+                print "{}----Set Music Level".format(subMenuText), buildFontOptions(3), smallFontPitchSize
+                currentLevel = 0
+                while currentLevel <= 100:
+                    currentMusicPlayerURL = musicplayerURL + sensor['id'] + '&command=' + 'level'
+                    print "{}----{}".format(subMenuText, currentLevel), buildFontOptions(3), \
+                        'bash=' + callbackScript, 'param1=request param2=' + currentMusicPlayerURL, \
+                        ' param3=' + secret, ' terminal=false refresh=true'
+                    currentLevel += 10
+            if sensor['mute'] is not None:
+                command = "mute" if sensor['mute'] is "unmuted" else "unmute"
+                print "{}--*Mute : {}".format(subMenuText, TitleCase(sensor['mute'])), \
+                    buildFontOptions(3), 'bash=' + callbackScript, \
+                    'param1=request param2=' + musicplayerURL + sensor['id'] + '&command=' + command, \
+                    ' param3=' + secret, 'terminal=false refresh=true'
+            if sensor['trackDescription'] is not None:
+                #           Check for Music Player playing a Streaming Live Radio Station
+                m = re.search('^x-sonosapi-hls:(.+)\?', sensor['trackDescription'][0])
+                if m:
+                    sensor['trackDescription'][0] = m.group(1)
+                else:
+                    sensor['trackDescription'][0] = sensor['trackDescription'][0].replace('\n', ' ')
+                print "{}--{}  {}".format(
+                    subMenuText, "Track:", sensor['trackDescription'][0]), buildFontOptions(3), "font=9"
+            if sensor["trackData"] is not None:
+                for key, value in sensor["trackData"].items():
+                    if key in ["album", "status", "name", "artist", "station", "trackNumber"]:
+                        if value is not None:
+                            print "{}--{}: {}".format(subMenuText, TitleCase(key), TitleCase(value)), \
+                                buildFontOptions(3)
+            colorSwitch = not colorSwitch
 
 # Output Valves
-sensorName = "Valves"
-countSensors = len(valves)
-if countSensors > 0:
-    hortSeparatorBar()
-    menuTitle = sensorName
-    mainTitle = menuTitle
-    subMenuTitle = "More..."
-    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
-    print mainTitle, buildFontOptions()
-    mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
-    subMenuText = ''
-    for i, sensor in enumerate(valves):
-        thisSensor = sensor["name"]
-        indent = ""
-        currentLength = len(sensor['name'])
-        extraLength = maxLength - currentLength
-        whiteSpace = ''
-        img = ''
-        for x in range(0, extraLength): whiteSpace += ' '
-        if sensor['value'] == 'open':
-            sym = " ✅"
-            img = greenImage
-        else:
-            sym = " 🔴"
-            img = redImage
-            if mainMenuAutoSizeDict[sensorName] is True:
-                if mainMenuMaxItems > i: mainMenuMaxItems = i
-                subMenuTitle = "More Valves Close..."
-        currentValveURL = valveURL + sensor['id']
-        colorText = 'color=#333333' if colorSwitch else 'color=#666666'
-        if i == mainMenuMaxItems:
-            print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions())
-            if not subMenuCompact: print "--{} ({}) {}".format(
-                menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions(2)
-            )
-            subMenuText = "--"
-        if useImages is True:
-            print subMenuText, thisSensor, buildFontOptions(3) + colorText + \
-                ' bash=', callbackScript, ' param1=request param2=', \
-                currentValveURL, ' param3=', secret, ' terminal=false refresh=true image=', img
-        else:
-            print subMenuText, thisSensor, whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
-                ' param1=request param2=', currentValveURL, ' param3=', secret, ' terminal=false refresh=true'
-        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + sym + buildFontOptions(
-                3) + colorText
-        indent = ""
-        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
-            print subMenuText + "-- 🎯 Event History", buildFontOptions(3)
-            eventGroupByDate(sensor['eventlog'], subMenuText + indent, "")
-        colorSwitch = not colorSwitch
+if valves is not None:
+    sensorName = "Valves"
+    countSensors = len(valves)
+    if countSensors > 0:
+        hortSeparatorBar()
+        menuTitle = sensorName
+        mainTitle = menuTitle
+        subMenuTitle = "More..."
+        if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+        print mainTitle, buildFontOptions()
+        mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
+        subMenuText = ''
+        for i, sensor in enumerate(valves):
+            thisSensor = sensor["name"]
+            indent = ""
+            currentLength = len(sensor['name'])
+            extraLength = maxLength - currentLength
+            whiteSpace = ''
+            img = ''
+            for x in range(0, extraLength): whiteSpace += ' '
+            if sensor['value'] == 'open':
+                sym = " ✅"
+                img = greenImage
+            else:
+                sym = " 🔴"
+                img = redImage
+                if mainMenuAutoSizeDict[sensorName] is True:
+                    if mainMenuMaxItems > i: mainMenuMaxItems = i
+                    subMenuTitle = "More Valves Close..."
+            currentValveURL = valveURL + sensor['id']
+            colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+            if i == mainMenuMaxItems:
+                print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions())
+                if not subMenuCompact: print "--{} ({}) {}".format(
+                    menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions(2)
+                )
+                subMenuText = "--"
+            if useImages is True:
+                print subMenuText, thisSensor, buildFontOptions(3) + colorText + \
+                    ' bash=', callbackScript, ' param1=request param2=', \
+                    currentValveURL, ' param3=', secret, ' terminal=false refresh=true image=', img
+            else:
+                print subMenuText, thisSensor, whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
+                    ' param1=request param2=', currentValveURL, ' param3=', secret, ' terminal=false refresh=true'
+            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + sym + buildFontOptions(
+                    3) + colorText
+            indent = ""
+            if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+                print subMenuText + "-- 🎯 Event History", buildFontOptions(3)
+                eventGroupByDate(sensor['eventlog'], subMenuText + indent, "")
+            colorSwitch = not colorSwitch
 
 
 # Output Water Sensors
-sensorName = "Waters"
-countSensors = len(waters)
-if countSensors > 0:
-    hortSeparatorBar()
-    menuTitle = "Water Sensors"
-    subMenuTitle = "More..."
-    mainTitle = menuTitle
-    if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
-    print mainTitle, buildFontOptions()
-    mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
-    subMenuText = ''
-    for i, sensor in enumerate(waters):
-        currentLength = len(sensor['name'])
-        extraLength = maxLength - currentLength
-        whiteSpace = ''
-        for x in range(0, extraLength): whiteSpace += ' '
-        sym = ''
-        if sensor['value'] == 'wet':
-            sym = ":potable_water:"
-            if mainMenuAutoSizeDict[sensorName] is True:
-                if mainMenuMaxItems > i: mainMenuMaxItems = i
-                subMenuTitle = "More Sensors Inactive..."
-        else:
-            sym = ":sunny:"
-        colorText = 'color=#333333' if colorSwitch else 'color=#666666'
-        if i == mainMenuMaxItems:
-            print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
-            if not subMenuCompact: print "-- " + menuTitle + " (" + str(countSensors - mainMenuMaxItems) + ")"
-            subMenuText = "--"
-        print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3), colorText
-        if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-            favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
-                                                        sym + buildFontOptions(3) + colorText
-        if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
-            eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in 'water'], subMenuText, "")
-        if sensor['battery'] != 'N/A':
-            if sensor['battery'][1] != "": colorText = "color=red"
-            print subMenuText, sensor['name'], whiteSpace, formatPercentage(
-                sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3), " alternate=true", colorText
-        colorSwitch = not colorSwitch
+if waters is not None:
+    sensorName = "Waters"
+    countSensors = len(waters)
+    if countSensors > 0:
+        hortSeparatorBar()
+        menuTitle = "Water Sensors"
+        subMenuTitle = "More..."
+        mainTitle = menuTitle
+        if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
+        print mainTitle, buildFontOptions()
+        mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
+        subMenuText = ''
+        for i, sensor in enumerate(waters):
+            currentLength = len(sensor['name'])
+            extraLength = maxLength - currentLength
+            whiteSpace = ''
+            for x in range(0, extraLength): whiteSpace += ' '
+            sym = ''
+            if sensor['value'] == 'wet':
+                sym = ":potable_water:"
+                if mainMenuAutoSizeDict[sensorName] is True:
+                    if mainMenuMaxItems > i: mainMenuMaxItems = i
+                    subMenuTitle = "More Sensors Inactive..."
+            else:
+                sym = ":sunny:"
+            colorText = 'color=#333333' if colorSwitch else 'color=#666666'
+            if i == mainMenuMaxItems:
+                print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
+                if not subMenuCompact: print "-- " + menuTitle + " (" + str(countSensors - mainMenuMaxItems) + ")"
+                subMenuText = "--"
+            print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3), colorText
+            if favoriteDevicesBool and sensor['name'] in favoriteDevices:
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
+                                                            sym + buildFontOptions(3) + colorText
+            if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
+                eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in 'water'], subMenuText, "")
+            if sensor['battery'] != 'N/A':
+                if sensor['battery'][1] != "": colorText = "color=red"
+                print subMenuText, sensor['name'], whiteSpace, formatPercentage(
+                    sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3), " alternate=true", colorText
+            colorSwitch = not colorSwitch
 
 
 # Configuration Options

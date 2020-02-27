@@ -1,7 +1,7 @@
 /**
  *  BitBar Output App
  *
- *  Copyright 2018 Kurt Sanders
+ *  Copyright 2018,2019,2020 Kurt Sanders
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -59,7 +59,7 @@
  // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
  // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
  //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
-def version() { return "3.18" } // Must be a Floating Number String "2.1", "2.01", "2.113"
+def version() { return "3.20" } // Must be a Floating Number String "2.1", "2.01", "2.113"
 import groovy.json.JsonSlurper
 //import groovy.json.JsonBuilder
 import java.awt.Color;
@@ -493,7 +493,7 @@ def getSwitchData() {
             else if (b>r  & r>=g) {colorRGBName = "Blue–magenta"}
             else if (r>=b & b>g ) {colorRGBName = "Magenta–red"}
             else {colorRGBName = ""}
-            log.debug "colorRGBName = ${colorRGBName.padRight(20,"-")}"
+//            log.debug "colorRGBName = ${colorRGBName.padRight(20,"-")}"
             x = [
                 name		: it.displayName,
                 value		: it.currentSwitch,
@@ -503,7 +503,7 @@ def getSwitchData() {
                 hue			: hue ? hue.toFloat().round() : hue,
                 saturation	: saturation ? saturation.toFloat().round() : saturation
             ]
-            x.each {k, v -> log.debug "${k.padRight(20,"-")}: ${v}" }
+//            x.each {k, v -> log.debug "${k.padRight(20,"-")}: ${v}" }
         }
         resp << [
             name		: it.displayName,
@@ -697,22 +697,30 @@ def getStatus() {
 }
 
 private mainPage() {
-	dynamicPage(name: "mainPage", uninstall:true, install:true) {
+    dynamicPage(name: "mainPage", uninstall:true, install:true) {
         section("Version Information") {
-        	paragraph "ST BitBar Output SmartApp Version: ${version()}" +
-            "${state.pythonAppVersion == null?"\nST_Python_Logic.py Version: Not Installed":"\nST_Python_Logic.py Version: " + state.pythonAppVersion}" +
-            "${state.pythonAppPath    == null?"\nBitBar Plugin Directory: Not Installed":"\nBitBar Plugin Directory: "    + state.pythonAppPath}"
+            paragraph "ST BitBar Output SmartApp Version: ${version()}" +
+                "${state.pythonAppVersion == null?"\nST_Python_Logic.py Version: Not Installed":"\nST_Python_Logic.py Version: " + state.pythonAppVersion}" +
+                    "${state.pythonAppPath    == null?"\nBitBar Plugin Directory: Not Installed":"\nBitBar Plugin Directory: "    + state.pythonAppPath}"
         }
         section("API Setup") {
-        href name: "APIPageLink", title: "API Setup", description: "", page: "APIPage"
+            href name: "APIPageLink", title: "API Setup", description: "", page: "APIPage"
         }
         section("Device Setup") {
-        href name: "devicesPageLink", title: "Select Devices", description: "", page: "devicesPage"
+            href name: "devicesPageLink", title: "Select Devices", description: "", page: "devicesPage"
         }
         section("Apple Menu BitBar Output Display Options") {
-        href name: "optionsPageLink", title: "BitBar Output Menu Display Options", description: "", page: "optionsPage"
+            href name: "optionsPageLink", title: "BitBar Output Menu Display Options", description: "", page: "optionsPage"
         }
-	}
+        section(hideable: true, hidden: true, "Optional: Debuging") {
+            input "debugDevices", "enum",
+                title: "Select a Category to send Debuging Information to IDE Live Logging Window",
+                options: ["Alarm Sensors", "Temp Sensors", "Contact Sensors", "Presence Sensors", "Motion Sensors", "Switches", "Locks",
+                          "Music Players", "Thermostats", "RelativeHumidityMeasurements"].sort(),
+                required: false,
+                multiple: false
+        }
+    }
 }
 
 
@@ -1074,9 +1082,11 @@ def optionsPage() {
         section("Optional: Temperature Values Display Options") {
             input "numberOfDecimals", "number",
                 title: "Round temperature values with the following number of decimals",
+                default: 1,
                 required: true
             input "matchOutputNumberOfDecimals", "bool",
                 title: "Match all temperature sensor values with the same amount of decimals",
+                default: false,
                 required: true
             input "sortTemperatureAscending", "bool",
                 title: "Sort all temperature sensor values in High -> Low (decending) direction. Default: Low -> High",
@@ -1119,15 +1129,6 @@ def optionsPage() {
                 required: false,
                 multiple: true
         }
-        section(hideable: true, hidden: true, "Optional: Debuging") {
-            input "debugDevices", "enum",
-                title: "Select a Category to send Debuging Information to IDE Live Logging Window",
-                options: ["Alarm Sensors", "Temp Sensors", "Contact Sensors", "Presence Sensors", "Motion Sensors", "Switches", "Locks",
-                "Music Players", "Thermostats", "RelativeHumidityMeasurements"].sort(),
-                required: false,
-                multiple: false
-        }
-
     }
 }
 
