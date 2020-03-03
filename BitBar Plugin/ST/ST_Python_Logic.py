@@ -21,7 +21,7 @@ locale.setlocale(locale.LC_ALL, '')
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.20  # Must be float or Int
+PythonVersion = 3.21  # Must be float or Int
 ##################################
 
 
@@ -1096,7 +1096,7 @@ if locks is not None:
                     callbackScript, ' param1=request param2=', \
                     currentLockURL, ' param3=', secret, ' terminal=false refresh=true image=', img
             else:
-                print subMenuText, sensor['name'] + ' (' + sensor['value'].capitalize() + ')', whiteSpace, sym, buildFontOptions(3) + colorText + 'bash=', \
+                print subMenuText, sensor['name'] + ' (' + sensor['value'].capitalize() + ')', whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', \
                     callbackScript, ' param1=request param2=', currentLockURL, ' param3=', \
                     secret, ' terminal=false refresh=true'
             if favoriteDevicesBool and sensor['name'] in favoriteDevices:
