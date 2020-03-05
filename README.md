@@ -1,5 +1,6 @@
 # STBitBarApp-V2 (For Apple![macOS logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/macos_logo.jpg))
-
+### Version: 3.2.0 (Production)
+<img src="https://raw.githubusercontent.com/KurtSanders/STBitBar-V2/master/images/readme.png" width="50">[Change-log & Version Release Features](https://github.com/KurtSanders/STBitBar-V2/wiki/Features-by-Version)
 
 ![STBitBarApp-V2 logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-Macbook-Pro.png)
 
