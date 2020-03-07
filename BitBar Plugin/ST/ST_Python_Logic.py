@@ -11,17 +11,18 @@ import sys
 import tempfile
 import urllib
 import urllib2
+import os
 from urlparse import urlparse
 
 reload(sys)
 sys.setdefaultencoding('utf8')
 locale.setlocale(locale.LC_ALL, '')
 
-
 ##################################
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 3.21  # Must be float or Int
+PythonVersion = 4.00  # Must be float or Int
+
 ##################################
 
 
@@ -61,11 +62,9 @@ class NumberFormatter:
             else:
                 return str(r)
 
-
 # String Case Formatter
 def TitleCase(var):
     return var if var is None else var.capitalize()
-
 
 colorHueList = {
         "Orange"    : 10,
@@ -83,10 +82,8 @@ colorHueList = {
         "Cyan"      : 180
 }
 
-
 def getHueLevel(colorMatch):
-    return "{} ({})".format(colorMatch,colorHueList.get(colorMatch, None))
-
+    return "{} ({})".format(colorMatch, colorHueList.get(colorMatch, None))
 
 def getColorNameHue(hueValue):
     for k, v in colorHueList.iteritems():
@@ -94,14 +91,12 @@ def getColorNameHue(hueValue):
             return k
     return None
 
-
 # Format percentages
 def formatPercentage(val):
     if type(val) is int:
         return str(val) + "%"
     else:
         return val
-
 
 # Format Timespan values in milliseconds
 def formatTimespan(eventTime):
@@ -118,7 +113,6 @@ def formatTimespan(eventTime):
         timespanString += " " + str(minutes) + " minute"
     if minutes > 1: timespanString += "s"
     return timespanString
-
 
 # Return hex color code based on multiple step gradient (for thermo colors)
 def numberToColorGrad(val, color):
@@ -138,12 +132,10 @@ def numberToColorGrad(val, color):
         if val == 0: return "#759DFF"
     return "green"
 
-
 # Define and Assign Display Options and check for None
 def getOptions(dictvarname, nonedefault):
     tmp = options.get(dictvarname, nonedefault)
     return tmp if tmp is not None else nonedefault
-
 
 # Setting Class
 class Setting(object):
@@ -164,7 +156,6 @@ class Setting(object):
                 # Remove Extra Quotes, etc
         return re.sub(r'^"|"$', '', ret)
 
-
 # End Class Setting
 
 # Builds the param statement for bitbar to launch the "open" command
@@ -177,20 +168,17 @@ def openParamBuilder(openCommand):
         rc += "param{}={} ".format(i, word)
     return rc
 
-
 # Build the SmartThings IDE URL based on the SmartApp URL input
 def buildIDEURL(url):
     parsed_uri = urlparse(url)
     ide = '{uri.scheme}://{uri.netloc}/ide/apps'.format(uri=parsed_uri)
     return ide
 
-
 def verifyInteger(intValue, errorIntValue):
     if isinstance(intValue, int):
         return intValue
     else:
         return errorIntValue
-
 
 # Begin Read User Config File
 cfgFileName = sys.argv[0][:-2] + "cfg"
@@ -200,8 +188,22 @@ smartAppURL = cfgGetValue('smartAppURL', "", True).strip('\'"')
 secret = cfgGetValue('secret', "", True).strip('\'"')
 header = {"Authorization": "Bearer " + secret}
 
+# Version Information of ST BitBar Plugin File
+STPluginFilename_argPosition = 1
+STPluginVersion_argPosition = 2
+
+try:
+    STPluginVersion = sys.argv[STPluginVersion_argPosition]
+except IndexError:
+    STPluginVersion = None
+
+try:
+    STPluginFilename = os.path.basename(sys.argv[STPluginFilename_argPosition])
+except IndexError:
+    STPluginFilename = None
+
 # Set URLs
-statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + PythonVersion.__str__() + "&path=" + sys.argv[0]
+statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + "{:0.2f}".format(PythonVersion) + "&path=" + sys.argv[0] + "&bbpluginfilename=" + STPluginFilename + "&bbpluginversion=" + STPluginVersion
 contactURL = smartAppURL + "ToggleSwitch/?id="
 valveURL = smartAppURL + "ToggleValve/?id="
 levelURL = smartAppURL + "SetLevel/?id="
@@ -227,7 +229,8 @@ try:
 except (urllib2.HTTPError, urllib2.URLError) as err:
     print ":rage:"
     print "---"
-    print ":thumbsdown: HTTPS Error Encountered: Communicating to ST API caused the following error: {}".format(str(err))
+    print ":thumbsdown: HTTPS Error Encountered: Communicating to ST API caused the following error: {}".format(
+        str(err))
     print "==> Please check your Internet Connectivity and Refresh BitBar again when Online"
     exit(99)
 
@@ -254,6 +257,33 @@ if "error" in j:
     if "error_description" in j:
         print ":thumbsdown: Error Description: ", j['error_description']
     exit(99)
+
+# Verify SmartApp and local app version
+try:
+    majorBitBarVersion = int(j['Version'].encode('ascii').split('.')[0])
+    majorPythonVersion = int(PythonVersion)
+    if majorBitBarVersion != majorPythonVersion:
+        print ":rage:"
+        print "---"
+        print "Both ST_Python_Logic.py and BitBar Output SmartApp must be on same MAJOR release levels of {}.xx | color=red".format(max(majorBitBarVersion, majorPythonVersion))
+        print "Current BitBar Output SmartAPP Version: {}".format(j['Version'])
+        print "Current ST_Python_Logic.py Version    : {}".format(PythonVersion)
+        print "Current ST BitBar Plugin Version      : {}".format(STPluginVersion)
+        print "---"
+        print "Launch TextEdit " + cfgFileName + '|' + openParamBuilder("open -e " + cfgFileName) + ' terminal=false'
+        print "Launch SmartThings IDE" + '|' + openParamBuilder("open " + buildIDEURL(smartAppURL)) + ' terminal=false'
+        print "Launch Browser to View STBitBarAPP-V2 GitHub Software Resp" + '|' + openParamBuilder(
+            "open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
+        print "Download ST_Python_Logic.py v{:1.2f}".format(PythonVersion) + " to your 'Downloads' directory | ", \
+            " bash=" + callbackScript, ' param1=github_ST_Python_Logic terminal=false'
+        print "Download ST.5m.sh to your 'Downloads' directory |", " bash=" + callbackScript, ' param1=github_ST5MSH terminal=false'
+
+        raise SystemExit(0)
+except KeyError, e:
+    print "Error in ST API Data | color=red"
+    print "---"
+    print "Error Details: ", e
+    raise SystemExit(0)
 
 # Get the sensor arrays from the JSON data
 # print json.dumps(j['Motion Sensors'], indent=2)
@@ -282,7 +312,6 @@ except KeyError, e:
     print "---"
     print ":thumbsdown: Json File Error Details: ", e
     exit(99)
-
 
 # noinspection PyShadowingNames
 def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
@@ -316,7 +345,6 @@ def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
             print "--{}{} {} = {}{}".format(
                 prefix, curSplitRecord[3], curSplitRecord[4], tempList[x]['value'], valueSuffix), buildFontOptions(4)
     return
-
 
 # Set User Display Options sent from BitBar Output SmartApp
 useImages = getOptions("useImages", True)
@@ -367,12 +395,10 @@ colorSwitch = True
 smallFontPitchSize = "size={}".format(int(fixedPitchFontSize) - 1)
 alarmStates = ['away', 'off', 'stay']
 
-
 # Generates a Horizontal Separator Bar if desired by GUI
 def hortSeparatorBar():
     if hortSeparatorBarBool: print "---"
     return
-
 
 # Check if MacOS is in Dark Mode
 # noinspection PyBroadException
@@ -383,7 +409,6 @@ try:
         if "black" in fixedPitchFontColor.lower(): fixedPitchFontColor = "white"
 except:
     pass
-
 
 # Define the Font Options string for BitBar
 def buildFontOptions(level=1):
@@ -407,7 +432,6 @@ def buildFontOptions(level=1):
     # Level >4: No Formatting
     else:
         return " | "
-
 
 # Setup the Main Menu and Sub Menu Display Relationship
 mainMenuMaxItemsDict = {
@@ -471,23 +495,6 @@ if presenceDisplayMode == 1 or presenceDisplayMode == 2:
 if presenceDisplayMode == 3:
     presences = filter(lambda p: p['value'] == 'present', presences)
 
-# Verify SmartApp Version
-try:
-    majorBitBarVersion = int(j['Version'].encode('ascii').split('.')[0])
-    majorPythonVersion = int(PythonVersion)
-    if majorBitBarVersion != majorPythonVersion:
-        print "X | color=red"
-        print "---"
-        print "Please make sure both Python and SmartThings SmartApp are up to date | color=red"
-        print "Current BitBar Output SmartAPP Version:", majorBitBarVersion
-        print "Current ST_Python_Logic.py Version:", PythonVersion
-        raise SystemExit(0)
-except KeyError, e:
-    print "Error in ST API Data | color=red"
-    print "---"
-    print "Error Details: ", e
-    raise SystemExit(0)
-
 # Create a new NumberFormatter object
 formatter = NumberFormatter()
 # Set the number of decimals
@@ -505,17 +512,22 @@ if (thermostats is not None) and (len(thermostats) > 0):
 # Print the main display
 degree_symbol = u'\xb0'.encode('utf-8')
 formattedMainDisplay = u''
+mainMenuColor = ""
 
 # Check if there is a name
 if mainDisplay[0]['name'] is not None and mainDisplay[0]['name'] != "N/A":
     formattedMainDisplay += mainDisplay[0]['name'] + ":"
 
-# Check if there is a value
+# Check if there is a integer value
 if isinstance(mainDisplay[0]['value'], int) or isinstance(mainDisplay[0]['value'], float):
     formattedMainDisplay += formatter.formatNumber(mainDisplay[0]['value']) + degree_symbol
-if formattedMainDisplay == '':
+    mainMenuColor = thermoColor
+elif mainDisplay[0]['emoji'] is not None:
+    formattedMainDisplay = mainDisplay[0]['emoji']
+else:
     formattedMainDisplay = "ST BitBar"
-print "{} {} {}".format(formattedMainDisplay.encode('utf-8'), buildFontOptions(0), thermoColor)
+
+print "{} | {} {}".format(formattedMainDisplay.encode('utf-8'), 'size=14', mainMenuColor)
 
 # Find the max length sensor so values are lined up correctly
 maxLength = 0
@@ -641,9 +653,10 @@ if (thermostats is not None) and (len(thermostats) > 0):
                 if not subMenuCompact: print "----Set Mode to:", buildFontOptions(1)
                 for thermoMode in thermoModeList:
                     if thermoMode != thermostat['thermostatMode']:
+                        thermo_param4 = 'param4=\"Setting {} to {}\"'.format(thermostat['displayName'], thermoMode)
                         print "----{}".format(TitleCase(thermoMode)), buildFontOptions(3), \
                             "bash=" + callbackScript, " param1=request param2=" + thermoModeURL + thermoMode.lower(), \
-                            " param3=" + secret, ' terminal=false refresh=true'
+                            " param3=" + secret, thermo_param4, ' terminal=false refresh=false'
             # Cooling Setpoint Menu
             if "coolingSetpoint" in thermostat:
                 if thermostat['coolingSetpoint'] is not None:
@@ -654,16 +667,18 @@ if (thermostats is not None) and (len(thermostats) > 0):
                     print "----Change Setpoint | ", smallFontPitchSize
                     for c in range(currentCoolingSetPoint - 5, currentCoolingSetPoint):
                         id = currentCoolingSetPoint - c
+                        thermo_param4 = 'param4=\"Setting {} to {}\"'.format(thermostat['displayName'], str(c) + degree_symbol)
                         print "----", str(c) + degree_symbol, buildFontOptions(3), \
                             "color=", numberToColorGrad(id, "blue"), \
                             "bash=", callbackScript, " param1=request param2=", str(
-                            coolSetpointURL + str(c)), " param3=", secret, " terminal=false refresh=true"
+                            coolSetpointURL + str(c)), " param3=", secret, thermo_param4, " terminal=false refresh=false"
                     print "----", str(currentCoolingSetPoint) + degree_symbol, "(current)|color=", \
                         numberToColorGrad(0, "blue")
                     for c in range(currentCoolingSetPoint + 1, currentCoolingSetPoint + 6):
+                        thermo_param4 = 'param4=\"Setting {} to {}\"'.format(thermostat['displayName'], str(c) + degree_symbol)
                         print "----", str(c) + degree_symbol, buildFontOptions(3), "color=gray", \
                             "bash=", callbackScript, " param1=request param2=", str(
-                            coolSetpointURL + str(c)), " param3=", secret, " terminal=false refresh=true"
+                            coolSetpointURL + str(c)), " param3=", secret, thermo_param4, " terminal=false refresh=false"
             # Heating Setpoint Menu
             if "heatingSetpoint" in thermostat:
                 if thermostat['heatingSetpoint'] is not None:
@@ -674,16 +689,18 @@ if (thermostats is not None) and (len(thermostats) > 0):
                     print "----Change Setpoint | ", smallFontPitchSize
                     for c in range(currentHeatingSetPoint + 5, currentHeatingSetPoint, -1):
                         id = c - currentHeatingSetPoint
+                        thermo_param4 = 'param4=\"Setting {} to {}\"'.format(thermostat['displayName'], str(c) + degree_symbol)
                         print "----", str(
                             c) + degree_symbol, buildFontOptions(3), "color=", numberToColorGrad(id, "red"), \
                             "bash=" + callbackScript, " param1=request param2=" + str(
-                            heatingSetpointURL + str(c)), " param3=" + secret, " terminal=false refresh=true"
+                            heatingSetpointURL + str(c)), " param3=" + secret, thermo_param4, " terminal=false refresh=false"
                     print "----", str(currentHeatingSetPoint) + degree_symbol, "(current)|color=", \
                         numberToColorGrad(0, "red")
                     for c in range(currentHeatingSetPoint - 1, currentHeatingSetPoint - 6, -1):
+                        thermo_param4 = 'param4=\"Setting {} to {}\"'.format(thermostat['displayName'], str(c) + degree_symbol)
                         print "----", str(c) + degree_symbol, buildFontOptions(3), "color=gray", \
                             "bash=" + callbackScript, " param1=request param2=" + str(
-                            heatingSetpointURL + str(c)), " param3=" + secret, " terminal=false refresh=true"
+                            heatingSetpointURL + str(c)), " param3=" + secret, thermo_param4, " terminal=false refresh=false"
 
 # Output Temp Sensors
 if temps is not None:
@@ -718,7 +735,8 @@ if temps is not None:
             if favoriteDevicesBool and sensor['name'] in favoriteDevices:
                 # noinspection PyUnboundLocalVariable
                 favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
-                                                            currentValue + degree_symbol + buildFontOptions(3) + colorText
+                                                            currentValue + degree_symbol + buildFontOptions(
+                    3) + colorText
             if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
                 try:
                     eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in "temperature"], subMenuText, "°")
@@ -784,20 +802,22 @@ if (modes is not None) and len(modes) > 0:
         colorText = 'color=#333333' if colorSwitch else 'color=#666666'
         if mode['name'] not in currentmode['name']:
             currentModeURL = modeURL + urllib.quote(mode['name'].encode('utf8'))
+            mode_param4 = 'param4=\"Setting House Mode to {}\"'.format(mode['name'])
             print "--• " + mode[
-                'name'], buildFontOptions(3), colorText, ' bash=', callbackScript, ' param1=request param2=', \
-                currentModeURL, ' param3=', secret, ' terminal=false refresh=true'
+                'name'], buildFontOptions(3), colorText, ' bash=' + callbackScript, ' param1=request param2=' + \
+                                                                                    currentModeURL, ' param3=' + secret, mode_param4, ' terminal=false refresh=false'
         colorSwitch = not colorSwitch
 
 # Output Routines
 if (routines is not None) and len(routines) > 0:
     print "--Routines (Select to Run)" + buildFontOptions()
     for i, routine in enumerate(routines):
+        routine_param4 = 'param4=\"{} {}\"'.format('Setting Routine to', routine)
         colorText = ''
         colorText = 'color=#333333' if colorSwitch else 'color=#666666'
         currentRoutineURL = routineURL + urllib.quote(routine.encode('utf8'))
-        print "--• " + routine, buildFontOptions(3), colorText, ' bash=', callbackScript, ' param1=request param2=', \
-            currentRoutineURL, ' param3=', secret, ' terminal=false refresh=true'
+        print "--• " + routine, buildFontOptions(3), colorText, ' bash=' + callbackScript, ' param1=request param2=' + \
+                                                                                           currentRoutineURL, ' param3=' + secret, routine_param4, ' terminal=false refresh=false'
         colorSwitch = not colorSwitch
 
 # Output Smart Home Monitor
@@ -818,8 +838,9 @@ if shmDisplayBool:
             else:
                 currentAlarmURL = alarmURL + alarmState
                 currentAlarmStateDisplay = ""
+                alarm_param4 = 'param4=\"{} {}{}\"'.format('Setting Alarm to', alarmState.title(), currentAlarmStateDisplay)
                 currentAlarmURL = 'bash= ' + callbackScript + ' param1=request param2=' + currentAlarmURL + \
-                                  ' param3=' + secret + ' terminal=false refresh=true'
+                                  ' param3=' + secret, alarm_param4, ' terminal=false refresh=false'
             print "--• {}{}".format(alarmState.title(), currentAlarmStateDisplay), buildFontOptions(3), \
                 colorText, currentAlarmURL
             colorSwitch = not colorSwitch
@@ -968,89 +989,87 @@ if presences is not None:
                     sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3) + " alternate=true", colorText
             colorSwitch = not colorSwitch
 
-
 # Output Locks
 if locks is not None:
-    # Set base64 images for green locked/red unlocked
-    # noinspection SpellCheckingInspection
-    greenLocked = ("iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABYlAAAWJQFJUiTwAAAKT2lDQ1BQaG90b3Nob3Ag"
-                   "SUNDIHByb2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUEG8igiAOOjoCMFVEsDIoK2"
-                   "AfkIaKOg6OIisr74Xuja9a89+bN/rXXPues852zzwfACAyWSDNRNYAMqUIeEeCDx8TG4eQuQIEKJHAAEAizZCFz/SMBAPh+PDwrIsA"
-                   "HvgABeNMLCADATZvAMByH/w/qQplcAYCEAcB0kThLCIAUAEB6jkKmAEBGAYCdmCZTAKAEAGDLY2LjAFAtAGAnf+bTAICd+Jl7AQBb"
-                   "lCEVAaCRACATZYhEAGg7AKzPVopFAFgwABRmS8Q5ANgtADBJV2ZIALC3AMDOEAuyAAgMADBRiIUpAAR7AGDIIyN4AISZABRG8lc88"
-                   "SuuEOcqAAB4mbI8uSQ5RYFbCC1xB1dXLh4ozkkXKxQ2YQJhmkAuwnmZGTKBNA/g88wAAKCRFRHgg/P9eM4Ors7ONo62Dl8t6r8G/y"
-                   "JiYuP+5c+rcEAAAOF0ftH+LC+zGoA7BoBt/qIl7gRoXgugdfeLZrIPQLUAoOnaV/Nw+H48PEWhkLnZ2eXk5NhKxEJbYcpXff5n"
-                   "wl/AV/1s+X48/Pf14L7iJIEyXYFHBPjgwsz0TKUcz5IJhGLc5o9H/LcL//wd0yLESWK5WCoU41EScY5EmozzMqUiiUKSKcUl0v9k4"
-                   "t8s+wM+3zUAsGo+AXuRLahdYwP2SycQWHTA4vcAAPK7b8HUKAgDgGiD4c93/+8//UegJQCAZkmScQAAXkQkLlTKsz/HCAAARKCBKr"
-                   "BBG/TBGCzABhzBBdzBC/xgNoRCJMTCQhBCCmSAHHJgKayCQiiGzbAdKmAv1EAdNMBRaIaTcA4uwlW4Dj1wD/phCJ7BKLyBCQRByA"
-                   "gTYSHaiAFiilgjjggXmYX4IcFIBBKLJCDJiBRRIkuRNUgxUopUIFVIHfI9cgI5h1xGupE7yAAygvyGvEcxlIGyUT3UDLVDuag3Go"
-                   "RGogvQZHQxmo8WoJvQcrQaPYw2oefQq2gP2o8+Q8cwwOgYBzPEbDAuxsNCsTgsCZNjy7EirAyrxhqwVqwDu4n1Y8+xdwQSgUXACT"
-                   "YEd0IgYR5BSFhMWE7YSKggHCQ0EdoJNwkDhFHCJyKTqEu0JroR+cQYYjIxh1hILCPWEo8TLxB7iEPENyQSiUMyJ7mQAkmxpFTSEt"
-                   "JG0m5SI+ksqZs0SBojk8naZGuyBzmULCAryIXkneTD5DPkG+Qh8lsKnWJAcaT4U+IoUspqShnlEOU05QZlmDJBVaOaUt2ooVQRNY9"
-                   "aQq2htlKvUYeoEzR1mjnNgxZJS6WtopXTGmgXaPdpr+h0uhHdlR5Ol9BX0svpR+iX6AP0dwwNhhWDx4hnKBmbGAcYZxl3GK+YTKYZ"
-                   "04sZx1QwNzHrmOeZD5lvVVgqtip8FZHKCpVKlSaVGyovVKmqpqreqgtV81XLVI+pXlN9rkZVM1PjqQnUlqtVqp1Q61MbU2epO6iHq"
-                   "meob1Q/pH5Z/YkGWcNMw09DpFGgsV/jvMYgC2MZs3gsIWsNq4Z1gTXEJrHN2Xx2KruY/R27iz2qqaE5QzNKM1ezUvOUZj8H45hx+Jx"
-                   "0TgnnKKeX836K3hTvKeIpG6Y0TLkxZVxrqpaXllirSKtRq0frvTau7aedpr1Fu1n7gQ5Bx0onXCdHZ4/OBZ3nU9lT3acKpxZNPTr1r"
-                   "i6qa6UbobtEd79up+6Ynr5egJ5Mb6feeb3n+hx9L/1U/W36p/VHDFgGswwkBtsMzhg8xTVxbzwdL8fb8VFDXcNAQ6VhlWGX4YSRudE"
-                   "8o9VGjUYPjGnGXOMk423GbcajJgYmISZLTepN7ppSTbmmKaY7TDtMx83MzaLN1pk1mz0x1zLnm+eb15vft2BaeFostqi2uGVJsuRap"
-                   "lnutrxuhVo5WaVYVVpds0atna0l1rutu6cRp7lOk06rntZnw7Dxtsm2qbcZsOXYBtuutm22fWFnYhdnt8Wuw+6TvZN9un2N/T0HDYf"
-                   "ZDqsdWh1+c7RyFDpWOt6azpzuP33F9JbpL2dYzxDP2DPjthPLKcRpnVOb00dnF2e5c4PziIuJS4LLLpc+Lpsbxt3IveRKdPVxXeF60"
-                   "vWdm7Obwu2o26/uNu5p7ofcn8w0nymeWTNz0MPIQ+BR5dE/C5+VMGvfrH5PQ0+BZ7XnIy9jL5FXrdewt6V3qvdh7xc+9j5yn+M+4zw"
-                   "33jLeWV/MN8C3yLfLT8Nvnl+F30N/I/9k/3r/0QCngCUBZwOJgUGBWwL7+Hp8Ib+OPzrbZfay2e1BjKC5QRVBj4KtguXBrSFoyOyQr"
-                   "SH355jOkc5pDoVQfujW0Adh5mGLw34MJ4WHhVeGP45wiFga0TGXNXfR3ENz30T6RJZE3ptnMU85ry1KNSo+qi5qPNo3ujS6P8YuZln"
-                   "M1VidWElsSxw5LiquNm5svt/87fOH4p3iC+N7F5gvyF1weaHOwvSFpxapLhIsOpZATIhOOJTwQRAqqBaMJfITdyWOCnnCHcJnIi/RN"
-                   "tGI2ENcKh5O8kgqTXqS7JG8NXkkxTOlLOW5hCepkLxMDUzdmzqeFpp2IG0yPTq9MYOSkZBxQqohTZO2Z+pn5mZ2y6xlhbL+xW6Lty8"
-                   "elQfJa7OQrAVZLQq2QqboVFoo1yoHsmdlV2a/zYnKOZarnivN7cyzytuQN5zvn//tEsIS4ZK2pYZLVy0dWOa9rGo5sjxxedsK4xUFK"
-                   "4ZWBqw8uIq2Km3VT6vtV5eufr0mek1rgV7ByoLBtQFr6wtVCuWFfevc1+1dT1gvWd+1YfqGnRs+FYmKrhTbF5cVf9go3HjlG4dvyr+Z"
-                   "3JS0qavEuWTPZtJm6ebeLZ5bDpaql+aXDm4N2dq0Dd9WtO319kXbL5fNKNu7g7ZDuaO/PLi8ZafJzs07P1SkVPRU+lQ27tLdtWHX+G7"
-                   "R7ht7vPY07NXbW7z3/T7JvttVAVVN1WbVZftJ+7P3P66Jqun4lvttXa1ObXHtxwPSA/0HIw6217nU1R3SPVRSj9Yr60cOxx++/p3vd"
-                   "y0NNg1VjZzG4iNwRHnk6fcJ3/ceDTradox7rOEH0x92HWcdL2pCmvKaRptTmvtbYlu6T8w+0dbq3nr8R9sfD5w0PFl5SvNUyWna6YL"
-                   "Tk2fyz4ydlZ19fi753GDborZ752PO32oPb++6EHTh0kX/i+c7vDvOXPK4dPKy2+UTV7hXmq86X23qdOo8/pPTT8e7nLuarrlca7nue"
-                   "r21e2b36RueN87d9L158Rb/1tWeOT3dvfN6b/fF9/XfFt1+cif9zsu72Xcn7q28T7xf9EDtQdlD3YfVP1v+3Njv3H9qwHeg89HcR/c"
-                   "GhYPP/pH1jw9DBY+Zj8uGDYbrnjg+OTniP3L96fynQ89kzyaeF/6i/suuFxYvfvjV69fO0ZjRoZfyl5O/bXyl/erA6xmv28bCxh6+yX"
-                   "gzMV70VvvtwXfcdx3vo98PT+R8IH8o/2j5sfVT0Kf7kxmTk/8EA5jz/GMzLdsAAAAgY0hSTQAAeiUAAICDAAD5/wAAgOkAAHUwAADq"
-                   "YAAAOpgAABdvkl/FRgAAAG1JREFUeNpi/P//PwO9AAsyR5KBEZc6YlyEVfNzJK1MRBhCrNcJqmOikkVEqWeiQdT8JyrOiNDESInvSf"
-                   "EZI4niNAtGRmJ8y8RARzBqGfWLKwLJmNwMzjgaZ6OWjVo2atmoZSPRMgAAAAD//wMAW3URM0dIvkIAAAAASUVORK5CYII=")
-    # noinspection SpellCheckingInspection
-    redUnlocked = (
-        "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")
+    if useImages is True:
+        greenLocked = ("iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABYlAAAWJQFJUiTwAAAKT2lDQ1BQaG90b3Nob3Ag"
+                       "SUNDIHByb2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUEG8igiAOOjoCMFVEsDIoK2"
+                       "AfkIaKOg6OIisr74Xuja9a89+bN/rXXPues852zzwfACAyWSDNRNYAMqUIeEeCDx8TG4eQuQIEKJHAAEAizZCFz/SMBAPh+PDwrIsA"
+                       "HvgABeNMLCADATZvAMByH/w/qQplcAYCEAcB0kThLCIAUAEB6jkKmAEBGAYCdmCZTAKAEAGDLY2LjAFAtAGAnf+bTAICd+Jl7AQBb"
+                       "lCEVAaCRACATZYhEAGg7AKzPVopFAFgwABRmS8Q5ANgtADBJV2ZIALC3AMDOEAuyAAgMADBRiIUpAAR7AGDIIyN4AISZABRG8lc88"
+                       "SuuEOcqAAB4mbI8uSQ5RYFbCC1xB1dXLh4ozkkXKxQ2YQJhmkAuwnmZGTKBNA/g88wAAKCRFRHgg/P9eM4Ors7ONo62Dl8t6r8G/y"
+                       "JiYuP+5c+rcEAAAOF0ftH+LC+zGoA7BoBt/qIl7gRoXgugdfeLZrIPQLUAoOnaV/Nw+H48PEWhkLnZ2eXk5NhKxEJbYcpXff5n"
+                       "wl/AV/1s+X48/Pf14L7iJIEyXYFHBPjgwsz0TKUcz5IJhGLc5o9H/LcL//wd0yLESWK5WCoU41EScY5EmozzMqUiiUKSKcUl0v9k4"
+                       "t8s+wM+3zUAsGo+AXuRLahdYwP2SycQWHTA4vcAAPK7b8HUKAgDgGiD4c93/+8//UegJQCAZkmScQAAXkQkLlTKsz/HCAAARKCBKr"
+                       "BBG/TBGCzABhzBBdzBC/xgNoRCJMTCQhBCCmSAHHJgKayCQiiGzbAdKmAv1EAdNMBRaIaTcA4uwlW4Dj1wD/phCJ7BKLyBCQRByA"
+                       "gTYSHaiAFiilgjjggXmYX4IcFIBBKLJCDJiBRRIkuRNUgxUopUIFVIHfI9cgI5h1xGupE7yAAygvyGvEcxlIGyUT3UDLVDuag3Go"
+                       "RGogvQZHQxmo8WoJvQcrQaPYw2oefQq2gP2o8+Q8cwwOgYBzPEbDAuxsNCsTgsCZNjy7EirAyrxhqwVqwDu4n1Y8+xdwQSgUXACT"
+                       "YEd0IgYR5BSFhMWE7YSKggHCQ0EdoJNwkDhFHCJyKTqEu0JroR+cQYYjIxh1hILCPWEo8TLxB7iEPENyQSiUMyJ7mQAkmxpFTSEt"
+                       "JG0m5SI+ksqZs0SBojk8naZGuyBzmULCAryIXkneTD5DPkG+Qh8lsKnWJAcaT4U+IoUspqShnlEOU05QZlmDJBVaOaUt2ooVQRNY9"
+                       "aQq2htlKvUYeoEzR1mjnNgxZJS6WtopXTGmgXaPdpr+h0uhHdlR5Ol9BX0svpR+iX6AP0dwwNhhWDx4hnKBmbGAcYZxl3GK+YTKYZ"
+                       "04sZx1QwNzHrmOeZD5lvVVgqtip8FZHKCpVKlSaVGyovVKmqpqreqgtV81XLVI+pXlN9rkZVM1PjqQnUlqtVqp1Q61MbU2epO6iHq"
+                       "meob1Q/pH5Z/YkGWcNMw09DpFGgsV/jvMYgC2MZs3gsIWsNq4Z1gTXEJrHN2Xx2KruY/R27iz2qqaE5QzNKM1ezUvOUZj8H45hx+Jx"
+                       "0TgnnKKeX836K3hTvKeIpG6Y0TLkxZVxrqpaXllirSKtRq0frvTau7aedpr1Fu1n7gQ5Bx0onXCdHZ4/OBZ3nU9lT3acKpxZNPTr1r"
+                       "i6qa6UbobtEd79up+6Ynr5egJ5Mb6feeb3n+hx9L/1U/W36p/VHDFgGswwkBtsMzhg8xTVxbzwdL8fb8VFDXcNAQ6VhlWGX4YSRudE"
+                       "8o9VGjUYPjGnGXOMk423GbcajJgYmISZLTepN7ppSTbmmKaY7TDtMx83MzaLN1pk1mz0x1zLnm+eb15vft2BaeFostqi2uGVJsuRap"
+                       "lnutrxuhVo5WaVYVVpds0atna0l1rutu6cRp7lOk06rntZnw7Dxtsm2qbcZsOXYBtuutm22fWFnYhdnt8Wuw+6TvZN9un2N/T0HDYf"
+                       "ZDqsdWh1+c7RyFDpWOt6azpzuP33F9JbpL2dYzxDP2DPjthPLKcRpnVOb00dnF2e5c4PziIuJS4LLLpc+Lpsbxt3IveRKdPVxXeF60"
+                       "vWdm7Obwu2o26/uNu5p7ofcn8w0nymeWTNz0MPIQ+BR5dE/C5+VMGvfrH5PQ0+BZ7XnIy9jL5FXrdewt6V3qvdh7xc+9j5yn+M+4zw"
+                       "33jLeWV/MN8C3yLfLT8Nvnl+F30N/I/9k/3r/0QCngCUBZwOJgUGBWwL7+Hp8Ib+OPzrbZfay2e1BjKC5QRVBj4KtguXBrSFoyOyQr"
+                       "SH355jOkc5pDoVQfujW0Adh5mGLw34MJ4WHhVeGP45wiFga0TGXNXfR3ENz30T6RJZE3ptnMU85ry1KNSo+qi5qPNo3ujS6P8YuZln"
+                       "M1VidWElsSxw5LiquNm5svt/87fOH4p3iC+N7F5gvyF1weaHOwvSFpxapLhIsOpZATIhOOJTwQRAqqBaMJfITdyWOCnnCHcJnIi/RN"
+                       "tGI2ENcKh5O8kgqTXqS7JG8NXkkxTOlLOW5hCepkLxMDUzdmzqeFpp2IG0yPTq9MYOSkZBxQqohTZO2Z+pn5mZ2y6xlhbL+xW6Lty8"
+                       "elQfJa7OQrAVZLQq2QqboVFoo1yoHsmdlV2a/zYnKOZarnivN7cyzytuQN5zvn//tEsIS4ZK2pYZLVy0dWOa9rGo5sjxxedsK4xUFK"
+                       "4ZWBqw8uIq2Km3VT6vtV5eufr0mek1rgV7ByoLBtQFr6wtVCuWFfevc1+1dT1gvWd+1YfqGnRs+FYmKrhTbF5cVf9go3HjlG4dvyr+Z"
+                       "3JS0qavEuWTPZtJm6ebeLZ5bDpaql+aXDm4N2dq0Dd9WtO319kXbL5fNKNu7g7ZDuaO/PLi8ZafJzs07P1SkVPRU+lQ27tLdtWHX+G7"
+                       "R7ht7vPY07NXbW7z3/T7JvttVAVVN1WbVZftJ+7P3P66Jqun4lvttXa1ObXHtxwPSA/0HIw6217nU1R3SPVRSj9Yr60cOxx++/p3vd"
+                       "y0NNg1VjZzG4iNwRHnk6fcJ3/ceDTradox7rOEH0x92HWcdL2pCmvKaRptTmvtbYlu6T8w+0dbq3nr8R9sfD5w0PFl5SvNUyWna6YL"
+                       "Tk2fyz4ydlZ19fi753GDborZ752PO32oPb++6EHTh0kX/i+c7vDvOXPK4dPKy2+UTV7hXmq86X23qdOo8/pPTT8e7nLuarrlca7nue"
+                       "r21e2b36RueN87d9L158Rb/1tWeOT3dvfN6b/fF9/XfFt1+cif9zsu72Xcn7q28T7xf9EDtQdlD3YfVP1v+3Njv3H9qwHeg89HcR/c"
+                       "GhYPP/pH1jw9DBY+Zj8uGDYbrnjg+OTniP3L96fynQ89kzyaeF/6i/suuFxYvfvjV69fO0ZjRoZfyl5O/bXyl/erA6xmv28bCxh6+yX"
+                       "gzMV70VvvtwXfcdx3vo98PT+R8IH8o/2j5sfVT0Kf7kxmTk/8EA5jz/GMzLdsAAAAgY0hSTQAAeiUAAICDAAD5/wAAgOkAAHUwAADq"
+                       "YAAAOpgAABdvkl/FRgAAAG1JREFUeNpi/P//PwO9AAsyR5KBEZc6YlyEVfNzJK1MRBhCrNcJqmOikkVEqWeiQdT8JyrOiNDESInvSf"
+                       "EZI4niNAtGRmJ8y8RARzBqGfWLKwLJmNwMzjgaZ6OWjVo2atmoZSPRMgAAAAD//wMAW3URM0dIvkIAAAAASUVORK5CYII=")
+        # noinspection SpellCheckingInspection
+        redUnlocked = (
+                "iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABYlAAAWJQFJUiTwAAAKT2lDQ1BQaG90b3Nob3AgSUND"
+                "IHByb2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUEG8igiAOOjoCMFVEsDIoK2AfkI"
+                "aKOg6OIisr74Xuja9a89+bN/rXXPues852zzwfACAyWSDNRNYAMqUIeEeCDx8TG4eQuQIEKJHAAEAizZCFz/SMBAPh+PDwrIsAHvg"
+                "ABeNMLCADATZvAMByH/w/qQplcAYCEAcB0kThLCIAUAEB6jkKmAEBGAYCdmCZTAKAEAGDLY2LjAFAtAGAnf+bTAICd+Jl7AQBblCE"
+                "VAaCRACATZYhEAGg7AKzPVopFAFgwABRmS8Q5ANgtADBJV2ZIALC3AMDOEAuyAAgMADBRiIUpAAR7AGDIIyN4AISZABRG8lc88Su"
+                "uEOcqAAB4mbI8uSQ5RYFbCC1xB1dXLh4ozkkXKxQ2YQJhmkAuwnmZGTKBNA/g88wAAKCRFRHgg/P9eM4Ors7ONo62Dl8t6r8G/yJi"
+                "YuP+5c+rcEAAAOF0ftH+LC+zGoA7BoBt/qIl7gRoXgugdfeLZrIPQLUAoOnaV/Nw+H48PEWhkLnZ2eXk5NhKxEJbYcpXff5nwl/A"
+                "V/1s+X48/Pf14L7iJIEyXYFHBPjgwsz0TKUcz5IJhGLc5o9H/LcL//wd0yLESWK5WCoU41EScY5EmozzMqUiiUKSKcUl0v9k4t8s+"
+                "wM+3zUAsGo+AXuRLahdYwP2SycQWHTA4vcAAPK7b8HUKAgDgGiD4c93/+8//UegJQCAZkmScQAAXkQkLlTKsz/HCAAARKCBKrBBG/T"
+                "BGCzABhzBBdzBC/xgNoRCJMTCQhBCCmSAHHJgKayCQiiGzbAdKmAv1EAdNMBRaIaTcA4uwlW4Dj1wD/phCJ7BKLyBCQRByAgTYSHai"
+                "AFiilgjjggXmYX4IcFIBBKLJCDJiBRRIkuRNUgxUopUIFVIHfI9cgI5h1xGupE7yAAygvyGvEcxlIGyUT3UDLVDuag3GoRGogvQZHQ"
+                "xmo8WoJvQcrQaPYw2oefQq2gP2o8+Q8cwwOgYBzPEbDAuxsNCsTgsCZNjy7EirAyrxhqwVqwDu4n1Y8+xdwQSgUXACTYEd0IgYR5BS"
+                "FhMWE7YSKggHCQ0EdoJNwkDhFHCJyKTqEu0JroR+cQYYjIxh1hILCPWEo8TLxB7iEPENyQSiUMyJ7mQAkmxpFTSEtJG0m5SI+ksqZs"
+                "0SBojk8naZGuyBzmULCAryIXkneTD5DPkG+Qh8lsKnWJAcaT4U+IoUspqShnlEOU05QZlmDJBVaOaUt2ooVQRNY9aQq2htlKvUYeoE"
+                "zR1mjnNgxZJS6WtopXTGmgXaPdpr+h0uhHdlR5Ol9BX0svpR+iX6AP0dwwNhhWDx4hnKBmbGAcYZxl3GK+YTKYZ04sZx1QwNzHrmOe"
+                "ZD5lvVVgqtip8FZHKCpVKlSaVGyovVKmqpqreqgtV81XLVI+pXlN9rkZVM1PjqQnUlqtVqp1Q61MbU2epO6iHqmeob1Q/pH5Z/YkGW"
+                "cNMw09DpFGgsV/jvMYgC2MZs3gsIWsNq4Z1gTXEJrHN2Xx2KruY/R27iz2qqaE5QzNKM1ezUvOUZj8H45hx+Jx0TgnnKKeX836K3hTv"
+                "KeIpG6Y0TLkxZVxrqpaXllirSKtRq0frvTau7aedpr1Fu1n7gQ5Bx0onXCdHZ4/OBZ3nU9lT3acKpxZNPTr1ri6qa6UbobtEd79up+"
+                "6Ynr5egJ5Mb6feeb3n+hx9L/1U/W36p/VHDFgGswwkBtsMzhg8xTVxbzwdL8fb8VFDXcNAQ6VhlWGX4YSRudE8o9VGjUYPjGnGXOMk"
+                "423GbcajJgYmISZLTepN7ppSTbmmKaY7TDtMx83MzaLN1pk1mz0x1zLnm+eb15vft2BaeFostqi2uGVJsuRaplnutrxuhVo5WaVYVV"
+                "pds0atna0l1rutu6cRp7lOk06rntZnw7Dxtsm2qbcZsOXYBtuutm22fWFnYhdnt8Wuw+6TvZN9un2N/T0HDYfZDqsdWh1+c7RyFDpW"
+                "Ot6azpzuP33F9JbpL2dYzxDP2DPjthPLKcRpnVOb00dnF2e5c4PziIuJS4LLLpc+Lpsbxt3IveRKdPVxXeF60vWdm7Obwu2o26/uN"
+                "u5p7ofcn8w0nymeWTNz0MPIQ+BR5dE/C5+VMGvfrH5PQ0+BZ7XnIy9jL5FXrdewt6V3qvdh7xc+9j5yn+M+4zw33jLeWV/MN8C3yLf"
+                "LT8Nvnl+F30N/I/9k/3r/0QCngCUBZwOJgUGBWwL7+Hp8Ib+OPzrbZfay2e1BjKC5QRVBj4KtguXBrSFoyOyQrSH355jOkc5pDoVQ"
+                "fujW0Adh5mGLw34MJ4WHhVeGP45wiFga0TGXNXfR3ENz30T6RJZE3ptnMU85ry1KNSo+qi5qPNo3ujS6P8YuZlnM1VidWElsSxw5L"
+                "iquNm5svt/87fOH4p3iC+N7F5gvyF1weaHOwvSFpxapLhIsOpZATIhOOJTwQRAqqBaMJfITdyWOCnnCHcJnIi/RNtGI2ENcKh5O8k"
+                "gqTXqS7JG8NXkkxTOlLOW5hCepkLxMDUzdmzqeFpp2IG0yPTq9MYOSkZBxQqohTZO2Z+pn5mZ2y6xlhbL+xW6Lty8elQfJa7OQrAV"
+                "ZLQq2QqboVFoo1yoHsmdlV2a/zYnKOZarnivN7cyzytuQN5zvn//tEsIS4ZK2pYZLVy0dWOa9rGo5sjxxedsK4xUFK4ZWBqw8uIq2"
+                "Km3VT6vtV5eufr0mek1rgV7ByoLBtQFr6wtVCuWFfevc1+1dT1gvWd+1YfqGnRs+FYmKrhTbF5cVf9go3HjlG4dvyr+Z3JS0qavEuW"
+                "TPZtJm6ebeLZ5bDpaql+aXDm4N2dq0Dd9WtO319kXbL5fNKNu7g7ZDuaO/PLi8ZafJzs07P1SkVPRU+lQ27tLdtWHX+G7R7ht7vPY0"
+                "7NXbW7z3/T7JvttVAVVN1WbVZftJ+7P3P66Jqun4lvttXa1ObXHtxwPSA/0HIw6217nU1R3SPVRSj9Yr60cOxx++/p3vdy0NNg1VjZ"
+                "zG4iNwRHnk6fcJ3/ceDTradox7rOEH0x92HWcdL2pCmvKaRptTmvtbYlu6T8w+0dbq3nr8R9sfD5w0PFl5SvNUyWna6YLTk2fyz4yd"
+                "lZ19fi753GDborZ752PO32oPb++6EHTh0kX/i+c7vDvOXPK4dPKy2+UTV7hXmq86X23qdOo8/pPTT8e7nLuarrlca7nuer21e2b36R"
+                "ueN87d9L158Rb/1tWeOT3dvfN6b/fF9/XfFt1+cif9zsu72Xcn7q28T7xf9EDtQdlD3YfVP1v+3Njv3H9qwHeg89HcR/cGhYPP/pH1"
+                "jw9DBY+Zj8uGDYbrnjg+OTniP3L96fynQ89kzyaeF/6i/suuFxYvfvjV69fO0ZjRoZfyl5O/bXyl/erA6xmv28bCxh6+yXgzMV70"
+                "VvvtwXfcdx3vo98PT+R8IH8o/2j5sfVT0Kf7kxmTk/8EA5jz/GMzLdsAAAAgY0hSTQAAeiUAAICDAAD5/wAAgOkAAHUwAADqYAAAOp"
+                "gAABdvkl/FRgAAAG1JREFUeNrslMEOgCAMQ+nC//9yPXjRBOM6lAvdjWTL61oAJNuq6rcT8NSXUTQeviwTSVFI9LwKCsGFaWBIppNT"
+                "wC7BzkxRyLOwWd3ez2DpbaMtLMN++K6Eayy8NzgzwwwzzLAdYQcAAAD//wMAsSkPOUNoFPgAAAAASUVORK5CYII=")
 
     sensorName = "Locks"
     countSensors = len(locks)
@@ -1074,12 +1093,14 @@ if locks is not None:
             if sensor['value'] == 'locked':
                 sym = '🔒'
                 img = greenLocked
+                lock_param4 = 'param4=\"{} {}\"'.format('Unlocking', sensor['name'])
                 if mainMenuAutoSizeDict[sensorName] is True:
                     if mainMenuMaxItems > i: mainMenuMaxItems = i
                     subMenuTitle = "More Locked..."
             elif sensor['value'] == 'unlocked':
                 sym = '🔓'
                 img = redUnlocked
+                lock_param4 = 'param4=\"{} {}\"'.format('Locking', sensor['name'])
             elif sensor['value'] is None:
                 sensor['name'] = sensor['name'] + "(No Status)"
             else:
@@ -1092,20 +1113,20 @@ if locks is not None:
                 subMenuText = "--"
             colorText = 'color=#333333' if colorSwitch else 'color=#666666'
             if useImages is True:
-                print subMenuText, sensor['name'] + ' (' + sensor['value'].capitalize() + ')', buildFontOptions(3) + colorText + ' bash=', \
-                    callbackScript, ' param1=request param2=', \
-                    currentLockURL, ' param3=', secret, ' terminal=false refresh=true image=', img
+                print subMenuText, sensor['name'] + ' (' + sensor['value'].capitalize() + ')', buildFontOptions(
+                    3) + colorText + ' bash=' + callbackScript, ' param1=request param2=' + currentLockURL, \
+                    ' param3=' + secret, lock_param4, ' terminal=false refresh=false image=' + img
             else:
-                print subMenuText, sensor['name'] + ' (' + sensor['value'].capitalize() + ')', whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', \
-                    callbackScript, ' param1=request param2=', currentLockURL, ' param3=', \
-                    secret, ' terminal=false refresh=true'
+                print subMenuText, sensor['name'] + ' (' + sensor[
+                    'value'].capitalize() + ')', whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=' + callbackScript, \
+                    ' param1=request param2=' + currentLockURL, ' param3=' + secret, lock_param4, ' terminal=false refresh=false'
             if favoriteDevicesBool and sensor['name'] in favoriteDevices:
                 favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
                                                             sym + buildFontOptions(3) + colorText
             if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
                 eventGroupByDate(
                     [d for d in sensor['eventlog'] if d['value'] in
-                     ['locked', 'armed', 'unlocked', 'disarmed']],subMenuText, "")
+                     ['locked', 'armed', 'unlocked', 'disarmed']], subMenuText, "")
             if sensor['battery'] != 'N/A':
                 if sensor['battery'][1] != "": colorText = "color=red"
                 if useImages is True:
@@ -1118,114 +1139,117 @@ if locks is not None:
                         buildFontOptions(3) + " alternate=true", colorText
             colorSwitch = not colorSwitch
 
-# Set base64 images for status green/red
-greenImage = ("iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABR0AAAUdAG5O1bwAAAKT2lDQ1BQaG90b3Nob3AgSUNDI"
-              "HByb2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUEG8igiAOOjoCMFVEsDIoK2AfkIaK"
-              "Og6OIisr74Xuja9a89+bN/rXXPues852zzwfACAyWSDNRNYAMqUIeEeCDx8TG4eQuQIEKJHAAEAizZCFz/SMBAPh+PDwrIsAHvgABeN"
-              "MLCADATZvAMByH/w/qQplcAYCEAcB0kThLCIAUAEB6jkKmAEBGAYCdmCZTAKAEAGDLY2LjAFAtAGAnf+bTAICd+Jl7AQBblCEVAaCRA"
-              "CATZYhEAGg7AKzPVopFAFgwABRmS8Q5ANgtADBJV2ZIALC3AMDOEAuyAAgMADBRiIUpAAR7AGDIIyN4AISZABRG8lc88SuuEOcqAAB4"
-              "mbI8uSQ5RYFbCC1xB1dXLh4ozkkXKxQ2YQJhmkAuwnmZGTKBNA/g88wAAKCRFRHgg/P9eM4Ors7ONo62Dl8t6r8G/yJiYuP+5c+rcEA"
-              "AAOF0ftH+LC+zGoA7BoBt/qIl7gRoXgugdfeLZrIPQLUAoOnaV/Nw+H48PEWhkLnZ2eXk5NhKxEJbYcpXff5nwl/AV/1s+X48/Pf14L"
-              "7iJIEyXYFHBPjgwsz0TKUcz5IJhGLc5o9H/LcL//wd0yLESWK5WCoU41EScY5EmozzMqUiiUKSKcUl0v9k4t8s+wM+3zUAsGo+AXuRL"
-              "ahdYwP2SycQWHTA4vcAAPK7b8HUKAgDgGiD4c93/+8//UegJQCAZkmScQAAXkQkLlTKsz/HCAAARKCBKrBBG/TBGCzABhzBBdzBC/x"
-              "gNoRCJMTCQhBCCmSAHHJgKayCQiiGzbAdKmAv1EAdNMBRaIaTcA4uwlW4Dj1wD/phCJ7BKLyBCQRByAgTYSHaiAFiilgjjggXmYX4Ic"
-              "FIBBKLJCDJiBRRIkuRNUgxUopUIFVIHfI9cgI5h1xGupE7yAAygvyGvEcxlIGyUT3UDLVDuag3GoRGogvQZHQxmo8WoJvQcrQaPYw"
-              "2oefQq2gP2o8+Q8cwwOgYBzPEbDAuxsNCsTgsCZNjy7EirAyrxhqwVqwDu4n1Y8+xdwQSgUXACTYEd0IgYR5BSFhMWE7YSKggHCQ0"
-              "EdoJNwkDhFHCJyKTqEu0JroR+cQYYjIxh1hILCPWEo8TLxB7iEPENyQSiUMyJ7mQAkmxpFTSEtJG0m5SI+ksqZs0SBojk8naZGuyBzm"
-              "ULCAryIXkneTD5DPkG+Qh8lsKnWJAcaT4U+IoUspqShnlEOU05QZlmDJBVaOaUt2ooVQRNY9aQq2htlKvUYeoEzR1mjnNgxZJS6Wt"
-              "opXTGmgXaPdpr+h0uhHdlR5Ol9BX0svpR+iX6AP0dwwNhhWDx4hnKBmbGAcYZxl3GK+YTKYZ04sZx1QwNzHrmOeZD5lvVVgqtip8FZ"
-              "HKCpVKlSaVGyovVKmqpqreqgtV81XLVI+pXlN9rkZVM1PjqQnUlqtVqp1Q61MbU2epO6iHqmeob1Q/pH5Z/YkGWcNMw09DpFGgsV/j"
-              "vMYgC2MZs3gsIWsNq4Z1gTXEJrHN2Xx2KruY/R27iz2qqaE5QzNKM1ezUvOUZj8H45hx+Jx0TgnnKKeX836K3hTvKeIpG6Y0TLkxZV"
-              "xrqpaXllirSKtRq0frvTau7aedpr1Fu1n7gQ5Bx0onXCdHZ4/OBZ3nU9lT3acKpxZNPTr1ri6qa6UbobtEd79up+6Ynr5egJ5Mb6fe"
-              "eb3n+hx9L/1U/W36p/VHDFgGswwkBtsMzhg8xTVxbzwdL8fb8VFDXcNAQ6VhlWGX4YSRudE8o9VGjUYPjGnGXOMk423GbcajJgYmIS"
-              "ZLTepN7ppSTbmmKaY7TDtMx83MzaLN1pk1mz0x1zLnm+eb15vft2BaeFostqi2uGVJsuRaplnutrxuhVo5WaVYVVpds0atna0l1rutu"
-              "6cRp7lOk06rntZnw7Dxtsm2qbcZsOXYBtuutm22fWFnYhdnt8Wuw+6TvZN9un2N/T0HDYfZDqsdWh1+c7RyFDpWOt6azpzuP33F9JbpL"
-              "2dYzxDP2DPjthPLKcRpnVOb00dnF2e5c4PziIuJS4LLLpc+Lpsbxt3IveRKdPVxXeF60vWdm7Obwu2o26/uNu5p7ofcn8w0nymeWTNz"
-              "0MPIQ+BR5dE/C5+VMGvfrH5PQ0+BZ7XnIy9jL5FXrdewt6V3qvdh7xc+9j5yn+M+4zw33jLeWV/MN8C3yLfLT8Nvnl+F30N/I/9k/3"
-              "r/0QCngCUBZwOJgUGBWwL7+Hp8Ib+OPzrbZfay2e1BjKC5QRVBj4KtguXBrSFoyOyQrSH355jOkc5pDoVQfujW0Adh5mGLw34MJ4WH"
-              "hVeGP45wiFga0TGXNXfR3ENz30T6RJZE3ptnMU85ry1KNSo+qi5qPNo3ujS6P8YuZlnM1VidWElsSxw5LiquNm5svt/87fOH4p3iC+N"
-              "7F5gvyF1weaHOwvSFpxapLhIsOpZATIhOOJTwQRAqqBaMJfITdyWOCnnCHcJnIi/RNtGI2ENcKh5O8kgqTXqS7JG8NXkkxTOlLOW5hC"
-              "epkLxMDUzdmzqeFpp2IG0yPTq9MYOSkZBxQqohTZO2Z+pn5mZ2y6xlhbL+xW6Lty8elQfJa7OQrAVZLQq2QqboVFoo1yoHsmdlV2a/z"
-              "YnKOZarnivN7cyzytuQN5zvn//tEsIS4ZK2pYZLVy0dWOa9rGo5sjxxedsK4xUFK4ZWBqw8uIq2Km3VT6vtV5eufr0mek1rgV7ByoLB"
-              "tQFr6wtVCuWFfevc1+1dT1gvWd+1YfqGnRs+FYmKrhTbF5cVf9go3HjlG4dvyr+Z3JS0qavEuWTPZtJm6ebeLZ5bDpaql+aXDm4N2dq"
-              "0Dd9WtO319kXbL5fNKNu7g7ZDuaO/PLi8ZafJzs07P1SkVPRU+lQ27tLdtWHX+G7R7ht7vPY07NXbW7z3/T7JvttVAVVN1WbVZftJ+7"
-              "P3P66Jqun4lvttXa1ObXHtxwPSA/0HIw6217nU1R3SPVRSj9Yr60cOxx++/p3vdy0NNg1VjZzG4iNwRHnk6fcJ3/ceDTradox7rOEH"
-              "0x92HWcdL2pCmvKaRptTmvtbYlu6T8w+0dbq3nr8R9sfD5w0PFl5SvNUyWna6YLTk2fyz4ydlZ19fi753GDborZ752PO32oPb++6EH"
-              "Th0kX/i+c7vDvOXPK4dPKy2+UTV7hXmq86X23qdOo8/pPTT8e7nLuarrlca7nuer21e2b36RueN87d9L158Rb/1tWeOT3dvfN6b/fF9"
-              "/XfFt1+cif9zsu72Xcn7q28T7xf9EDtQdlD3YfVP1v+3Njv3H9qwHeg89HcR/cGhYPP/pH1jw9DBY+Zj8uGDYbrnjg+OTniP3L96fy"
-              "nQ89kzyaeF/6i/suuFxYvfvjV69fO0ZjRoZfyl5O/bXyl/erA6xmv28bCxh6+yXgzMV70VvvtwXfcdx3vo98PT+R8IH8o/2j5sfVT0"
-              "Kf7kxmTk/8EA5jz/GMzLdsAAAAgY0hSTQAAeiUAAICDAAD5/wAAgOkAAHUwAADqYAAAOpgAABdvkl/FRgAABMRJREFUeNq0lktoXVU"
-              "Uhr+19z733HvTpM+kLypJqVId9CmK+EB0pCAd6EChtJOCk+JAEBGFTtSRdOBQnDhSKg5EHPkqaCkG2wZbB60ttmmTNG3uvUlucnPPO"
-              "Xvv5eAmsa8oavtz1jmc1/r3Wvtfey85cLqbG5GkIFZQBWNAEt3gi/C4L/yTRVt3h0w3xEAqBm9TriepOZOU7DHnkqNgLkQfgxjF5xA"
-              "LiDmodnw7loBNpN/HfN/0aLa3uFa+302upVL0UY5VjFpUIt5km1pybddkz8S+pHem1rO+9HlaTj+OXk/cyafcKTKbykvNydY7rd+r"
-              "2/tmd7Cpso3e5Rvpri7HOYcYAVVCiMzMTXNtcozL02cYTU6Sbpm8umpj5QPflg9DTnFjZLeTlfWN+sjcIXthoGvniufZsKYfV7JE9f"
-              "hQoAt/AiKCNQ5rHb5QJupjDI1/y9S6X+ndmn4SC/NazJheJNt/fBkIuFSwKW/Wh9vvpxcfMI/1v0BXpYsiZsQYAAVkqaxjjMGZEsEHh"
-              "i79xEj3MdY86D6jMPtipOjMmS58zIvTo/nb4Xyf2TnwNLiCqWwcRW6m0DuTLTwWY3jovl2EywXj535+efWW9DyBQ6pEh4CxbMxm47u"
-              "Ns3RvW7MDSTzNvAYiS3tdCgHaIgys3crUyBhTXZcOdq9Of4ie710sEIQDjeF8a0VXs2xZF82sjv6j1yUgnQE5m7ChZzPnroyuKFfj6y"
-              "Jm0GlkfdFkX7uurKlWKbRN0LAohMWz3mnGZP6QeRJFUUSEwhtc6nCTPbRq9eeqK0u7nAZ9ot3UzQbLbKxxceo3Ulum5CokNsGIQzCL"
-              "xMLNgwjRkxdtWsUMbd8kaiB1Xayo9GLFEU2On8GUl+mLLuQ85dvgEkOQjIn2JQTBiMPZhNRWKLkKThJEBEWJMRDw5L5N5ucoYoFqQOh"
-              "EORsmaRbXscZSSI7xFp/xiPM5u4hgEkGMYCkBEFUJZMyGNrOhgYj8Jf35dClgjOCMQSS5WUca8HhsYju6yehzsdD1RoDklrpBAHuDC"
-              "PW2t38Pc9Nd9FpxGijfMqglRCb8H6giLkYKl3LPEXJwsaAmFTaJFYj3gGU+IX5OMxdzPYPKDpdAvEdkGiBk2nAh48eQsbfUAybcAy"
-              "4LeVPxGWdc9BzNmjQqvaw0CXc3lbJABiHnS6PKxXwqHimanW1GnGDuktlUCBm06zqkQb9zGjSPno+mL8c95dV2nUtB412KykBzJIZ8"
-              "Vg/bEg0TCohwslXTw43zAevAJJ3wzX8wsWAcuArMjESal/ULEY6oB9v/jJtf0XVwrqYDIrK9e6PB2PmVzvwLk076XEVoXlHGT4UTwA"
-              "HjpC5yQ3clghc4eO10cCHnlbU7LWl3pxhjuL1ubt1IxYCdL5/62cjVU/4Ugf02ZXixY+t/1i3+qJFMI1/PXNHYuh53J1UpVVYJSbXj"
-              "7FYzrkPgKp1rq66MDUbGh8KnBF41jnOd1Aoit5OB4oGjrev8Mj0ce+YmdKsGsCWwZek0RqV5xQE+g5nRyPhQZGwwDE4Px7eM5T3jqIl"
-              "ZmMcO2dJNaolvQpvjtXPx4cYfcU+pSx4tdUtf0kXVJiIxKEWLdt7URjGjp33OVxo5ahImZIk1+88BAGVAXOCp+O+MAAAAAElFTkSuQ"
-              "mCC")
-redImage = ("iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABR0AAAUdAG5O1bwAAAKT2lDQ1BQaG90b3Nob3AgSUNDIHByb"
-            "2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUEG8igiAOOjoCMFVEsDIoK2AfkIaKOg6OIi"
-            "sr74Xuja9a89+bN/rXXPues852zzwfACAyWSDNRNYAMqUIeEeCDx8TG4eQuQIEKJHAAEAizZCFz/SMBAPh+PDwrIsAHvgABeNMLCADAT"
-            "ZvAMByH/w/qQplcAYCEAcB0kThLCIAUAEB6jkKmAEBGAYCdmCZTAKAEAGDLY2LjAFAtAGAnf+bTAICd+Jl7AQBblCEVAaCRACATZYhEA"
-            "Gg7AKzPVopFAFgwABRmS8Q5ANgtADBJV2ZIALC3AMDOEAuyAAgMADBRiIUpAAR7AGDIIyN4AISZABRG8lc88SuuEOcqAAB4mbI8uSQ5R"
-            "YFbCC1xB1dXLh4ozkkXKxQ2YQJhmkAuwnmZGTKBNA/g88wAAKCRFRHgg/P9eM4Ors7ONo62Dl8t6r8G/yJiYuP+5c+rcEAAAOF0ftH+"
-            "LC+zGoA7BoBt/qIl7gRoXgugdfeLZrIPQLUAoOnaV/Nw+H48PEWhkLnZ2eXk5NhKxEJbYcpXff5nwl/AV/1s+X48/Pf14L7iJIEyXYF"
-            "HBPjgwsz0TKUcz5IJhGLc5o9H/LcL//wd0yLESWK5WCoU41EScY5EmozzMqUiiUKSKcUl0v9k4t8s+wM+3zUAsGo+AXuRLahdYwP2Sy"
-            "cQWHTA4vcAAPK7b8HUKAgDgGiD4c93/+8//UegJQCAZkmScQAAXkQkLlTKsz/HCAAARKCBKrBBG/TBGCzABhzBBdzBC/xgNoRCJMTCQ"
-            "hBCCmSAHHJgKayCQiiGzbAdKmAv1EAdNMBRaIaTcA4uwlW4Dj1wD/phCJ7BKLyBCQRByAgTYSHaiAFiilgjjggXmYX4IcFIBBKLJCDJi"
-            "BRRIkuRNUgxUopUIFVIHfI9cgI5h1xGupE7yAAygvyGvEcxlIGyUT3UDLVDuag3GoRGogvQZHQxmo8WoJvQcrQaPYw2oefQq2gP2o8+Q"
-            "8cwwOgYBzPEbDAuxsNCsTgsCZNjy7EirAyrxhqwVqwDu4n1Y8+xdwQSgUXACTYEd0IgYR5BSFhMWE7YSKggHCQ0EdoJNwkDhFHCJyKTq"
-            "Eu0JroR+cQYYjIxh1hILCPWEo8TLxB7iEPENyQSiUMyJ7mQAkmxpFTSEtJG0m5SI+ksqZs0SBojk8naZGuyBzmULCAryIXkneTD5DPk"
-            "G+Qh8lsKnWJAcaT4U+IoUspqShnlEOU05QZlmDJBVaOaUt2ooVQRNY9aQq2htlKvUYeoEzR1mjnNgxZJS6WtopXTGmgXaPdpr+h0uhHd"
-            "lR5Ol9BX0svpR+iX6AP0dwwNhhWDx4hnKBmbGAcYZxl3GK+YTKYZ04sZx1QwNzHrmOeZD5lvVVgqtip8FZHKCpVKlSaVGyovVKmqpqre"
-            "qgtV81XLVI+pXlN9rkZVM1PjqQnUlqtVqp1Q61MbU2epO6iHqmeob1Q/pH5Z/YkGWcNMw09DpFGgsV/jvMYgC2MZs3gsIWsNq4Z1gTXEJ"
-            "rHN2Xx2KruY/R27iz2qqaE5QzNKM1ezUvOUZj8H45hx+Jx0TgnnKKeX836K3hTvKeIpG6Y0TLkxZVxrqpaXllirSKtRq0frvTau7aedp"
-            "r1Fu1n7gQ5Bx0onXCdHZ4/OBZ3nU9lT3acKpxZNPTr1ri6qa6UbobtEd79up+6Ynr5egJ5Mb6feeb3n+hx9L/1U/W36p/VHDFgGswwkB"
-            "tsMzhg8xTVxbzwdL8fb8VFDXcNAQ6VhlWGX4YSRudE8o9VGjUYPjGnGXOMk423GbcajJgYmISZLTepN7ppSTbmmKaY7TDtMx83MzaLN1"
-            "pk1mz0x1zLnm+eb15vft2BaeFostqi2uGVJsuRaplnutrxuhVo5WaVYVVpds0atna0l1rutu6cRp7lOk06rntZnw7Dxtsm2qbcZsOXYB"
-            "tuutm22fWFnYhdnt8Wuw+6TvZN9un2N/T0HDYfZDqsdWh1+c7RyFDpWOt6azpzuP33F9JbpL2dYzxDP2DPjthPLKcRpnVOb00dnF2e5c"
-            "4PziIuJS4LLLpc+Lpsbxt3IveRKdPVxXeF60vWdm7Obwu2o26/uNu5p7ofcn8w0nymeWTNz0MPIQ+BR5dE/C5+VMGvfrH5PQ0+BZ7XnI"
-            "y9jL5FXrdewt6V3qvdh7xc+9j5yn+M+4zw33jLeWV/MN8C3yLfLT8Nvnl+F30N/I/9k/3r/0QCngCUBZwOJgUGBWwL7+Hp8Ib+OPzrbZf"
-            "ay2e1BjKC5QRVBj4KtguXBrSFoyOyQrSH355jOkc5pDoVQfujW0Adh5mGLw34MJ4WHhVeGP45wiFga0TGXNXfR3ENz30T6RJZE3ptnMU"
-            "85ry1KNSo+qi5qPNo3ujS6P8YuZlnM1VidWElsSxw5LiquNm5svt/87fOH4p3iC+N7F5gvyF1weaHOwvSFpxapLhIsOpZATIhOOJTwQRA"
-            "qqBaMJfITdyWOCnnCHcJnIi/RNtGI2ENcKh5O8kgqTXqS7JG8NXkkxTOlLOW5hCepkLxMDUzdmzqeFpp2IG0yPTq9MYOSkZBxQqohTZO"
-            "2Z+pn5mZ2y6xlhbL+xW6Lty8elQfJa7OQrAVZLQq2QqboVFoo1yoHsmdlV2a/zYnKOZarnivN7cyzytuQN5zvn//tEsIS4ZK2pYZLVy0"
-            "dWOa9rGo5sjxxedsK4xUFK4ZWBqw8uIq2Km3VT6vtV5eufr0mek1rgV7ByoLBtQFr6wtVCuWFfevc1+1dT1gvWd+1YfqGnRs+FYmKrhT"
-            "bF5cVf9go3HjlG4dvyr+Z3JS0qavEuWTPZtJm6ebeLZ5bDpaql+aXDm4N2dq0Dd9WtO319kXbL5fNKNu7g7ZDuaO/PLi8ZafJzs07P1S"
-            "kVPRU+lQ27tLdtWHX+G7R7ht7vPY07NXbW7z3/T7JvttVAVVN1WbVZftJ+7P3P66Jqun4lvttXa1ObXHtxwPSA/0HIw6217nU1R3SPVR"
-            "Sj9Yr60cOxx++/p3vdy0NNg1VjZzG4iNwRHnk6fcJ3/ceDTradox7rOEH0x92HWcdL2pCmvKaRptTmvtbYlu6T8w+0dbq3nr8R9sfD5w"
-            "0PFl5SvNUyWna6YLTk2fyz4ydlZ19fi753GDborZ752PO32oPb++6EHTh0kX/i+c7vDvOXPK4dPKy2+UTV7hXmq86X23qdOo8/pPTT8e"
-            "7nLuarrlca7nuer21e2b36RueN87d9L158Rb/1tWeOT3dvfN6b/fF9/XfFt1+cif9zsu72Xcn7q28T7xf9EDtQdlD3YfVP1v+3Njv3H"
-            "9qwHeg89HcR/cGhYPP/pH1jw9DBY+Zj8uGDYbrnjg+OTniP3L96fynQ89kzyaeF/6i/suuFxYvfvjV69fO0ZjRoZfyl5O/bXyl/erA6x"
-            "mv28bCxh6+yXgzMV70VvvtwXfcdx3vo98PT+R8IH8o/2j5sfVT0Kf7kxmTk/8EA5jz/GMzLdsAAAAgY0hSTQAAeiUAAICDAAD5/wAAg"
-            "OkAAHUwAADqYAAAOpgAABdvkl/FRgAABIZJREFUeNq0lk1oHVUUx3/nzp0376tNozFtYottsVDE0k904cfOiiItWJeSVUEEcSGICIKb6"
-            "kq7cCluXCnqRkQ3Uo0UaQ39klbQEjGaNk3aJK8vL+17M3PvPS7mpU1TW1tIDxyGGe65/3PP+f/PXBnr5QZLFKyAAgawwmBHeaKtPNWG"
-            "nR1l0AuJUVwiXKrAmQr8XBGGjeHPLOAFyIAcyAKoFHvLrcBiYX1HGRoPvDynbGpXanQGBnGVGhpZxHuivIO9cIHa/GWqysxDhi97DJ9k"
-            "yvE7BisLL00o75x3bJ3fsh27bScr1q6l2rMKay3GCBoUHwLtuSbNyQmunjrFihNH6BMmHzZ8kMJHGeS3Bwu8Oaq8e7G3r1Z+4UXuW7+"
-            "BxEZoluPzHFW9tlZEMNYSxZZcYPbcBI3vv6NnbJStlk+98HrqmbsGdnoVCFAGEuGts573pwbWmsE9+6jU6mjaITgPqiDCrcwYg5RKuBA"
-            "4f3iY8skRtlg+94GhIOQA0asJIJDAvvHAh+fKtfLA83soieAvXyZkKZplaJ6hWUbIiudSD1mKb19F8pSVg+toupzG5OSjqyPEw08KakU"
-            "gUh5sCQf+cKxYs30XSZbjWi3E3HwSvc3pAEK3vH2bH+Hi+XP81Zh+bVD4MRd+sLkiIuwf9Wwul8vUK1WymWkK8t+9iUBQiEol6hs3MfX"
-            "L9KoeyxsRjNgAA63A0EyAvnoV0g54d50IBgiK6n/gG0G6CAJoUJQie99pk8QRUSVhqpM+tzpih3WBJ5vCxgjws7Nc+e1XTFIhqlaIohg"
-            "pxagx3bRB/JIkXE7e7uCutAhzc6j3RPU6yQP9iI2J0pR5ML3KPpsJT3eABMgUrszMIkAsXYZaS1SrIraEiIAGgvOId7hOm7bzpAZcKE4"
-            "uCtpsUm42iYE2EBtI4TGbCTtCgJIUySYLjZYCvOMcNOcwXGd+WCRUA8ShGyddB7xCJpB031Pot5kyIArxknZES/qjXO/Z/xCyiJfFgZB"
-            "DxXqlHAv33BTEBiFP9N6DZYDNlZkKrLOm6MVy20LJ24HUpsoZFbbFoSDFsoMBHugoDZMGDqda0NOy/F4SyBVS4Yx1wnALGv3QG8vyll"
-            "IEIqBVaPhrozDW8HzRCoWIY1MIejm8bCBVmAmccnDIOiVz8PHfnr19hjUJy9M76Q6J8YCfh4MlpRHtjgHDhTkwHp4ZBIzpLtYi4K7cF"
-            "KUrC4w5OOv5KoIDqvhod6kQuSoj08oGI2xdFxXNFSkmwZ26EbAKVQP/BDjmOK6wPxZmRSB6ttRVuBK8cmhCWZ8pWwYN1BaNu4XMb9h80"
-            "XcrUAEiA787OOo46ZQhK4xaKfZYDEYQ0iB8O+4JU4GdNSjdb6Dazdqw6NmldgxUBGKFGeCoh+Oez7zyioWzkRSJ3AxWzDAHDF9Sjo0FV"
-            "l4KbPZAiYJdZSm0E5viDpAaOOfhhIcjOSNjnrcjeM/CzEIlFsDkYK37SwjFpdJRiNAJuEAdYVcs7K3D4yuF/ppQLQniFK5CZ05ptAKn"
-            "M+GbAMMWpiO9UdRJF+zfAQA3jyMbiOE+0gAAAABJRU5ErkJggg==")
-
 # Output Switches & Lights
 if switches is not None:
+    if useImages is True:
+        # Set base64 images for status green/red
+        greenImage = (
+                "iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABR0AAAUdAG5O1bwAAAKT2lDQ1BQaG90b3Nob3AgSUNDI"
+                "HByb2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUEG8igiAOOjoCMFVEsDIoK2AfkIaK"
+                "Og6OIisr74Xuja9a89+bN/rXXPues852zzwfACAyWSDNRNYAMqUIeEeCDx8TG4eQuQIEKJHAAEAizZCFz/SMBAPh+PDwrIsAHvgABeN"
+                "MLCADATZvAMByH/w/qQplcAYCEAcB0kThLCIAUAEB6jkKmAEBGAYCdmCZTAKAEAGDLY2LjAFAtAGAnf+bTAICd+Jl7AQBblCEVAaCRA"
+                "CATZYhEAGg7AKzPVopFAFgwABRmS8Q5ANgtADBJV2ZIALC3AMDOEAuyAAgMADBRiIUpAAR7AGDIIyN4AISZABRG8lc88SuuEOcqAAB4"
+                "mbI8uSQ5RYFbCC1xB1dXLh4ozkkXKxQ2YQJhmkAuwnmZGTKBNA/g88wAAKCRFRHgg/P9eM4Ors7ONo62Dl8t6r8G/yJiYuP+5c+rcEA"
+                "AAOF0ftH+LC+zGoA7BoBt/qIl7gRoXgugdfeLZrIPQLUAoOnaV/Nw+H48PEWhkLnZ2eXk5NhKxEJbYcpXff5nwl/AV/1s+X48/Pf14L"
+                "7iJIEyXYFHBPjgwsz0TKUcz5IJhGLc5o9H/LcL//wd0yLESWK5WCoU41EScY5EmozzMqUiiUKSKcUl0v9k4t8s+wM+3zUAsGo+AXuRL"
+                "ahdYwP2SycQWHTA4vcAAPK7b8HUKAgDgGiD4c93/+8//UegJQCAZkmScQAAXkQkLlTKsz/HCAAARKCBKrBBG/TBGCzABhzBBdzBC/x"
+                "gNoRCJMTCQhBCCmSAHHJgKayCQiiGzbAdKmAv1EAdNMBRaIaTcA4uwlW4Dj1wD/phCJ7BKLyBCQRByAgTYSHaiAFiilgjjggXmYX4Ic"
+                "FIBBKLJCDJiBRRIkuRNUgxUopUIFVIHfI9cgI5h1xGupE7yAAygvyGvEcxlIGyUT3UDLVDuag3GoRGogvQZHQxmo8WoJvQcrQaPYw"
+                "2oefQq2gP2o8+Q8cwwOgYBzPEbDAuxsNCsTgsCZNjy7EirAyrxhqwVqwDu4n1Y8+xdwQSgUXACTYEd0IgYR5BSFhMWE7YSKggHCQ0"
+                "EdoJNwkDhFHCJyKTqEu0JroR+cQYYjIxh1hILCPWEo8TLxB7iEPENyQSiUMyJ7mQAkmxpFTSEtJG0m5SI+ksqZs0SBojk8naZGuyBzm"
+                "ULCAryIXkneTD5DPkG+Qh8lsKnWJAcaT4U+IoUspqShnlEOU05QZlmDJBVaOaUt2ooVQRNY9aQq2htlKvUYeoEzR1mjnNgxZJS6Wt"
+                "opXTGmgXaPdpr+h0uhHdlR5Ol9BX0svpR+iX6AP0dwwNhhWDx4hnKBmbGAcYZxl3GK+YTKYZ04sZx1QwNzHrmOeZD5lvVVgqtip8FZ"
+                "HKCpVKlSaVGyovVKmqpqreqgtV81XLVI+pXlN9rkZVM1PjqQnUlqtVqp1Q61MbU2epO6iHqmeob1Q/pH5Z/YkGWcNMw09DpFGgsV/j"
+                "vMYgC2MZs3gsIWsNq4Z1gTXEJrHN2Xx2KruY/R27iz2qqaE5QzNKM1ezUvOUZj8H45hx+Jx0TgnnKKeX836K3hTvKeIpG6Y0TLkxZV"
+                "xrqpaXllirSKtRq0frvTau7aedpr1Fu1n7gQ5Bx0onXCdHZ4/OBZ3nU9lT3acKpxZNPTr1ri6qa6UbobtEd79up+6Ynr5egJ5Mb6fe"
+                "eb3n+hx9L/1U/W36p/VHDFgGswwkBtsMzhg8xTVxbzwdL8fb8VFDXcNAQ6VhlWGX4YSRudE8o9VGjUYPjGnGXOMk423GbcajJgYmIS"
+                "ZLTepN7ppSTbmmKaY7TDtMx83MzaLN1pk1mz0x1zLnm+eb15vft2BaeFostqi2uGVJsuRaplnutrxuhVo5WaVYVVpds0atna0l1rutu"
+                "6cRp7lOk06rntZnw7Dxtsm2qbcZsOXYBtuutm22fWFnYhdnt8Wuw+6TvZN9un2N/T0HDYfZDqsdWh1+c7RyFDpWOt6azpzuP33F9JbpL"
+                "2dYzxDP2DPjthPLKcRpnVOb00dnF2e5c4PziIuJS4LLLpc+Lpsbxt3IveRKdPVxXeF60vWdm7Obwu2o26/uNu5p7ofcn8w0nymeWTNz"
+                "0MPIQ+BR5dE/C5+VMGvfrH5PQ0+BZ7XnIy9jL5FXrdewt6V3qvdh7xc+9j5yn+M+4zw33jLeWV/MN8C3yLfLT8Nvnl+F30N/I/9k/3"
+                "r/0QCngCUBZwOJgUGBWwL7+Hp8Ib+OPzrbZfay2e1BjKC5QRVBj4KtguXBrSFoyOyQrSH355jOkc5pDoVQfujW0Adh5mGLw34MJ4WH"
+                "hVeGP45wiFga0TGXNXfR3ENz30T6RJZE3ptnMU85ry1KNSo+qi5qPNo3ujS6P8YuZlnM1VidWElsSxw5LiquNm5svt/87fOH4p3iC+N"
+                "7F5gvyF1weaHOwvSFpxapLhIsOpZATIhOOJTwQRAqqBaMJfITdyWOCnnCHcJnIi/RNtGI2ENcKh5O8kgqTXqS7JG8NXkkxTOlLOW5hC"
+                "epkLxMDUzdmzqeFpp2IG0yPTq9MYOSkZBxQqohTZO2Z+pn5mZ2y6xlhbL+xW6Lty8elQfJa7OQrAVZLQq2QqboVFoo1yoHsmdlV2a/z"
+                "YnKOZarnivN7cyzytuQN5zvn//tEsIS4ZK2pYZLVy0dWOa9rGo5sjxxedsK4xUFK4ZWBqw8uIq2Km3VT6vtV5eufr0mek1rgV7ByoLB"
+                "tQFr6wtVCuWFfevc1+1dT1gvWd+1YfqGnRs+FYmKrhTbF5cVf9go3HjlG4dvyr+Z3JS0qavEuWTPZtJm6ebeLZ5bDpaql+aXDm4N2dq"
+                "0Dd9WtO319kXbL5fNKNu7g7ZDuaO/PLi8ZafJzs07P1SkVPRU+lQ27tLdtWHX+G7R7ht7vPY07NXbW7z3/T7JvttVAVVN1WbVZftJ+7"
+                "P3P66Jqun4lvttXa1ObXHtxwPSA/0HIw6217nU1R3SPVRSj9Yr60cOxx++/p3vdy0NNg1VjZzG4iNwRHnk6fcJ3/ceDTradox7rOEH"
+                "0x92HWcdL2pCmvKaRptTmvtbYlu6T8w+0dbq3nr8R9sfD5w0PFl5SvNUyWna6YLTk2fyz4ydlZ19fi753GDborZ752PO32oPb++6EH"
+                "Th0kX/i+c7vDvOXPK4dPKy2+UTV7hXmq86X23qdOo8/pPTT8e7nLuarrlca7nuer21e2b36RueN87d9L158Rb/1tWeOT3dvfN6b/fF9"
+                "/XfFt1+cif9zsu72Xcn7q28T7xf9EDtQdlD3YfVP1v+3Njv3H9qwHeg89HcR/cGhYPP/pH1jw9DBY+Zj8uGDYbrnjg+OTniP3L96fy"
+                "nQ89kzyaeF/6i/suuFxYvfvjV69fO0ZjRoZfyl5O/bXyl/erA6xmv28bCxh6+yXgzMV70VvvtwXfcdx3vo98PT+R8IH8o/2j5sfVT0"
+                "Kf7kxmTk/8EA5jz/GMzLdsAAAAgY0hSTQAAeiUAAICDAAD5/wAAgOkAAHUwAADqYAAAOpgAABdvkl/FRgAABMRJREFUeNq0lktoXVU"
+                "Uhr+19z733HvTpM+kLypJqVId9CmK+EB0pCAd6EChtJOCk+JAEBGFTtSRdOBQnDhSKg5EHPkqaCkG2wZbB60ttmmTNG3uvUlucnPPO"
+                "Xvv5eAmsa8oavtz1jmc1/r3Wvtfey85cLqbG5GkIFZQBWNAEt3gi/C4L/yTRVt3h0w3xEAqBm9TriepOZOU7DHnkqNgLkQfgxjF5xA"
+                "LiDmodnw7loBNpN/HfN/0aLa3uFa+302upVL0UY5VjFpUIt5km1pybddkz8S+pHem1rO+9HlaTj+OXk/cyafcKTKbykvNydY7rd+r"
+                "2/tmd7Cpso3e5Rvpri7HOYcYAVVCiMzMTXNtcozL02cYTU6Sbpm8umpj5QPflg9DTnFjZLeTlfWN+sjcIXthoGvniufZsKYfV7JE9f"
+                "hQoAt/AiKCNQ5rHb5QJupjDI1/y9S6X+ndmn4SC/NazJheJNt/fBkIuFSwKW/Wh9vvpxcfMI/1v0BXpYsiZsQYAAVkqaxjjMGZEsEHh"
+                "i79xEj3MdY86D6jMPtipOjMmS58zIvTo/nb4Xyf2TnwNLiCqWwcRW6m0DuTLTwWY3jovl2EywXj535+efWW9DyBQ6pEh4CxbMxm47u"
+                "Ns3RvW7MDSTzNvAYiS3tdCgHaIgys3crUyBhTXZcOdq9Of4ie710sEIQDjeF8a0VXs2xZF82sjv6j1yUgnQE5m7ChZzPnroyuKFfj6y"
+                "Jm0GlkfdFkX7uurKlWKbRN0LAohMWz3mnGZP6QeRJFUUSEwhtc6nCTPbRq9eeqK0u7nAZ9ot3UzQbLbKxxceo3Ulum5CokNsGIQzCL"
+                "xMLNgwjRkxdtWsUMbd8kaiB1Xayo9GLFEU2On8GUl+mLLuQ85dvgEkOQjIn2JQTBiMPZhNRWKLkKThJEBEWJMRDw5L5N5ucoYoFqQOh"
+                "EORsmaRbXscZSSI7xFp/xiPM5u4hgEkGMYCkBEFUJZMyGNrOhgYj8Jf35dClgjOCMQSS5WUca8HhsYju6yehzsdD1RoDklrpBAHuDC"
+                "PW2t38Pc9Nd9FpxGijfMqglRCb8H6giLkYKl3LPEXJwsaAmFTaJFYj3gGU+IX5OMxdzPYPKDpdAvEdkGiBk2nAh48eQsbfUAybcAy"
+                "4LeVPxGWdc9BzNmjQqvaw0CXc3lbJABiHnS6PKxXwqHimanW1GnGDuktlUCBm06zqkQb9zGjSPno+mL8c95dV2nUtB412KykBzJIZ8"
+                "Vg/bEg0TCohwslXTw43zAevAJJ3wzX8wsWAcuArMjESal/ULEY6oB9v/jJtf0XVwrqYDIrK9e6PB2PmVzvwLk076XEVoXlHGT4UTwA"
+                "HjpC5yQ3clghc4eO10cCHnlbU7LWl3pxhjuL1ubt1IxYCdL5/62cjVU/4Ugf02ZXixY+t/1i3+qJFMI1/PXNHYuh53J1UpVVYJSbXj"
+                "7FYzrkPgKp1rq66MDUbGh8KnBF41jnOd1Aoit5OB4oGjrev8Mj0ce+YmdKsGsCWwZek0RqV5xQE+g5nRyPhQZGwwDE4Px7eM5T3jqIl"
+                "ZmMcO2dJNaolvQpvjtXPx4cYfcU+pSx4tdUtf0kXVJiIxKEWLdt7URjGjp33OVxo5ahImZIk1+88BAGVAXOCp+O+MAAAAAElFTkSuQ"
+                "mCC")
+        redImage = (
+                "iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAACXBIWXMAABR0AAAUdAG5O1bwAAAKT2lDQ1BQaG90b3Nob3AgSUNDIHByb"
+                "2ZpbGUAAHjanVNnVFPpFj333vRCS4iAlEtvUhUIIFJCi4AUkSYqIQkQSoghodkVUcERRUUEG8igiAOOjoCMFVEsDIoK2AfkIaKOg6OIi"
+                "sr74Xuja9a89+bN/rXXPues852zzwfACAyWSDNRNYAMqUIeEeCDx8TG4eQuQIEKJHAAEAizZCFz/SMBAPh+PDwrIsAHvgABeNMLCADAT"
+                "ZvAMByH/w/qQplcAYCEAcB0kThLCIAUAEB6jkKmAEBGAYCdmCZTAKAEAGDLY2LjAFAtAGAnf+bTAICd+Jl7AQBblCEVAaCRACATZYhEA"
+                "Gg7AKzPVopFAFgwABRmS8Q5ANgtADBJV2ZIALC3AMDOEAuyAAgMADBRiIUpAAR7AGDIIyN4AISZABRG8lc88SuuEOcqAAB4mbI8uSQ5R"
+                "YFbCC1xB1dXLh4ozkkXKxQ2YQJhmkAuwnmZGTKBNA/g88wAAKCRFRHgg/P9eM4Ors7ONo62Dl8t6r8G/yJiYuP+5c+rcEAAAOF0ftH+"
+                "LC+zGoA7BoBt/qIl7gRoXgugdfeLZrIPQLUAoOnaV/Nw+H48PEWhkLnZ2eXk5NhKxEJbYcpXff5nwl/AV/1s+X48/Pf14L7iJIEyXYF"
+                "HBPjgwsz0TKUcz5IJhGLc5o9H/LcL//wd0yLESWK5WCoU41EScY5EmozzMqUiiUKSKcUl0v9k4t8s+wM+3zUAsGo+AXuRLahdYwP2Sy"
+                "cQWHTA4vcAAPK7b8HUKAgDgGiD4c93/+8//UegJQCAZkmScQAAXkQkLlTKsz/HCAAARKCBKrBBG/TBGCzABhzBBdzBC/xgNoRCJMTCQ"
+                "hBCCmSAHHJgKayCQiiGzbAdKmAv1EAdNMBRaIaTcA4uwlW4Dj1wD/phCJ7BKLyBCQRByAgTYSHaiAFiilgjjggXmYX4IcFIBBKLJCDJi"
+                "BRRIkuRNUgxUopUIFVIHfI9cgI5h1xGupE7yAAygvyGvEcxlIGyUT3UDLVDuag3GoRGogvQZHQxmo8WoJvQcrQaPYw2oefQq2gP2o8+Q"
+                "8cwwOgYBzPEbDAuxsNCsTgsCZNjy7EirAyrxhqwVqwDu4n1Y8+xdwQSgUXACTYEd0IgYR5BSFhMWE7YSKggHCQ0EdoJNwkDhFHCJyKTq"
+                "Eu0JroR+cQYYjIxh1hILCPWEo8TLxB7iEPENyQSiUMyJ7mQAkmxpFTSEtJG0m5SI+ksqZs0SBojk8naZGuyBzmULCAryIXkneTD5DPk"
+                "G+Qh8lsKnWJAcaT4U+IoUspqShnlEOU05QZlmDJBVaOaUt2ooVQRNY9aQq2htlKvUYeoEzR1mjnNgxZJS6WtopXTGmgXaPdpr+h0uhHd"
+                "lR5Ol9BX0svpR+iX6AP0dwwNhhWDx4hnKBmbGAcYZxl3GK+YTKYZ04sZx1QwNzHrmOeZD5lvVVgqtip8FZHKCpVKlSaVGyovVKmqpqre"
+                "qgtV81XLVI+pXlN9rkZVM1PjqQnUlqtVqp1Q61MbU2epO6iHqmeob1Q/pH5Z/YkGWcNMw09DpFGgsV/jvMYgC2MZs3gsIWsNq4Z1gTXEJ"
+                "rHN2Xx2KruY/R27iz2qqaE5QzNKM1ezUvOUZj8H45hx+Jx0TgnnKKeX836K3hTvKeIpG6Y0TLkxZVxrqpaXllirSKtRq0frvTau7aedp"
+                "r1Fu1n7gQ5Bx0onXCdHZ4/OBZ3nU9lT3acKpxZNPTr1ri6qa6UbobtEd79up+6Ynr5egJ5Mb6feeb3n+hx9L/1U/W36p/VHDFgGswwkB"
+                "tsMzhg8xTVxbzwdL8fb8VFDXcNAQ6VhlWGX4YSRudE8o9VGjUYPjGnGXOMk423GbcajJgYmISZLTepN7ppSTbmmKaY7TDtMx83MzaLN1"
+                "pk1mz0x1zLnm+eb15vft2BaeFostqi2uGVJsuRaplnutrxuhVo5WaVYVVpds0atna0l1rutu6cRp7lOk06rntZnw7Dxtsm2qbcZsOXYB"
+                "tuutm22fWFnYhdnt8Wuw+6TvZN9un2N/T0HDYfZDqsdWh1+c7RyFDpWOt6azpzuP33F9JbpL2dYzxDP2DPjthPLKcRpnVOb00dnF2e5c"
+                "4PziIuJS4LLLpc+Lpsbxt3IveRKdPVxXeF60vWdm7Obwu2o26/uNu5p7ofcn8w0nymeWTNz0MPIQ+BR5dE/C5+VMGvfrH5PQ0+BZ7XnI"
+                "y9jL5FXrdewt6V3qvdh7xc+9j5yn+M+4zw33jLeWV/MN8C3yLfLT8Nvnl+F30N/I/9k/3r/0QCngCUBZwOJgUGBWwL7+Hp8Ib+OPzrbZf"
+                "ay2e1BjKC5QRVBj4KtguXBrSFoyOyQrSH355jOkc5pDoVQfujW0Adh5mGLw34MJ4WHhVeGP45wiFga0TGXNXfR3ENz30T6RJZE3ptnMU"
+                "85ry1KNSo+qi5qPNo3ujS6P8YuZlnM1VidWElsSxw5LiquNm5svt/87fOH4p3iC+N7F5gvyF1weaHOwvSFpxapLhIsOpZATIhOOJTwQRA"
+                "qqBaMJfITdyWOCnnCHcJnIi/RNtGI2ENcKh5O8kgqTXqS7JG8NXkkxTOlLOW5hCepkLxMDUzdmzqeFpp2IG0yPTq9MYOSkZBxQqohTZO"
+                "2Z+pn5mZ2y6xlhbL+xW6Lty8elQfJa7OQrAVZLQq2QqboVFoo1yoHsmdlV2a/zYnKOZarnivN7cyzytuQN5zvn//tEsIS4ZK2pYZLVy0"
+                "dWOa9rGo5sjxxedsK4xUFK4ZWBqw8uIq2Km3VT6vtV5eufr0mek1rgV7ByoLBtQFr6wtVCuWFfevc1+1dT1gvWd+1YfqGnRs+FYmKrhT"
+                "bF5cVf9go3HjlG4dvyr+Z3JS0qavEuWTPZtJm6ebeLZ5bDpaql+aXDm4N2dq0Dd9WtO319kXbL5fNKNu7g7ZDuaO/PLi8ZafJzs07P1S"
+                "kVPRU+lQ27tLdtWHX+G7R7ht7vPY07NXbW7z3/T7JvttVAVVN1WbVZftJ+7P3P66Jqun4lvttXa1ObXHtxwPSA/0HIw6217nU1R3SPVR"
+                "Sj9Yr60cOxx++/p3vdy0NNg1VjZzG4iNwRHnk6fcJ3/ceDTradox7rOEH0x92HWcdL2pCmvKaRptTmvtbYlu6T8w+0dbq3nr8R9sfD5w"
+                "0PFl5SvNUyWna6YLTk2fyz4ydlZ19fi753GDborZ752PO32oPb++6EHTh0kX/i+c7vDvOXPK4dPKy2+UTV7hXmq86X23qdOo8/pPTT8e"
+                "7nLuarrlca7nuer21e2b36RueN87d9L158Rb/1tWeOT3dvfN6b/fF9/XfFt1+cif9zsu72Xcn7q28T7xf9EDtQdlD3YfVP1v+3Njv3H"
+                "9qwHeg89HcR/cGhYPP/pH1jw9DBY+Zj8uGDYbrnjg+OTniP3L96fynQ89kzyaeF/6i/suuFxYvfvjV69fO0ZjRoZfyl5O/bXyl/erA6x"
+                "mv28bCxh6+yXgzMV70VvvtwXfcdx3vo98PT+R8IH8o/2j5sfVT0Kf7kxmTk/8EA5jz/GMzLdsAAAAgY0hSTQAAeiUAAICDAAD5/wAAg"
+                "OkAAHUwAADqYAAAOpgAABdvkl/FRgAABIZJREFUeNq0lk1oHVUUx3/nzp0376tNozFtYottsVDE0k904cfOiiItWJeSVUEEcSGICIKb6"
+                "kq7cCluXCnqRkQ3Uo0UaQ39klbQEjGaNk3aJK8vL+17M3PvPS7mpU1TW1tIDxyGGe65/3PP+f/PXBnr5QZLFKyAAgawwmBHeaKtPNWG"
+                "nR1l0AuJUVwiXKrAmQr8XBGGjeHPLOAFyIAcyAKoFHvLrcBiYX1HGRoPvDynbGpXanQGBnGVGhpZxHuivIO9cIHa/GWqysxDhi97DJ9k"
+                "yvE7BisLL00o75x3bJ3fsh27bScr1q6l2rMKay3GCBoUHwLtuSbNyQmunjrFihNH6BMmHzZ8kMJHGeS3Bwu8Oaq8e7G3r1Z+4UXuW7+"
+                "BxEZoluPzHFW9tlZEMNYSxZZcYPbcBI3vv6NnbJStlk+98HrqmbsGdnoVCFAGEuGts573pwbWmsE9+6jU6mjaITgPqiDCrcwYg5RKuBA"
+                "4f3iY8skRtlg+94GhIOQA0asJIJDAvvHAh+fKtfLA83soieAvXyZkKZplaJ6hWUbIiudSD1mKb19F8pSVg+toupzG5OSjqyPEw08KakU"
+                "gUh5sCQf+cKxYs30XSZbjWi3E3HwSvc3pAEK3vH2bH+Hi+XP81Zh+bVD4MRd+sLkiIuwf9Wwul8vUK1WymWkK8t+9iUBQiEol6hs3MfX"
+                "L9KoeyxsRjNgAA63A0EyAvnoV0g54d50IBgiK6n/gG0G6CAJoUJQie99pk8QRUSVhqpM+tzpih3WBJ5vCxgjws7Nc+e1XTFIhqlaIohg"
+                "pxagx3bRB/JIkXE7e7uCutAhzc6j3RPU6yQP9iI2J0pR5ML3KPpsJT3eABMgUrszMIkAsXYZaS1SrIraEiIAGgvOId7hOm7bzpAZcKE4"
+                "uCtpsUm42iYE2EBtI4TGbCTtCgJIUySYLjZYCvOMcNOcwXGd+WCRUA8ShGyddB7xCJpB031Pot5kyIArxknZES/qjXO/Z/xCyiJfFgZB"
+                "DxXqlHAv33BTEBiFP9N6DZYDNlZkKrLOm6MVy20LJ24HUpsoZFbbFoSDFsoMBHugoDZMGDqda0NOy/F4SyBVS4Yx1wnALGv3QG8vyll"
+                "IEIqBVaPhrozDW8HzRCoWIY1MIejm8bCBVmAmccnDIOiVz8PHfnr19hjUJy9M76Q6J8YCfh4MlpRHtjgHDhTkwHp4ZBIzpLtYi4K7cF"
+                "KUrC4w5OOv5KoIDqvhod6kQuSoj08oGI2xdFxXNFSkmwZ26EbAKVQP/BDjmOK6wPxZmRSB6ttRVuBK8cmhCWZ8pWwYN1BaNu4XMb9h80"
+                "XcrUAEiA787OOo46ZQhK4xaKfZYDEYQ0iB8O+4JU4GdNSjdb6Dazdqw6NmldgxUBGKFGeCoh+Oez7zyioWzkRSJ3AxWzDAHDF9Sjo0FV"
+                "l4KbPZAiYJdZSm0E5viDpAaOOfhhIcjOSNjnrcjeM/CzEIlFsDkYK37SwjFpdJRiNAJuEAdYVcs7K3D4yuF/ppQLQniFK5CZ05ptAKn"
+                "M+GbAMMWpiO9UdRJF+zfAQA3jyMbiOE+0gAAAABJRU5ErkJggg==")
+
     sensorName = "Switches"
     countSensors = len(switches)
     if countSensors > 0:
@@ -1256,9 +1280,11 @@ if switches is not None:
             if sensor['value'] == 'on':
                 sym = " ✅"
                 img = greenImage
+                switch_param4 = 'param4=\"{} {}\"'.format('Turning Off', sensor['name'])
             else:
                 sym = " 🔴"
                 img = redImage
+                switch_param4 = 'param4=\"{} {}\"'.format('Turning On', sensor['name'])
                 if mainMenuAutoSizeDict[sensorName] is True:
                     if mainMenuMaxItems > i: mainMenuMaxItems = i
                     subMenuTitle = "More Switches Off..."
@@ -1271,12 +1297,12 @@ if switches is not None:
                 )
                 subMenuText = "--"
             if useImages is True:
-                print subMenuText, thisSensor, buildFontOptions(3) + colorText + \
-                    ' bash=', callbackScript, ' param1=request param2=', \
-                    currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true image=', img
+                print subMenuText, thisSensor, buildFontOptions(3) + colorText + ' bash=' + callbackScript, \
+                    ' param1=request param2=' + currentSwitchURL, ' param3=' + secret, switch_param4, ' terminal=false refresh=false image=' + img
             else:
-                print subMenuText, thisSensor, whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
-                    ' param1=request param2=', currentSwitchURL, ' param3=', secret, ' terminal=false refresh=true'
+                print subMenuText, thisSensor, whiteSpace, sym, buildFontOptions(
+                    3) + colorText + ' bash=' + callbackScript, \
+                    ' param1=request param2=' + currentSwitchURL, ' param3=' + secret, switch_param4, ' terminal=false refresh=false'
             if favoriteDevicesBool and sensor['name'] in favoriteDevices:
                 favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + sym + buildFontOptions(
                     3) + colorText
@@ -1288,21 +1314,21 @@ if switches is not None:
                 if sensor['isRGB']: subMenuText = subMenuText + '--'
                 print subMenuText + dimmerBulbEmoji + ' Set Dimmer Level to:', buildFontOptions(3), smallFontPitchSize
                 count = 0
-                for currentLevel in range(10,110,10):
+                for currentLevel in range(10, 110, 10):
                     currentLevelURL = levelURL + sensor['id'] + '&level=' + str(currentLevel)
                     count += 1
                     print subMenuText + "{:>3}. {:>4}".format(count, str(currentLevel) + "%"), buildFontOptions(4), \
-                        'bash=', callbackScript, ' param1=request param2=', currentLevelURL, \
-                        ' param3=', secret, ' terminal=false refresh=true'
+                        'bash=' + callbackScript, ' param1=request param2=' + currentLevelURL, \
+                        ' param3=' + secret, switch_param4, ' terminal=false refresh=false'
                 if sensor['isRGB']:
                     subMenuText = subMenuText[:-4]
-                else :
+                else:
                     subMenuText = subMenuText[:-2]
                 indent = '--'
             if sensor['isRGB'] is True and colorChoices > 0:
                 subMenuText = subMenuText + '--'
                 colorName = getColorNameHue(sensor["hue"])
-                if colorName is None : colorName = sensor["colorRGBName"]
+                if colorName is None: colorName = sensor["colorRGBName"]
                 print subMenuText + colorBulbEmoji + " Current Hue Value ({} Hue: {})".format(colorName, sensor["hue"]), \
                     buildFontOptions(3), smallFontPitchSize
                 subMenuText = subMenuText + '--'
@@ -1313,23 +1339,24 @@ if switches is not None:
                     count += 1
                     if colorChoice == 'White':
                         colorChoiceSafe = 'Black'
-                    else: colorChoiceSafe = colorChoice.split(' ', 1)[0]
+                    else:
+                        colorChoiceSafe = colorChoice.split(' ', 1)[0]
                     currentColorURL = colorURL + sensor['id'] + '&colorName=' + urllib.quote(colorChoice.encode('utf8'))
                     print subMenuText + "{:>3}. {} ".format(count, getHueLevel(colorChoice)), buildFontOptions(4), \
-                        'bash=', callbackScript, ' param1=request param2=', currentColorURL, ' param3=', secret, \
-                        ' terminal=false refresh=true', 'color=' + colorChoiceSafe
+                        'bash=' + callbackScript, ' param1=request param2=' + currentColorURL, ' param3=' + secret, \
+                        switch_param4, ' terminal=false refresh=false', 'color=' + colorChoiceSafe
                 subMenuText = subMenuText[:-2]
                 print subMenuText + colorBulbEmoji + ' Current Sat Value ({}) '.format(sensor["saturation"]), \
                     buildFontOptions(3), smallFontPitchSize
                 subMenuText = subMenuText + '--'
                 print subMenuText + colorBulbEmoji + ' Set Saturation to:', buildFontOptions(3), smallFontPitchSize
                 count = 0
-                for currentLevel in range(0,110,10):
+                for currentLevel in range(0, 110, 10):
                     currentColorURL = colorURL + sensor['id'] + '&saturation=' + str(currentLevel)
                     count += 1
                     print subMenuText + "{:>3}. {:>4}".format(count, str(currentLevel)), buildFontOptions(4), \
-                        'bash=', callbackScript, ' param1=request param2=', currentColorURL, ' param3=', secret, \
-                        ' terminal=false refresh=true'
+                        'bash=' + callbackScript, ' param1=request param2=' + currentColorURL, ' param3=' + secret, \
+                        switch_param4, ' terminal=false refresh=false'
                 subMenuText = subMenuText[:-4]
                 indent = '--'
             if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
@@ -1392,16 +1419,18 @@ if musicplayers is not None:
                 currentLevel = 0
                 while currentLevel <= 100:
                     currentMusicPlayerURL = musicplayerURL + sensor['id'] + '&command=' + 'level'
+                    musicplayers_param4 = ' param4=\"{} {}\"'.format('Changing volume to', currentLevel)
                     print "{}----{}".format(subMenuText, currentLevel), buildFontOptions(3), \
                         'bash=' + callbackScript, 'param1=request param2=' + currentMusicPlayerURL, \
-                        ' param3=' + secret, ' terminal=false refresh=true'
+                        ' param3=' + secret, musicplayers_param4, ' terminal=false refresh=false'
                     currentLevel += 10
             if sensor['mute'] is not None:
                 command = "mute" if sensor['mute'] is "unmuted" else "unmute"
+                switch_param4 = 'param4=\"{} {}\"'.format('MusicPlayer:', command)
                 print "{}--*Mute : {}".format(subMenuText, TitleCase(sensor['mute'])), \
                     buildFontOptions(3), 'bash=' + callbackScript, \
                     'param1=request param2=' + musicplayerURL + sensor['id'] + '&command=' + command, \
-                    ' param3=' + secret, 'terminal=false refresh=true'
+                    ' param3=' + secret, musicplayers_param4, 'terminal=false refresh=false'
             if sensor['trackDescription'] is not None:
                 #           Check for Music Player playing a Streaming Live Radio Station
                 m = re.search('^x-sonosapi-hls:(.+)\?', sensor['trackDescription'][0])
@@ -1443,9 +1472,11 @@ if valves is not None:
             if sensor['value'] == 'open':
                 sym = " ✅"
                 img = greenImage
+                valve_param4 = 'param4=\"{} {}\"'.format('Closing valve', sensor['name'])
             else:
                 sym = " 🔴"
                 img = redImage
+                valve_param4 = 'param4=\"{} {}\"'.format('Opening valve', sensor['name'])
                 if mainMenuAutoSizeDict[sensorName] is True:
                     if mainMenuMaxItems > i: mainMenuMaxItems = i
                     subMenuTitle = "More Valves Close..."
@@ -1458,12 +1489,12 @@ if valves is not None:
                 )
                 subMenuText = "--"
             if useImages is True:
-                print subMenuText, thisSensor, buildFontOptions(3) + colorText + \
-                    ' bash=', callbackScript, ' param1=request param2=', \
-                    currentValveURL, ' param3=', secret, ' terminal=false refresh=true image=', img
+                print subMenuText, thisSensor, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
+                    ' param1=request param2=', currentValveURL, ' param3=', secret, valve_param4, ' terminal=false refresh=false image=', img
             else:
-                print subMenuText, thisSensor, whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
-                    ' param1=request param2=', currentValveURL, ' param3=', secret, ' terminal=false refresh=true'
+                print subMenuText, thisSensor, whiteSpace, sym, buildFontOptions(
+                    3) + colorText + ' bash=', callbackScript, ' param1=request param2=', currentValveURL, \
+                    ' param3=', secret, valve_param4, ' terminal=false refresh=false'
             if favoriteDevicesBool and sensor['name'] in favoriteDevices:
                 favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + sym + buildFontOptions(
                     3) + colorText
@@ -1472,7 +1503,6 @@ if valves is not None:
                 print subMenuText + "-- 🎯 Event History", buildFontOptions(3)
                 eventGroupByDate(sensor['eventlog'], subMenuText + indent, "")
             colorSwitch = not colorSwitch
-
 
 # Output Water Sensors
 if waters is not None:
@@ -1517,7 +1547,6 @@ if waters is not None:
                     sensor['battery'][0]) + sensor['battery'][1], buildFontOptions(3), " alternate=true", colorText
             colorSwitch = not colorSwitch
 
-
 # Configuration Options
 hortSeparatorBar()
 print "STBitBarApp Actions and Shortcuts" + buildFontOptions()
@@ -1539,13 +1568,10 @@ for option in sorted(options.iterkeys()):
 print "----SmartThings HTTP Server Response", buildFontOptions()
 for response_info_name in response.info():
     if response_info_name[0:6] == 'x-rate':
-        print "------{:20} = {:>3} {}".format(response_info_name, response.info()[response_info_name],
-                                              buildFontOptions(3))
-print "--Launch TextEdit " + cfgFileName + buildFontOptions() + openParamBuilder(
-    "open -e " + cfgFileName) + ' terminal=false'
-print "--Launch SmartThings IDE" + buildFontOptions() + openParamBuilder(
-    "open " + buildIDEURL(smartAppURL)) + ' terminal=false'
-print "--Launch Browser to View STBitBarAPP-V2 " + j['Version'] + " GitHub Software Resp" \
+        print "------{:20} = {:>3} {}".format(response_info_name, response.info()[response_info_name], buildFontOptions(3))
+print "--Launch TextEdit " + cfgFileName + buildFontOptions() + openParamBuilder("open -e " + cfgFileName) + ' terminal=false'
+print "--Launch SmartThings IDE" + buildFontOptions() + openParamBuilder("open " + buildIDEURL(smartAppURL)) + ' terminal=false'
+print "--Launch Browser to View STBitBarAPP-V2 GitHub Software Resp" \
       + buildFontOptions() + openParamBuilder(
     "open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
 print "--Download ST_Python_Logic.py v{:1.2f}".format(PythonVersion) \

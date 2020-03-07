@@ -56,10 +56,12 @@
  // V 3.16 Bug Fix
  // V 3.17 Added Water and Valve Sensors
  // V 3.18 Removed errors associated with single quotes from local cfg file url and secret strings
- // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
+ // V 3.2x Bug Fixes and added logic for ST users with minimal devices
+ // V 4.00 Major upgrade to add new features (See release notes on github)
+// Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
  // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
  //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
-def version() { return "3.20" } // Must be a Floating Number String "2.1", "2.01", "2.113"
+def version() { return "4.00" } // Must be a Floating Number String "2.1", "2.01", "2.113"
 import groovy.json.JsonSlurper
 //import groovy.json.JsonBuilder
 import java.awt.Color;
@@ -86,6 +88,7 @@ preferences {
   page(name:"disableAPIPage")
   page(name:"enableAPIPage")
   page(name:"APIPage")
+  page(name:"APISendSMSPage")
   section ("Display Sensor") {
   input "displayTempName", "string", multiple: false, required: false
     input "displayTemp", "capability.temperatureMeasurement", multiple: false, required: false
@@ -247,20 +250,24 @@ def setMode() {
 }
 
 def toggleSwitch() {
-	def command = params.id
-	log.debug "toggleSwitch called with id ${command}"
+    def command = params.id
+    log.debug "toggleSwitch called with id ${command}"
     switches.each {
-    	if(it.id == command)
+        if(it.id == command)
         {
-        	log.debug "Found switch ${it.displayName} with id ${it.id} with current value ${it.currentSwitch}"
-            if(it.currentSwitch == "on")
-            	it.off()
-            else
-            	it.on()
+            log.debug "Found switch ${it.displayName} with id ${it.id} with current value ${it.currentSwitch}"
+            if(it.currentSwitch == "on") {
+                log.debug "Turning ${it.displayName} OFF"
+                it.off()
+            } else {
+                log.debug "Turning ${it.displayName} ON"
+                it.on()
+            }
             return
-		}
+        }
     }
 }
+
 def toggleValve() {
 	def command = params.id
 	log.debug "toggleValve called with id ${command}"
@@ -389,19 +396,25 @@ def setThermo() {
 def toggleLock() {
 	def command = params.id
 	log.debug "toggleLock called with id ${command}"
+    def counter = 0
 
     locks.each {
-    	if(it.id == command)
+        if(it.id == command)
         {
-        	log.debug "Found lock ${it.displayName} with id ${it.id} with current value ${it.currentLock}"
-            if(it.currentLock == "locked")
-            	it.unlock()
-            else if(it.currentLock == "unlocked")
-            	it.lock()
-            else
-            	log.debug "Non-supported toggle state for lock ${it.displayName} state ${it.currentLock} let's not do anything"
+            log.debug "Found your lock '${it.displayName}' with device id ${it.id} with current value '${it.currentLock}'"
+            if(it.currentLock == "locked") {
+                it.unlock()
+            }
+            else if(it.currentLock == "unlocked") {
+                it.lock()
+            }
+            else {
+                log.debug "Non-supported toggle state for lock ${it.displayName} state ${it.currentLock} let's not do anything"
+                return
+            }
+            log.debug "Lock Refresh() Loop: ${counter} & LockStatus: ${it.currentLock}"
             return
-		}
+        }
     }
 }
 
@@ -582,25 +595,50 @@ def getValveData() {
 }
 
 def getMainDisplayData() {
-	def returnName;
-    def returnValue;
-
-    if(displayTempName) returnName = displayTempName
-    else returnName = "N/A"
-    if(displayTemp) returnValue = displayTemp.currentTemperature
-    else returnValue = "N/A"
-
-	def resp = []
-    resp << [name: returnName, value: returnValue];
+	def returnCapability = displaySensorCapability?:'N/A'
+	def returnName = (displaySensorShowName && displaySensor.displayName)?:'N/A'
+    def returnValue = displaySensor.currentValue(displaySensorCapability=='temperatureMeasurement'?'temperature':displaySensorCapability);
+//    log.debug "displaySensorCapability = ${displaySensorCapability}"
+//    log.debug "The attributes of '${displaySensor}'are ${displaySensor.supportedAttributes}"
+//    log.debug "The '${displaySensor}' is ${displaySensor.currentValue(displaySensorCapability)}"
+//    log.debug "returnValue = ${returnValue}"
+    def returnEmoji
+    switch (returnValue) {
+    	case ~/[0-9]*\.?[0-9]+/:
+        returnEmoji = returnValue
+        break
+        case 'off':
+        case 'closed':
+        returnEmoji = ':red_circle:'
+        break
+        case 'on':
+        case 'open':
+        returnEmoji = ':white_check_mark:'
+        break
+        case 'locked':
+        returnEmoji = ':closed_lock_with_key:'
+        break
+        case 'unlocked':
+        returnEmoji = ':unlock:'
+        break
+        default:
+            returnEmoji = 'ST BitBar'
+        break
+    }
+    def resp = []
+    resp << [name: returnName, label: displaySensor.displayName, value: returnValue, capability: returnCapability, emoji: returnEmoji];
     return resp
 }
 def getStatus() {
-    def pythonAppVersion = params.pythonAppVersion
-    def pythonAppPath = params.path
-    state.pythonAppVersion = pythonAppVersion
-    state.pythonAppPath = pythonAppPath
-	log.debug "BitBar Output App v${version()}, ST_Python_Logic.py ${pythonAppVersion} installed @ ${pythonAppPath}"
     log.debug "getStatus() called"
+    state.bbpluginfilename 	= params.bbpluginfilename
+    state.bbpluginversion 	= params.bbpluginversion
+    state.pythonAppVersion 	= params.pythonAppVersion
+    state.pythonAppPath 	= params.path
+    state.bbFolder			= "Mac BitBar Plugin Folder: ${params.path}"
+    state.bbVersions		= "BitBar Output App Version: v${version()}, ST_Python_Logic.py Version: ${params.pythonAppVersion}, ${params.bbpluginfilename} Version: ${params.bbpluginversion}"
+    log.info "Mac BitBar Plugin Folder: ${params.path}"
+	log.info "BitBar Output App Version: v${version()}, ST_Python_Logic.py Version: ${params.pythonAppVersion}, ${params.bbpluginfilename} Version: ${params.bbpluginversion}"
     def alarmData = getAlarmData()
     def tempData = getTempData()
     def contactData = getContactData()
@@ -698,10 +736,8 @@ def getStatus() {
 
 private mainPage() {
     dynamicPage(name: "mainPage", uninstall:true, install:true) {
-        section("Version Information") {
-            paragraph "ST BitBar Output SmartApp Version: ${version()}" +
-                "${state.pythonAppVersion == null?"\nST_Python_Logic.py Version: Not Installed":"\nST_Python_Logic.py Version: " + state.pythonAppVersion}" +
-                    "${state.pythonAppPath    == null?"\nBitBar Plugin Directory: Not Installed":"\nBitBar Plugin Directory: "    + state.pythonAppPath}"
+        section("ST BitBar App Information") {
+            paragraph "${state.bbFolder},\n${state.bbVersions}"
         }
         section("API Setup") {
             href name: "APIPageLink", title: "API Setup", description: "", page: "APIPage"
@@ -748,6 +784,20 @@ def APIPage() {
                 paragraph "API has been setup. Please enter the following two strings in your 'ST_Python_Logic.cfg' file in your Apple Mac BitBar Plugins directory."
                 paragraph "smartAppURL=${state.endpointURL}"
                 paragraph "secret=${state.endpointSecret}"
+                input "sendAPI", "bool",
+                    title: "Send these two secret strings as a SMS text message",
+                    submitOnChange: true,
+                    required: false
+                if (sendAPI) {
+                    input "phone", "phone",
+                        title: "Enter the US mobile phone number",
+                        submitOnChange: true,
+                        required: true
+                    if (sendAPI && phone) {
+                        href name: "APISendSMSPageLink", title: "Send API Now to ${phone.replaceFirst('(\\d{3})(\\d{3})(\\d+)', '($1) $2-$3')}", description: "", page: "APISendSMSPage"
+                    }
+
+                }
                 href "disableAPIPage", title: "Disable API (Only use this if you want to generate a new secret)", description: ""
             }
             else {
@@ -757,6 +807,21 @@ def APIPage() {
         }
     }
 }
+
+def APISendSMSPage() {
+    dynamicPage(name: "APISendSMSPage") {
+        section() {
+            if (sendAPI && phone) {
+                paragraph "BitBar Output API strings sent to ${phone.replaceFirst('(\\d{3})(\\d{3})(\\d+)', '($1) $2-$3')}"
+                sendPush("BitBar Output API strings sent to ${phone.replaceFirst('(\\d{3})(\\d{3})(\\d+)', '($1) $2-$3')}")
+                sendSms(phone, "Add the following two API strings to your ST_Python_Logic.cfg in the BitBar Plugins Mac Folder")
+                sendSms(phone, "smartAppURL=${state.endpointURL}")
+                sendSms(phone, "secret=${state.endpointSecret}")
+            }
+        }
+    }
+}
+
 
 def enableAPIPage() {
 	dynamicPage(name: "enableAPIPage") {
@@ -774,21 +839,46 @@ def enableAPIPage() {
 def devicesPage() {
 	dynamicPage(name:"devicesPage") {
 
-        section("Mac Menu Bar: Status Bar Title Device") {
-        paragraph "Enter the short {friendly} name for the device you want displayed as the main status bar item and choose the device"
+        section("MacOS Main Menu BitBar: Select one device to display a status") {
+        paragraph "The MacOS menu bar runs along the top of the screen on your Mac"
+            /*
+			input "displaySensorName", "string",
+				title: "Main Menu Bar Sensor Display Text: (Leave this field blank and the MacOS menu bar will display the designated sensor's value)",
+				multiple: false,
+				required: false
 			input "displayTempName", "string",
 				title: "Main Menu Bar Display: Name (This field can be left blank and the menu bar will display only be the temperature value)",
 				multiple: false,
 				required: false
-			input "displayTemp", "capability.temperatureMeasurement",
+				input "displayTemp", "capability.temperatureMeasurement",
 				title: "Main Menu Bar Display: Tempertaure Sensor",
 				multiple: false,
 				hideWhenEmpty: true,
 				required: false
+             */
+            input name: "displaySensorCapability", type: "enum",
+                title: "Mac Menu Bar: Select a SmartThings Sensor Capability",
+                options: ['contact':'Contact','lock':'Lock','switch':'Switch','temperatureMeasurement':'Temperature Measurement'],
+                multiple: false,
+                submitOnChange: true,
+                required: false
+            if (displaySensorCapability) {
+                input "displaySensor", "capability.${displaySensorCapability}",
+                    title: "Select the ${displaySensorCapability.capitalize()} sensor to place in the Mac Main Menu",
+                    multiple: false,
+                    submitOnChange: true,
+                    required: true
+                if (displaySensor) {
+                    input "displaySensorShowName", "bool",
+                        title: "Prefix the sensor emoji or value with '${displaySensor.displayName}':XX (Note: Takes up valuable Mac menu bar space)",
+                        submitOnChange: true,
+                        required: true
+                }
+            }
         }
 
-		section ("Choose Devices") {
-			paragraph "Select devices that you want to be displayed below the Main Menu Bar (in the BitBar Sub-menu)."
+		section ("Choose sensor devices to be displayed & controlled in the BitBar menu") {
+			paragraph "Select devices that you want to be displayed below the top MacOS Main Menu Bar (in the BitBar Sub-menu)."
 			input "alarms", "capability.alarmSensor",
 				title: "Which Alarm Sensors?",
 				multiple: true,

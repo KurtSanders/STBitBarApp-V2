@@ -1,13 +1,32 @@
 # STBitBarApp-V2 (For Apple![macOS logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/macos_logo.jpg))
-### Version: 3.2.0 (Production)
+### Version: 4.0.0 (Beta Testing)
+
 <img src="https://raw.githubusercontent.com/KurtSanders/STAmbientWeather/master/images/readme.png" width="50">[Change-log & Version Release Features](https://github.com/KurtSanders/STBitBarApp-V2/wiki/Features-by-Version)
 
 ![STBitBarApp-V2 logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-Macbook-Pro.png)
 
 ![STBitBarApp-V2 logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-Menu.png)
 
-### Dimmer and Color Controls in BitBar Sub-Menus![](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/new-logo.png)
-![STBitBarApp-V2 logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/Color-Control.jpg) 
+### New Beta Features:
+
+1. Allow one ST device of either a lock, contact, switch, or temperature sensor to be designated in the BitBar Top Menu.  Red & green emoji's will be shown in the top Mac menu bar  for the selected device status with a lock, contact or switch.  A integer value will be displayed when a temperature sensor is designated. 
+2. Provide a MacOS right sidebar notification when:
+	* Confirming a device change from the BitBar Menu Bar 
+	* Showing the timed device status refresh
+
+		<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/Notification.jpg width="300"/>
+
+3. Allow user to turn On|Off MacOS sidebar notifications from BitBar Output App
+
+4. Provide an user defined automatic device refresh after a ST device change from BitBar Output (default 5 sec after device change which allows time for the device to report status to ST Cloud API)
+5. Allow the secret API strings to be SMS delivered (unencrypted) to a USA mobile phone number from the API Setup Page. 
+6. Added the following information in the mobile ST BitBar Output SmartApp main menu for:
+	* ST BitBar Output SmartApp Version
+	* ST_Python_Logic.py Version
+	* ST.xm.sh Version (where 'x' is an integer number (default is now 1) reflecting the number of minutes for normal pooling of devices defined to BitBar Output App.  Please do not change this to less than 1m which pools to frequently and will impact Mac performance.  If you would like a slower polling rate, I recommend '3m' or '5m' for 'x' in ST.xm.sh file
+	* BitBar Plugin Folder Location
+
+
 
 ## Overview:
 Monitor and control [SmartThings](https://www.smartthings.com/) devices, sensors, Smart Home Monitor, Modes & Routines from the Apple MacOS Menu Bar.  This application is controlled via the SmartThings Mobile Client named **BitBar Output App**.  Selected program and configuration files are installed localled on the Apple macOS.
@@ -44,9 +63,12 @@ Updates to the Python source code located on your MacOS is currently by a manual
 3. Find the **Settings** button at the upper-right corner of your SmartThings IDE page (this will only appear after you have configured with GitHub).
 4. Clicking this button will open the GitHub Repository Integration page. To find the **StBitBarApp** SmartApp code, enter the information below: 
 
-	* **Owner:** KurtSanders
-	* **Name:** STBitBarApp-V2 ![](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/new-logo.png)
-	* **Branch:** master
+	| Name | Value |
+	|------|-------|
+	|Owner | kurtsanders |
+	|Name: | STBitBarApp-V2|
+	|Branch| **master**|
+
 5. Close the GitHub Repository Integration page by clicking the **Save** button.
 6. Click the **Update from Repo** button at the upper-right corner of your SmartThings IDE and select STBitBarApp-V2 (master) from the list.
 7. In the right-hand column you will see smartapps/kurtsanders/stbitbar.src/stbitbar.groovy, select this using the checkbox.
@@ -85,16 +107,25 @@ Updates to the Python source code located on your MacOS is currently by a manual
 	*IMPORTANT: When selecting a plugin directory where the plugins will reside, make sure you create one that does not contain spaces. There were issues in an older release of BitBar if the path contained spaces, but supposedly it’s fixed, but I still had issues in some cases. If there were no spaces, it always worked.*
 3. In the BitBar application menu, the last option is labeled 'Preferences', make sure you select 'Open at Login' and specify the Plugin directory where you will place the plugin files from this Github in the next step.   	
 4. Download the [ST plugin from GitHub](https://github.com/kurtsanders/STBitBarApp-V2/tree/master/BitBar%20Plugin). Copy **ONLY** the ST.5m.sh file to the plugin directory you specified along with the ST subfolder containing the Python script and the ST_Python_Logic.cfg (make sure these two files stay in the folder named ST).  *These files should be the only files in the plugins directory and the ST subfolder.*
+5. Launch the SmartThings BitBar Output App on your mobile device. Select API Setup and Activate.  Follow the screen instructions and record the SmartThings URL and secret strings.  One can view the ST IDE Live Logging screen to copy the strings when launching and exiting the BitBar Output App on your mobile screen. 
+	* Note: You can also choose to have your API strings send unencrypted to a mobile device with a USA phone number.  This will allow one to copy and paste these into your ST_Python_Logic.py file from the Mac messaging app.
 5. Add your URL and secret to the ST_Python_Logic.cfg file ***without any quotes***: Open the ST_Python_Logic.cfg with a text editor of your choice (eg. textedit). Put the URL that was displayed in step 5 in the smartAppURL variable and Secret in the secret variable without any quotes. 
-6. **Save** the ST_Python_Logic.cfg file in the ST subfolder.
+6. **Save** the **ST_Python_Logic.cfg** file in the ST subfolder.
 7. Ensure **execution rights** for the plugins:
 	* Launch the MacOS Terminal Application
 	* Navigate to your BitBar Plugins directory (eg. cd)
 	* Issue the admin commands on the following files: 
-		* **chmod +x ST.5m.sh**
+		* **chmod +x ST.1m.sh**
 		* **chmod +x ST_Python_Logic.py**
 	* Exit the MacOS Terminal
 8. **Start** the BitBar app and you should see your SmartThings devices and status’ in the MacOS menubar!
+
+### Color Light Control Features:
+* Dimmer and Color Controls in BitBar Sub-Menus
+
+![](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/new-logo.png)
+![STBitBarApp-V2 logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/Color-Control.jpg)
+
 
 ## Issues / Limitations
 
