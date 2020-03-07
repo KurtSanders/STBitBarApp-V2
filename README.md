@@ -9,7 +9,12 @@
 
 ### New Beta Features:
 
-1. Allow one ST device of either a lock, contact, switch, or temperature sensor to be designated in the BitBar Top Menu.  Red & green emoji's will be shown in the top Mac menu bar  for the selected device status with a lock, contact or switch.  A integer value will be displayed when a temperature sensor is designated. 
+1. Allow one ST device of either a lock, contact, switch, or temperature sensor to be designated in the BitBar Top Menu.  Red & green emoji's will be shown in the top Mac menu bar  for the selected device status with a contact (Open/Close) or switch (On/Off).  An integer value with degree symbol will be displayed when a temperature sensor is designated.
+ 
+	Example Lock emoji in Top Menu Bar when a 'Lock' is designated
+	
+	<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/Lock%20Menu%20Bar.jpg width="400"/>
+
 2. Provide a MacOS right sidebar notification when:
 	* Confirming a device change from the BitBar Menu Bar 
 	* Showing the timed device status refresh
@@ -100,6 +105,9 @@ Updates to the Python source code located on your MacOS is currently by a manual
 6. Select Options: select the display options for the MacOS menu.  Please note that some option values are required.
 
 ## Section 3: Setting up BitBar and ST Plugin
+
+### Example Directory Structure of the BitBar Plugin Folder
+<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/BitBarFolder.jpg width="600"/>
 
 1. Required: You **must download** and install the core [BitBar app](https://github.com/matryer/bitbar/releases/tag/v1.9.2) on your Mac.  *This program is required to allow ST BitBar SmartApp to access the top menubar on the Mac.*
 2. After downloading and installing the BitBar App & moving the BitBar App file to your applications folder, launch the BitBar App so that you can set the path for your Plugin directory.
