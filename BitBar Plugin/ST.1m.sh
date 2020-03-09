@@ -2,7 +2,7 @@
 
 # Author: SandersSoft (c) 2020
 # STBitBar-V2
-# https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/BitBar%20Plugin/ST.5m.sh
+# https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/BitBar%20Plugin/ST.1m.sh
 # This executable bash shell file must exist in user defined BitBar Plugins directory with the ST_Python_logic.py file
 
 # Begin Define User Variables #
@@ -48,33 +48,10 @@ case "$1" in
 	open)
 		open $2 $3 $4 $5
 	;;
-	github_ST_Python_Logic)
-		osascript -e 'display notification "Downloading the ST_Python_Logic.py from KurtSanders STBitBarApp GitHub Repo " with title "ST BitBar App Notice" sound name "Frog" '
-		temp_file=$(mktemp)
-		curl -LkSs https://github.com/KurtSanders/STBitBarApp-V2/archive/master.zip -o "$temp_file"
-		unzip -qq -j -o -d ~/Downloads/ "$temp_file" 'STBitBarApp-V2-master/BitBar Plugin/ST/ST_Python_Logic.py'
-		rm "$temp_file"
-		chmod +x ST_Python_Logic.py
-		#        curl -s -H 'Cache-Control: no-cache' --output ~/Downloads/ST_Python_Logic.py --URL https://raw.githubusercontent.com/kurtsanders/STBitBarApp/master/BitBar%20Plugin/ST/ST_Python_Logic.py
-		open ~/Downloads/
-		sleep 5
-		osascript -e 'display notification "Move the new ST_Python_Logic.py located in your Downloads Directory." with title "ST BitBar App Notice" sound name "Frog" '
-		sleep 2
-		osascript -e 'display notification "into the same folder in your BitBar Plugins Subdirectory" with title "ST BitBar App Notice" sound name "Frog" '
-	;;
-	github_ST5MSH)
-		osascript -e 'display notification "Downloading the ST.5m.sh from KurtSanders STBitBarApp GitHub Repo " with title "ST BitBar App Notice" sound name "Frog" '
-		#        curl -s -H 'Cache-Control: no-cache' --output ~/Downloads/ST.5m.sh --URL https://raw.githubusercontent.com/kurtsanders/STBitBarApp/master/BitBar%20Plugin/ST/ST.5m.sh
-		temp_file=$(mktemp)
-		curl -LkSs https://github.com/KurtSanders/STBitBarApp-V2/archive/master.zip -o "$temp_file"
-		unzip -qq -j -o -d ~/Downloads/ "$temp_file" 'STBitBarApp-V2-master/BitBar Plugin/ST.5m.sh'
-		rm "$temp_file"
-		chmod +x ST.5m.sh
-		open ~/Downloads/
-		sleep 5
-		osascript -e 'display notification "Move the new ST.5m.sh located in your Downloads Directory" with title "ST BitBar App Notice" sound name "Frog" '
-		sleep 2
-		osascript -e 'display notification "into the same folder in your BitBar Plugins Subdirectory" with title "ST BitBar App Notice" sound name "Frog" '
+	upgrade)
+		cd "$HOME/Downloads/"
+		curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command"
+		osascript -e 'display alert "Downloaded ST BitBar Install Script!" message "Please launch the Mac Finder and double click the \"STBitBarInstall.command\" file."'
 	;;
 	*)
 		echo "Invalid parameter '${1}'"

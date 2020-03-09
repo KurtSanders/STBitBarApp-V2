@@ -1,6 +1,6 @@
 # Author: SandersSoft (c) 2020
 # STBitBar-V2
-# https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/STBitBarInstall.sh
+# https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command
 
 echo "STBitBar-V2 Installer/Upgrader (c) SanderSoft"
 echo "============================================="
