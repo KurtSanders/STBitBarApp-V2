@@ -1570,15 +1570,9 @@ for response_info_name in response.info():
     if response_info_name[0:6] == 'x-rate':
         print "------{:20} = {:>3} {}".format(response_info_name, response.info()[response_info_name], buildFontOptions(3))
 print "--Launch TextEdit " + cfgFileName + buildFontOptions() + openParamBuilder("open -e " + cfgFileName) + ' terminal=false'
-print "--Launch SmartThings IDE" + buildFontOptions() + openParamBuilder("open " + buildIDEURL(smartAppURL)) + ' terminal=false'
-print "--Launch Browser to View STBitBarAPP-V2 GitHub Software Resp" \
-      + buildFontOptions() + openParamBuilder(
-    "open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
-print "--Download ST_Python_Logic.py v{:1.2f}".format(PythonVersion) \
-      + " to your 'Downloads' directory " + buildFontOptions(), \
-    "bash=" + callbackScript, ' param1=github_ST_Python_Logic terminal=false'
-print "--Download ST.5m.sh to your 'Downloads' directory " + buildFontOptions(), \
-    "bash=" + callbackScript, ' param1=github_ST5MSH terminal=false'
+print "--Launch SmartThings IDE " + buildFontOptions() + openParamBuilder("open " + buildIDEURL(smartAppURL)) + ' terminal=false'
+print "--Launch Browser to View STBitBarAPP-V2 GitHub Software Resp " + buildFontOptions() + openParamBuilder("open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
+print "--Download ST BitBar Installation/Upgrade script to your 'Downloads' directory " + buildFontOptions(), "bash=" + callbackScript, ' param1=upgrade terminal=false'
 
 if favoriteDevicesBool:
     # noinspection PyUnboundLocalVariable

@@ -51,12 +51,10 @@ if [[ "${debugMode}" == "true" ]]
 then
 	STBitBarPluginsDirectory="${downloadsFolder}"
 	echo "TESTING DEBUG MODE.. Using ${STBitBarPluginsDirectory} folder as BitBar Plugins folder"
-	cd "${downloadsFolder}"
-else
-	echo "Changing to the ${STBitBarPluginsDirectory} folder.."
-	cd "${STBitBarPluginsDirectory}"
 fi
 
+echo "Changing to the ${STBitBarPluginsDirectory} folder.."
+cd "${STBitBarPluginsDirectory}"
 FILE="${STBitBarPluginsDirectory}/ST/${STBitBarPythonCfgFilename}"
 
 echo "Checking for the existance of '${FILE}'"
@@ -73,15 +71,20 @@ else
 fi
 
 echo "Locating the 'ST.*.sh' files in your BitBar plugin folder...."
+shopt -s nullglob
 declare -a arrayOfFiles
 for file in ST.[0-9][0-9ms]*.sh
 do
 	arrayOfFiles=("${arrayOfFiles[@]}" "$file")
 done
 
-if [[ "${#arrayOfFiles[@]}" -gt 1 ]]
+if [[ "${#arrayOfFiles[@]}" -eq 0 ]]
 then
-	echo "I found more than  ${#arrayOfFiles[@]}  'ST.*.sh' files in the BitBar Plugin Directory, exiting..."
+	arrayOfFiles[0]="${STBitBarPluginScriptFilename}"
+elif [[ "${#arrayOfFiles[@]}" -gt 1 ]]
+then
+	echo "I found more than  ${#arrayOfFiles[@]}  'ST.*.sh' files in the BitBar Plugin Directory."
+	echo "Please delete all but 1 ST.*.sh file, exiting installer..."
 	for i in "${!arrayOfFiles[@]}"; do
 		printf "%s)\t%s\n" "$(expr ${i} + 1) " "${arrayOfFiles[$i]}"
 	done
