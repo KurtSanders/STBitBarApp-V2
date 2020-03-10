@@ -7,48 +7,49 @@
 
 ![STBitBarApp-V2 logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-Menu.png)
 
-### New Beta Features:
+### New V4.x.x Beta Features:
 
-1. Allow one ST device of either a lock, contact, switch, or temperature sensor to be designated in the BitBar Top Menu.  Red & green emoji's will be shown in the top Mac menu bar  for the selected device status with a contact (Open/Close) or switch (On/Off).  An integer value with degree symbol will be displayed when a temperature sensor is designated.
+1. Allow one SmartThings device of either a lock, contact, switch, or temperature sensor to be designated in the BitBar Top Menu Bar.  Red & green circle emoji's will be shown in the top Mac menu bar for the selected device status for a contact sensor (Open/Close) or switch sensor (On/Off).  An integer value with degree symbol will be displayed when a temperature sensor is designated.  The top menu bar sensor choice settings is set in the ST BitBar Output SmartApp under 'Select devices'.
  
 	Example Lock emoji in Top Menu Bar when a 'Lock' is designated
 	
 	<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/Lock%20Menu%20Bar.jpg width="400"/>
 
-2. Provide a MacOS right sidebar notification when:
-	* Confirming a device change from the BitBar Menu Bar 
-	* Showing the timed device status refresh
+2. Provides for a MacOS right sidebar notification when:
+	* Confirms a device change from the BitBar Menu Bar 
+	* Shows the timed device status refresh
 
 		<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/Notification.jpg width="300"/>
 
-3. Allow user to turn On|Off MacOS sidebar notifications from BitBar Output App
+3. The ST.1m.sh script allow a user to set a shell variable to suppress/turn On|Off MacOS sidebar notifications 
 
-4. Provide an user defined automatic device refresh after a ST device change from BitBar Output (default 5 sec after device change which allows time for the device to report status to ST Cloud API)
-5. Allow the secret API strings to be SMS delivered (unencrypted) to a USA mobile phone number from the API Setup Page. 
-6. Added the following information in the mobile ST BitBar Output SmartApp main menu for:
-	* ST BitBar Output SmartApp Version
-	* ST_Python_Logic.py Version
-	* ST.xm.sh Version (where 'x' is an integer number (default is now 1) reflecting the number of minutes for normal pooling of devices defined to BitBar Output App.  Please do not change this to less than 1m which pools to frequently and will impact Mac performance.  If you would like a slower polling rate, I recommend '3m' or '5m' for 'x' in ST.xm.sh file
-	* BitBar Plugin Folder Location
-7. New Install/Upgrade command script for ease of setting up or maintaining the BitBar Plugin Folder
+4. Provides for a user defined automatic device refresh time set in the ST.1m.sh file after a ST device change from Mac Top Menu Bar. The default is 5 sec after device change which allows time for the device to report status to ST Cloud API.
+5. The ST BitBar SmartApp now provides one to send the secret API strings ad SMS delivered (unencrypted) to a USA mobile phone number from the ST BitBar SmartApp 'API Setup' page. 
+6. Added the following information to be displayed in the mobile ST BitBar Output SmartApp main menu for:
+	* ST BitBar Output SmartApp version
+	* ST_Python_Logic.py version
+	* ST.xm.sh version (where 'x' is an integer number (default is now 1 for version 4.x.x) reflecting the number of minutes for normal polling of SmartThings devices defined to ST BitBar Output App.  Please do not change this value (x) to less than 1m which polls excessively and will impact Mac performance and the SmartThings API cloud.  If you would like a slower polling rate, I recommend '3m' or '5m' for 'x' in ST.xm.sh file (Example: rename ST.1m.sh to ST.5m.sh)
+	* BitBar Plugin Folder Location on Mac
+7. A new Install/Upgrade command script for ease of setting up or maintaining the BitBar Plugin Folder (See Installation below).  The install script can either create a new ST BitBar folder structure and download local files, or be used in an existing install to 'refresh/download' new local files.
+	* The ST_Python_logic.cfg will not be overwritten if it exists in the BitBar plugin folder.  You must manually add your ST BitBar Output API strings for a new installation using a text editor on the Mac, like Textedit.
 8. Added a 'Download ST BitBar Installation/Upgrade script to your 'Downloads' directory' to the 'STBitBarApp Actions and Shortcuts' choice on the BitBar Menu (located at the bottom of the screen).  This choice will download the command file to your Downloads folder so you can double click in Finder to execute.
 
 
 ## Overview:
-Monitor and control [SmartThings](https://www.smartthings.com/) devices, sensors, Smart Home Monitor, Modes & Routines from the Apple MacOS Menu Bar.  This application is controlled via the SmartThings Mobile Client named **BitBar Output App**.  Selected program and configuration files are installed localled on the Apple macOS.
+Monitor and control [SmartThings](https://www.smartthings.com/) devices, sensors, Smart Home Monitor, Modes & Routines from the Apple MacOS Menu Bar.  This application is controlled via the SmartThings Mobile Client named **BitBar Output App**.  Selected program scripts and configuration files are installed locally on the Apple Mac in the BitBar plugin folder.
 
-The STBitBarApp-V2 application works with the [MacOS BitBar application](https://getbitbar.com/) as a custom BitBar Plugin and controlled via the SmartThings SmartApp.  STBitBarApp-V2 **displays** SmartThings thermostat information, temperature, relative humidity, event-log statistics, contacts, music players, presence devices, locks, lights, and motion sensors.  It can also **control** color control device levels, switch/dimmer level devices, locks and also thermostat control via the MacOS menubar.  The menubar icon dislays a thermostat reading and upon clicking, renders the information on all the SmartThings selected in the SmartApp GUI.
+The STBitBarApp-V2 application works with the [MacOS BitBar application](https://getbitbar.com/) as a custom BitBar Plugin and is controlled via the SmartThings BitBar Output SmartApp.  STBitBarApp-V2 **displays** SmartThings thermostat information, temperature, relative humidity, event-log statistics, contacts, music players, presence devices, locks, lights, and motion sensors.  It can also **control** color control (RGB) device levels, switch/dimmer level devices, locks and also thermostat control via the MacOS menubar.  The Mac menubar icon can be a thermostat reading, contact sensor, lock sensor or switch sensor and upon clicking the displayed state icon, renders more detailed information on all the SmartThings selected in the SmartApp GUI.
 
-One can click on any controllable SmartThings device, mode or routine in the Mac's Bitbar display to invoke the default action for that device, mode or routine.  Non-controllable devices (eg. presence sensors, motion sensors, temperarture sensors) can show their event history.
+One can click on any controllable SmartThings device, mode or routine in the Mac's BitBar display to invoke the default action for that device, mode or routine.  Non-controllable devices (eg. presence sensors, motion sensors, temperature sensors) can show their event history.
 
-Battery levels can be dipslayed for devices that have a battery capability by depressing the Apple {option} key as the BitBar menu is activated {being displayed}.
+Sensor battery levels can be displayed for devices that have a battery capability by depressing the Apple {option} key as the BitBar menu is activated {being displayed}.
 
-## Prerequisities
+## Prerequisites
 
-* [Apple macOS with Python 2.7](https://en.wikipedia.org/wiki/MacOS)
-* [BitBar Software \*Freeware\* ](https://getbitbar.com/)
+* [Apple macOS 10.x with Python 2.7](https://en.wikipedia.org/wiki/MacOS)
+* [BitBar Software Installed and Preferences set as 'Open at Login' and BitBar plugin folder designted \*Freeware\* ](https://getbitbar.com/)
 * [SmartThings Hub & Devices](https://shop.smartthings.com/)
-* [Knowledge of installing software on macOS and SmartThings IDE](https://www.google.com/search?q=how+to+install+software+on+mac&rlz=1C5CHFA_enUS503US503&oq=how+to+install+softwate&aqs=chrome.2.69i57j0l5.9308j0j4&sourceid=chrome&ie=UTF-8)
+* [Knowledge of installing and configuring software on macOS and SmartThings IDE](https://www.google.com/search?q=how+to+install+software+on+mac&rlz=1C5CHFA_enUS503US503&oq=how+to+install+softwate&aqs=chrome.2.69i57j0l5.9308j0j4&sourceid=chrome&ie=UTF-8)
 * Member of [SmartThings Community](https://community.smartthings.com/) for support and new releases
 
 
@@ -58,25 +59,29 @@ Battery levels can be dipslayed for devices that have a battery capability by de
 
 
 1. Download and Install [BitBar Core Software \*Freeware\* ](https://github.com/matryer/bitbar/releases/download/v1.9.2/BitBar-v1.9.2.zip)
-	1. Download [BitBar-v1.9.2.zip](https://github.com/matryer/bitbar/releases/download/v1.9.2/BitBar-v1.9.2.zip) to your Downloads folder and double click the zip file to unzip the file contents.  
-	2. Move the BitBar.app to your Mac's Applications folder
-	3. Launch BitBar.app in your Mac's application folder
-	4. Locate the BitBar icon in the Mac's Top Menu Bar.  Click the Icon.
-	5. Scroll list to set BitBar preferences to 'Open at Login' and 'Change Plugin Folder'
+	1. Download [BitBar-v1.9.2.zip](https://github.com/matryer/bitbar/releases/download/v1.9.2/BitBar-v1.9.2.zip) to your Downloads folder.
+	2. Launch Finder and navigate to your Downloads folder
+	3. Double click the BitBar-v1.9.2.zip file to unzip the file contents.  
+	4. Drag/Move the BitBar.app into your Mac's Applications folder
+	5. Launch BitBar.app from your Mac's Application folder
+	6. Locate the BitBar icon displayed in the Mac's Top Menu Bar.  Click the BitBar icon to display preferences dialogue menu.
+	7. Set BitBar.app preferences to: 
+		* 'Open at Login'
+		* Designate the 'Plugin Folder' on the Mac (ie. /Users/{*your Mac login name*}/BitBar)
 2. Launch the **Terminal.app** from the Mac Applications **'Utility'** SubFolder
 3. Enter **CD $HOME/Downloads** and press <kbd>Return</kbd> 
- * Changes the current default file folder to your 'Downloads' folder
 4. Select, copy and paste the following entire string into the Mac's Terminal Console Window.  Press <kbd>Return</kbd>.  
 
-	curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sh ./STBitBarInstall.command
+	`curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sh ./STBitBarInstall.command`
 
-5. Your ST BitBar Plugin's directory has been created or upgraded to the latest release.
+5. Read install/upgrade messages from the script.
+6. Your ST BitBar Plugin's directory has been created or upgraded to the latest ST BitBar-V2 release.
 
 ---
 
-### Select from one of the two sections below (Either 1a or 1b).
+### Select from **ONE** of the sections below (Either 1a or 1b).
 
-The recommended approach for SmartThings installation is using the integration of your SmartThings IDE and GitHub so that updates to the BitBar Output SmartApp are visual and easier.
+The recommended approach for ST BitBar SmartThings installation on the Mac is to use the integration of your SmartThings IDE and GitHub so that updates to the BitBar Output SmartApp are visual and easier.
 
 A new Install or Version Updates to the shell scripts and Python source code located on your MacOS is either by STBitBarInstall.command script or a manual method by downloading the source code from the Github repository. This manual will not go into detail about setting up your SmartThings IDE with GitHub as that is documented in the [SmartThings GitHub Documentation](http://docs.smartthings.com/en/latest/tools-and-ide/github-integration.html?highlight=github).
 
@@ -120,10 +125,13 @@ A new Install or Version Updates to the shell scripts and Python source code loc
 2. Open the IDE in a separate browser tab.
 	* [Live Logging IDE (USA)](https://graph.api.smartthings.com/ide/logs)
 	* [Live Logging IDE (Outside USA)](https://graph-eu01-euwest1.api.smartthings.com/ide/logs)  
-3. In the mobile client, tap to **Enable the API** then tap Done. You should have a **URL and secret** displayed in the Live Logging screen tab.
-4. Copy/Save these two lines to input in the **ST_Python_Logic.cfg** in the step ahead.
-5. Select Devices: choose the devices you want to display/control then tap Done.
-6. Select Options: select the display options for the MacOS menu.  Please note that some option values are required.
+3. In the mobile client, tap to **Enable the API** then tap Done. 
+4. Your secret **URL and API secret** is displayed in the Live Logging screen tab when you exit the ST BitBar SmartApp on the mobile phone.
+4. :New: One can also select 'Send API to a Mobile Device' in the 'API Setup'.  This will send the two secret strings to a mobile phone as SMS message. Indicate a USA mobile phone number and select send to mobile phone.
+4. Copy/Save these two lines to input in the **ST_Python_Logic.cfg** in the step ahead.  Use Textedit.app to edit the **ST_Python_Logic.cfg** on the Mac.  Input the two secret strings exactly as the template shows, using double quotes.
+5. Launch the ST BitBar Output SmartApp in mobile SmartThings client and you should now see local file version information if your local Mac setup is completed correctly.  You may complete/customize your BitBar Top menu by:
+	* Selecting Devices: choose the devices you want to display/control then tap Done.
+	* Selecting Display Options: select the display options for the MacOS menu.  Please note that some option values are required.
 
 ## Section 3: Setting up BitBar and ST Plugin
 
@@ -161,10 +169,10 @@ A new Install or Version Updates to the shell scripts and Python source code loc
 
 ## Issues / Limitations
 
-1. The BitBar App is capable of cycling through multiple status bar items.  However, this ST BitBar Plugin is designed to only display **one temperature sensor** at the top with the rest of the sensors displayed in the dropdown. 
-2. The ST BitBar app only allows a selection of one temp sensor and an optional custom title.   You do not want to use the full sensor name since menubar real estate is top dollar.  The title can be left blank and the termpeature will only show in the menubar.
-3. There is no hotizontal alignment supported by BitBar so it’s all done by character spacing, which means using Apple system monospace fonts for data content. Menlo is the default font, but feel free to change it in the ST BitBar App in the mobile client Display Options.
-4. Selection of a proportional spaced font, pitch and color can be used for all other text areas of the display, like the ST Categories and the ...more... sections.  Be aware that some fonts, colors and sizes may cause the menu to become illegible.  Blank field defaults in the options fields will return the display to nornal.
+1. The BitBar App is capable of cycling through multiple status bar items.  However, this ST BitBar Plugin is designed to only display a ** temperature sensor, contact sensor, lock status, or switch sensor** at the top with the rest of the sensors displayed in the dropdown. 
+2. The ST BitBar app only allows a selection of one temp, lock, contact or switch sensor or a default 'ST BitBar' title.   It is not recommended to use the full sensor name since menubar real estate is top dollar.
+3. There is no hortizontal alignment supported by BitBar so it’s all done by character spacing, which means using Apple system monospace fonts for data content. Menlo is the default font, but feel free to change it in the ST BitBar App in the mobile client Display Options.
+4. Selection of a proportional spaced font, pitch and color can be used for all other text areas of the display, like the ST Categories and the ...more... sections.  Be aware that some fonts, colors and sizes may cause the menu to become illegible.  Blank field defaults in the options fields will return the display to normal.
 5. Most areas of the menu will accomodate extended ascii character sets, but there might be areas that not.  If so, please rename these devices with US ascii characters and send a PM to me on the SmartThings Community Forum.
 6. ![](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/new-logo.png)Be mindful of the # of devices selected, event history days/number settings as the SmartThings Computing Cloud has implemented strict SmartApp [rate runtime limits](https://smartthings.developer.samsung.com/develop/guides/smartapps/rate-limits.html?highlight=rate) that will prevent the BitBar Output App SmartApp from execution.  When a client application exceeds the rate limits for a given SmartThings API, the SmartThings API responds with the standard HTTP 429 (Too Many Requests) error code.
 
