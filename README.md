@@ -54,21 +54,23 @@ Battery levels can be dipslayed for devices that have a battery capability by de
 
 ## Section 1: Installation:
 
-#### :new: Create/Upgrade STBitBar Plugin Folder:
+#### Create/Upgrade STBitBar Plugin Folder: <img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/new-logo.png />
 
-1. Launch the **Terminal.app** from the Mac Applications **'Utility'** SubFolder
-2. Enter **CD $HOME/Downloads** and press Return
+
+1. Download and Install [BitBar Core Software \*Freeware\* ](https://getbitbar.com/)
+	1. Download BitBar-v1.9.2.zip to your Downloads folder and double click to unzip the file.  
+	2. Move the BitBar.app to your Mac's Applications folder
+	3. Launch BitBar.app in your Mac's application folder
+	4. Locate the BitBar icon in the Mac's Top Menu Bar.  Click the Icon.
+	5. Scroll list to set BitBar preferences to 'Open at Login' and 'Change Plugin Folder'
+2. Launch the **Terminal.app** from the Mac Applications **'Utility'** SubFolder
+3. Enter **CD $HOME/Downloads** and press <kbd>Return</kbd> 
  * Changes the current default file folder to your 'Downloads' folder
-2. Choose ONE of the following:
+4. Select, copy and paste the following entire string into the Mac's Terminal Console Window.  Press <kbd>Return</kbd>.  
 
-	1. Click the link below.  Launch Finder.app and double click 'STBitBarInstall.command' in Finder Downloads folder:
+	curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sh ./STBitBarInstall.command
 
-		<a href="https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" download>Download Install Script</a>
-
-	
-	2. Copy and paste the following string into the Mac's Terminal Console Window.  Press Return.  Your ST Plugin's directory has been created or upgraded to the latest release
-
-		**curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sh ./STBitBarInstall.command**
+5. Your ST BitBar Plugin's directory has been created or upgraded to the latest release.
 
 ---
 
@@ -76,7 +78,7 @@ Battery levels can be dipslayed for devices that have a battery capability by de
 
 The recommended approach for SmartThings installation is using the integration of your SmartThings IDE and GitHub so that updates to the BitBar Output SmartApp are visual and easier.
 
-A new Install or Version Updates to the shell scripts and Python source code located on your MacOS is either by [STBitBarInstall.command](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command) script or a manual method by downloading the source code from the Github repository. This manual will not go into detail about setting up your SmartThings IDE with GitHub as that is documented in the [SmartThings GitHub Documentation](http://docs.smartthings.com/en/latest/tools-and-ide/github-integration.html?highlight=github).
+A new Install or Version Updates to the shell scripts and Python source code located on your MacOS is either by STBitBarInstall.command script or a manual method by downloading the source code from the Github repository. This manual will not go into detail about setting up your SmartThings IDE with GitHub as that is documented in the [SmartThings GitHub Documentation](http://docs.smartthings.com/en/latest/tools-and-ide/github-integration.html?highlight=github).
 
 
 ### Section 1a: Making the STBitBar SmartApp available via the ST IDE using GitHub Integration
