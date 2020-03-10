@@ -57,8 +57,8 @@ Battery levels can be dipslayed for devices that have a battery capability by de
 #### Create/Upgrade STBitBar Plugin Folder: <img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/new-logo.png />
 
 
-1. Download and Install [BitBar Core Software \*Freeware\* ](https://getbitbar.com/)
-	1. Download [BitBar-v1.9.2.zip](https://getbitbar.com/) to your Downloads folder and double click the zip file to unzip the file contents.  
+1. Download and Install [BitBar Core Software \*Freeware\* ](https://github.com/matryer/bitbar/releases/download/v1.9.2/BitBar-v1.9.2.zip)
+	1. Download [BitBar-v1.9.2.zip](https://github.com/matryer/bitbar/releases/download/v1.9.2/BitBar-v1.9.2.zip) to your Downloads folder and double click the zip file to unzip the file contents.  
 	2. Move the BitBar.app to your Mac's Applications folder
 	3. Launch BitBar.app in your Mac's application folder
 	4. Locate the BitBar icon in the Mac's Top Menu Bar.  Click the Icon.
