@@ -58,7 +58,7 @@ Battery levels can be dipslayed for devices that have a battery capability by de
 
 
 1. Download and Install [BitBar Core Software \*Freeware\* ](https://getbitbar.com/)
-	1. Download BitBar-v1.9.2.zip to your Downloads folder and double click to unzip the file.  
+	1. Download [BitBar-v1.9.2.zip](https://getbitbar.com/) to your Downloads folder and double click the zip file to unzip the file contents.  
 	2. Move the BitBar.app to your Mac's Applications folder
 	3. Launch BitBar.app in your Mac's application folder
 	4. Locate the BitBar icon in the Mac's Top Menu Bar.  Click the Icon.
