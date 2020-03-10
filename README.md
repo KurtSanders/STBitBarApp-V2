@@ -63,7 +63,8 @@ Battery levels can be dipslayed for devices that have a battery capability by de
 
 	1. Click the link below.  Launch Finder.app and double click 'STBitBarInstall.command' in Finder Downloads folder:
 
-		* [Download Install Script](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command)
+		<a href="https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" download>Download Install Script</a>
+
 	
 	2. Copy and paste the following string into the Mac's Terminal Console Window.  Press Return.  Your ST Plugin's directory has been created or upgraded to the latest release
 
