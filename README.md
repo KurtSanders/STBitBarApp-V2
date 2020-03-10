@@ -69,13 +69,18 @@ Sensor battery levels can be displayed for devices that have a battery capabilit
 		* 'Open at Login'
 		* Designate the 'Plugin Folder' on the Mac (ie. /Users/{*your Mac login name*}/BitBar)
 2. Launch the **Terminal.app** from the Mac Applications **'Utility'** SubFolder
-3. Enter **CD $HOME/Downloads** and press <kbd>Return</kbd> 
-4. Select, copy and paste the following entire string into the Mac's Terminal Console Window.  Press <kbd>Return</kbd>.  
+3. In the terminal console window, enter the following:
+
+ `cd ~\Downloads`
+ 
+4. Press <kbd>Return</kbd> 
+5. Select, copy and paste the following entire string into the Mac's Terminal Console Window.  
 
 	`curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sh ./STBitBarInstall.command`
 
-5. Read install/upgrade messages from the script.
-6. Your ST BitBar Plugin's directory has been created or upgraded to the latest ST BitBar-V2 release.
+6. Press <kbd>Return</kbd>  
+7. Read install/upgrade messages from the script.
+8. Your ST BitBar Plugin's directory has been created or upgraded to the latest ST BitBar-V2 release.
 
 ---
 
