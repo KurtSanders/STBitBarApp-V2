@@ -71,7 +71,7 @@ Sensor battery levels can be displayed for devices that have a battery capabilit
 2. Launch the **Terminal.app** from the Mac Applications **'Utility'** SubFolder
 3. In the terminal console window, enter the following:
 
- `cd ~\Downloads`
+ 	`cd ~\Downloads`
  
 4. Press <kbd>Return</kbd> 
 5. Select, copy and paste the following entire string into the Mac's Terminal Console Window.  
