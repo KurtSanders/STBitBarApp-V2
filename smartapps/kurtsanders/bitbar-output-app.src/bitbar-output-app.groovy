@@ -597,32 +597,27 @@ def getValveData() {
 def getMainDisplayData() {
 	def returnCapability = displaySensorCapability?:'N/A'
 	def returnName = (displaySensorShowName && displaySensor.displayName)?:'N/A'
-    def returnValue = displaySensor.currentValue(displaySensorCapability=='temperatureMeasurement'?'temperature':displaySensorCapability);
+    def returnValue = displaySensor.currentValue(displaySensorCapability.replaceAll(/Measurement$|Sensor$/,''))
+//    def returnValue = displaySensor.currentValue(displaySensorCapability=='temperatureMeasurement'?'temperature':displaySensorCapability);
 //    log.debug "displaySensorCapability = ${displaySensorCapability}"
 //    log.debug "The attributes of '${displaySensor}'are ${displaySensor.supportedAttributes}"
 //    log.debug "The '${displaySensor}' is ${displaySensor.currentValue(displaySensorCapability)}"
 //    log.debug "returnValue = ${returnValue}"
     def returnEmoji
     switch (returnValue) {
-    	case ~/[0-9]*\.?[0-9]+/:
+        case ~/[0-9]*\.?[0-9]+/:
         returnEmoji = returnValue
         break
-        case 'off':
-        case 'closed':
-        returnEmoji = ':red_circle:'
-        break
         case 'on':
+        case 'off':
         case 'open':
-        returnEmoji = ':white_check_mark:'
-        break
+        case 'closed':
         case 'locked':
-        returnEmoji = ':closed_lock_with_key:'
-        break
         case 'unlocked':
-        returnEmoji = ':unlock:'
+        returnEmoji = returnValue
         break
         default:
-            returnEmoji = 'ST BitBar'
+            returnEmoji = 'unknown'
         break
     }
     def resp = []
@@ -841,24 +836,9 @@ def devicesPage() {
 
         section("MacOS Main Menu BitBar: Select one device to display a status") {
         paragraph "The MacOS menu bar runs along the top of the screen on your Mac"
-            /*
-			input "displaySensorName", "string",
-				title: "Main Menu Bar Sensor Display Text: (Leave this field blank and the MacOS menu bar will display the designated sensor's value)",
-				multiple: false,
-				required: false
-			input "displayTempName", "string",
-				title: "Main Menu Bar Display: Name (This field can be left blank and the menu bar will display only be the temperature value)",
-				multiple: false,
-				required: false
-				input "displayTemp", "capability.temperatureMeasurement",
-				title: "Main Menu Bar Display: Tempertaure Sensor",
-				multiple: false,
-				hideWhenEmpty: true,
-				required: false
-             */
             input name: "displaySensorCapability", type: "enum",
                 title: "Mac Menu Bar: Select a SmartThings Sensor Capability",
-                options: ['contact':'Contact','lock':'Lock','switch':'Switch','temperatureMeasurement':'Temperature Measurement'],
+                options: ['contactSensor':'Contact','lock':'Lock','switch':'Switch','temperatureMeasurement':'Temperature Measurement'],
                 multiple: false,
                 submitOnChange: true,
                 required: false
