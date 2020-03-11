@@ -603,6 +603,10 @@ def getMainDisplayData() {
     def fieldName
     def resp = []
 
+	if (displaySensorCapabilitySize == 0) {
+        resp << [name: returnName, label: returnName, value: returnValue, capability: returnCapability, emoji: returnEmoji];
+	}
+
     // input "displaySensor${i}", "capability.${displaySensorCapability[i]}"
     // log.debug "displaySensorShowName  = ${displaySensorShowName}"
 
