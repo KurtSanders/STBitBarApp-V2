@@ -595,33 +595,68 @@ def getValveData() {
 }
 
 def getMainDisplayData() {
-	def returnCapability = displaySensorCapability?:'N/A'
-	def returnName = (displaySensorShowName && displaySensor.displayName)?:'N/A'
-    def returnValue = displaySensor.currentValue(displaySensorCapability.replaceAll(/Measurement$|Sensor$/,''))
-//    def returnValue = displaySensor.currentValue(displaySensorCapability=='temperatureMeasurement'?'temperature':displaySensorCapability);
-//    log.debug "displaySensorCapability = ${displaySensorCapability}"
-//    log.debug "The attributes of '${displaySensor}'are ${displaySensor.supportedAttributes}"
-//    log.debug "The '${displaySensor}' is ${displaySensor.currentValue(displaySensorCapability)}"
-//    log.debug "returnValue = ${returnValue}"
-    def returnEmoji
-    switch (returnValue) {
-        case ~/[0-9]*\.?[0-9]+/:
-        returnEmoji = returnValue
-        break
-        case 'on':
-        case 'off':
-        case 'open':
-        case 'closed':
-        case 'locked':
-        case 'unlocked':
-        returnEmoji = returnValue
-        break
-        default:
-            returnEmoji = 'unknown'
-        break
-    }
+    def displaySensorCapabilitySize = displaySensorCapability.size()
+    def returnCapability 	= 'N/A'
+    def returnName 			= 'N/A'
+    def returnValue 		= 'N/A'
+    def returnEmoji 		= 'unknown'
+    def fieldName
     def resp = []
-    resp << [name: returnName, label: displaySensor.displayName, value: returnValue, capability: returnCapability, emoji: returnEmoji];
+
+    // input "displaySensor${i}", "capability.${displaySensorCapability[i]}"
+    // log.debug "displaySensorShowName  = ${displaySensorShowName}"
+
+    for(int i = 0;i<displaySensorCapabilitySize;i++) {
+        switch (i) {
+            case 0:
+            fieldName = displaySensor0
+            break
+            case 1:
+            fieldName = displaySensor1
+            break
+            case 2:
+            fieldName = displaySensor2
+            break
+        }
+        returnName = fieldName.displayName
+//        log.debug "${i}-> returnName = ${returnName}"
+
+        returnCapability = displaySensorCapability[i]
+//        log.debug "returnCapability = ${returnCapability}"
+
+        returnValue = fieldName.currentValue(displaySensorCapability[i].replaceAll(/Measurement$|Sensor$/,''))
+//        log.debug "returnValue = ${returnValue}"
+
+//        log.debug "displaySensorCapability[${i}] = ${displaySensorCapability[i]}"
+//        log.debug "The attributes of '${displaySensor${i}}'are ${displaySensor"${i}".supportedAttributes}"
+//        log.debug "The '${displaySensor[i]}' is ${displaySensor"${i}".currentValue(displaySensorCapability[i])}"
+        switch (returnValue) {
+            case ~/[0-9]*\.?[0-9]+/:
+            returnEmoji = returnValue
+            break
+            case 'on':
+            case 'off':
+            case 'open':
+            case 'closed':
+            case 'locked':
+            case 'unlocked':
+            returnEmoji = returnValue
+            break
+            default:
+                returnEmoji = 'unknown'
+            break
+        }
+        resp << [name: returnName, label: fieldName.displayName, value: returnValue, capability: returnCapability, emoji: returnEmoji];
+    }
+
+    if (displaySensorShowName) {
+        returnName = "shm"
+        returnCapability = returnName
+        returnValue = "${returnName}${location.currentState("alarmSystemStatus")?.value}"
+        returnEmoji = returnValue
+        resp << [name: returnName, label: 'Smart Home Monitor', value: returnValue, capability: returnCapability, emoji: returnEmoji];
+    }
+    //    log.debug "resp = ${resp}"
     return resp
 }
 def getStatus() {
@@ -834,27 +869,31 @@ def enableAPIPage() {
 def devicesPage() {
 	dynamicPage(name:"devicesPage") {
 
-        section("MacOS Main Menu BitBar: Select one device to display a status") {
-        paragraph "The MacOS menu bar runs along the top of the screen on your Mac"
+        section("MacOS Main Menu BitBar: Select one device to display a status.") {
+            paragraph "The MacOS Main Menu Bar runs along the top of the screen on your Mac"
             input name: "displaySensorCapability", type: "enum",
                 title: "Mac Menu Bar: Select a SmartThings Sensor Capability",
                 options: ['contactSensor':'Contact','lock':'Lock','switch':'Switch','temperatureMeasurement':'Temperature Measurement'],
-                multiple: false,
+                multiple: true,
                 submitOnChange: true,
                 required: false
             if (displaySensorCapability) {
-                input "displaySensor", "capability.${displaySensorCapability}",
-                    title: "Select the ${displaySensorCapability.capitalize()} sensor to place in the Mac Main Menu",
-                    multiple: false,
-                    submitOnChange: true,
-                    required: true
-                if (displaySensor) {
-                    input "displaySensorShowName", "bool",
-                        title: "Prefix the sensor emoji or value with '${displaySensor.displayName}':XX (Note: Takes up valuable Mac menu bar space)",
+                def displaySensorCapabilitySize = displaySensorCapability.size()
+                if (displaySensorCapabilitySize>1) {
+                    paragraph "The ${displaySensorCapabilitySize} device status icons will cycle every few seconds in the MacOS Main Menu Bar"
+                }
+                for(int i = 0;i<displaySensorCapabilitySize;i++) {
+                    input "displaySensor${i}", "capability.${displaySensorCapability[i]}",
+                        title: "Select one ${displaySensorCapability[i].replaceAll(/Measurement$|Sensor$/,'').capitalize()} sensor to place in the Mac Main BitBar Menu",
+                        multiple: false,
                         submitOnChange: true,
                         required: true
                 }
             }
+            input "displaySensorShowName", "bool",
+                title: "Show Smart Home Monitor Status in MacOS Main Menu Bar)",
+                submitOnChange: true,
+                required: true
         }
 
 		section ("Choose sensor devices to be displayed & controlled in the BitBar menu") {
