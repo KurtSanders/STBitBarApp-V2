@@ -596,62 +596,12 @@ def getValveData() {
 
 def getMainDisplayData() {
     def displaySensorCapabilitySize = displaySensorCapability.size()
-    def returnCapability 	= 'N/A'
-    def returnName 			= 'N/A'
-    def returnValue 		= 'N/A'
-    def returnEmoji 		= 'unknown'
+    def returnCapability
+    def returnName
+    def returnValue
+    def returnEmoji
     def fieldName
     def resp = []
-
-	if (displaySensorCapabilitySize == 0) {
-        resp << [name: returnName, label: returnName, value: returnValue, capability: returnCapability, emoji: returnEmoji];
-	}
-
-    // input "displaySensor${i}", "capability.${displaySensorCapability[i]}"
-    // log.debug "displaySensorShowName  = ${displaySensorShowName}"
-
-    for(int i = 0;i<displaySensorCapabilitySize;i++) {
-        switch (i) {
-            case 0:
-            fieldName = displaySensor0
-            break
-            case 1:
-            fieldName = displaySensor1
-            break
-            case 2:
-            fieldName = displaySensor2
-            break
-        }
-        returnName = fieldName.displayName
-//        log.debug "${i}-> returnName = ${returnName}"
-
-        returnCapability = displaySensorCapability[i]
-//        log.debug "returnCapability = ${returnCapability}"
-
-        returnValue = fieldName.currentValue(displaySensorCapability[i].replaceAll(/Measurement$|Sensor$/,''))
-//        log.debug "returnValue = ${returnValue}"
-
-//        log.debug "displaySensorCapability[${i}] = ${displaySensorCapability[i]}"
-//        log.debug "The attributes of '${displaySensor${i}}'are ${displaySensor"${i}".supportedAttributes}"
-//        log.debug "The '${displaySensor[i]}' is ${displaySensor"${i}".currentValue(displaySensorCapability[i])}"
-        switch (returnValue) {
-            case ~/[0-9]*\.?[0-9]+/:
-            returnEmoji = returnValue
-            break
-            case 'on':
-            case 'off':
-            case 'open':
-            case 'closed':
-            case 'locked':
-            case 'unlocked':
-            returnEmoji = returnValue
-            break
-            default:
-                returnEmoji = 'unknown'
-            break
-        }
-        resp << [name: returnName, label: fieldName.displayName, value: returnValue, capability: returnCapability, emoji: returnEmoji];
-    }
 
     if (displaySensorShowName) {
         returnName = "shm"
@@ -660,9 +610,61 @@ def getMainDisplayData() {
         returnEmoji = returnValue
         resp << [name: returnName, label: 'Smart Home Monitor', value: returnValue, capability: returnCapability, emoji: returnEmoji];
     }
-    //    log.debug "resp = ${resp}"
+
+    if (displaySensorCapabilitySize == 0) {
+        resp << [name: 'N/A', label: 'N/A', value: 'N/A', capability: 'N/A', emoji: 'unknown'];
+    } else {
+
+        // input "displaySensor${i}", "capability.${displaySensorCapability[i]}"
+        // log.debug "displaySensorShowName  = ${displaySensorShowName}"
+
+        for(int i = 0;i<displaySensorCapabilitySize;i++) {
+            switch (i) {
+                case 0:
+                fieldName = displaySensor0
+                break
+                case 1:
+                fieldName = displaySensor1
+                break
+                case 2:
+                fieldName = displaySensor2
+                break
+            }
+            returnName = fieldName.displayName
+            //        log.debug "${i}-> returnName = ${returnName}"
+
+            returnCapability = displaySensorCapability[i]
+            //        log.debug "returnCapability = ${returnCapability}"
+
+            returnValue = fieldName.currentValue(displaySensorCapability[i].replaceAll(/Measurement$|Sensor$/,''))
+            //        log.debug "returnValue = ${returnValue}"
+
+            //        log.debug "displaySensorCapability[${i}] = ${displaySensorCapability[i]}"
+            //        log.debug "The attributes of '${displaySensor${i}}'are ${displaySensor"${i}".supportedAttributes}"
+            //        log.debug "The '${displaySensor[i]}' is ${displaySensor"${i}".currentValue(displaySensorCapability[i])}"
+            switch (returnValue) {
+                case ~/[0-9]*\.?[0-9]+/:
+                returnEmoji = 'number'
+                break
+                case 'on':
+                case 'off':
+                case 'open':
+                case 'closed':
+                case 'locked':
+                case 'unlocked':
+                returnEmoji = returnValue
+                break
+                default:
+                    returnEmoji = 'unknown'
+                break
+            }
+            resp << [name: returnName, label: fieldName.displayName, value: returnValue, capability: returnCapability, emoji: returnEmoji];
+        }
+    }
+
     return resp
 }
+
 def getStatus() {
     log.debug "getStatus() called"
     state.bbpluginfilename 	= params.bbpluginfilename
