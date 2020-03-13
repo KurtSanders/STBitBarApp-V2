@@ -582,6 +582,8 @@ if mainDisplay is not None:
             elif mainDisplay[x]['capability'] == 'shm':
                 mainDisplay[x]['name'] = mainDisplay[x]['label']
                 mainDisplay[x]['value'] = mainDisplay[x]['value'][3:]
+                if mainDisplay[x]['value'] == 'off': mainDisplay[x]['value'] = 'disarmed'
+                else: mainDisplay[x]['value'] = 'Armed ({})'.format(mainDisplay[x]['value'])
             extraLength = len(max([sub['name'] for sub in mainDisplay],key=len)) - len(mainDisplay[x]['name'])
             whiteSpace = ''
             for y in range(0, extraLength): whiteSpace += ' '
