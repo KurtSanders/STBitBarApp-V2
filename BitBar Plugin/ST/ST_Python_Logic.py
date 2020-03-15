@@ -468,11 +468,11 @@ if sortSensorsName is True:
     modes = sorted(modes, key=lambda k: k[sortkey])
     routines = sorted(routines)
 
-    if favoriteDevices is not None:
-        favoriteDevicesBool = True
-        favoriteDevices = sorted(favoriteDevices, cmp=locale.strcoll)
-    else:
-        favoriteDevicesBool = False
+if favoriteDevices is not None:
+    favoriteDevicesBool = True
+    favoriteDevices = sorted(favoriteDevices, cmp=locale.strcoll)
+else:
+    favoriteDevicesBool = False
 
 # if sortSensorsActive is True or mainMenuAutoSize is True:
 if sortSensorsActive is True:
