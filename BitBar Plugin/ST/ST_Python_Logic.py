@@ -572,8 +572,8 @@ if mainDisplay is not None:
             else:
                 formattedMainDisplay = "ST BitBar"
                 print "{} | {} {} dropdown=false".format(formattedMainDisplay.encode('utf-8'), 'size=14', mainMenuColor)
-    if mainDisplaylen > 1:
-        hortSeparatorBar()
+    if mainDisplaylen > 0:
+        print "---"
         print "Main Menu Bar Icon Status ({}) | {}".format(mainDisplaylen, buildFontOptions(2))
         for x in range(len(mainDisplay)):
             if isinstance(mainDisplay[x]['value'], int) or isinstance(mainDisplay[x]['value'], float):
@@ -593,7 +593,7 @@ else:
     formattedMainDisplay = "ST BitBar"
     print "{} | {} {} dropdown=false".format(formattedMainDisplay.encode('utf-8'), 'size=14', mainMenuColor)
 
-hortSeparatorBar()
+print "---"
 
 if favoriteDevicesBool:
     original_stdout = sys.stdout
