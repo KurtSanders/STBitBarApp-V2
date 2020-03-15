@@ -63,7 +63,7 @@
  //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
 def version() { return "4.00" } // Must be a Floating Number String "2.1", "2.01", "2.113"
 import groovy.json.JsonSlurper
-//import groovy.json.JsonBuilder
+import groovy.json.JsonBuilder
 import java.awt.Color;
 import java.util.ArrayList;
 
@@ -79,7 +79,10 @@ definition(
 
 preferences {
   page(name:"mainPage")
+  page(name:"devicesManagementPage")
   page(name:"devicesPage")
+  page(name:"devicesTopMenuBarPage")
+  page(name:"devicesNotificationsPage")
   page(name:"optionsPage")
   page(name:"fontsPage")
   page(name:"iconsPage")
@@ -609,7 +612,9 @@ def getMainDisplayData() {
         returnCapability = returnName
         returnValue = "${returnName}${location.currentState("alarmSystemStatus")?.value}"
         returnEmoji = returnValue
-        resp << [name: returnName, label: 'Smart Home Monitor', value: returnValue, capability: returnCapability, emoji: returnEmoji];
+        if (returnValue) {
+            resp << [name: returnName, label: 'Smart Home Monitor', value: returnValue, capability: returnCapability, emoji: returnEmoji];
+        }
     }
 
     if (displaySensorCapabilitySize == 0) {
@@ -650,15 +655,17 @@ def getMainDisplayData() {
 }
 
 def getStatus() {
-    log.debug "getStatus() called"
+    if (debugBool) log.debug "BitBar getStatus() called"
     state.bbpluginfilename 	= params.bbpluginfilename
     state.bbpluginversion 	= params.bbpluginversion
     state.pythonAppVersion 	= params.pythonAppVersion
     state.pythonAppPath 	= params.path
     state.bbFolder			= "Mac BitBar Plugin Folder: ${params.path}"
     state.bbVersions		= "BitBar Output App Version: v${version()}, ST_Python_Logic.py Version: ${params.pythonAppVersion}, ${params.bbpluginfilename} Version: ${params.bbpluginversion}"
-    log.info "Mac BitBar Plugin Folder: ${params.path}"
-	log.info "BitBar Output App Version: v${version()}, ST_Python_Logic.py Version: ${params.pythonAppVersion}, ${params.bbpluginfilename} Version: ${params.bbpluginversion}"
+    if (debugBool) {
+        log.info "Mac BitBar Plugin Folder: ${params.path}"
+        log.info "BitBar Output App Version: v${version()}, ST_Python_Logic.py Version: ${params.pythonAppVersion}, ${params.bbpluginfilename} Version: ${params.bbpluginversion}"
+    }
     def alarmData = getAlarmData()
     def tempData = getTempData()
     def contactData = getContactData()
@@ -750,7 +757,7 @@ def getStatus() {
             }
         }
     }
-    log.debug "getStatus complete"
+    if (debugBool) log.debug "getStatus complete"
     return resp
 }
 
@@ -759,18 +766,21 @@ private mainPage() {
         section("ST BitBar App Information") {
             paragraph "${state.bbFolder},\n${state.bbVersions}"
         }
-        section("API Setup") {
-            href name: "APIPageLink", title: "API Setup", description: "", page: "APIPage"
+        section("API Setup (Required before selecting devices)") {
+            href name: "APIPageLink", title: "API Setup ${state.endpoint?'(Completed)':'(Must Complete First)'}", description: "", page: "APIPage"
         }
-        section("Device Setup") {
-            href name: "devicesPageLink", title: "Select Devices", description: "", page: "devicesPage"
+        section("Device Management & Setup") {
+            href name: "devicesManagementPageLink", title: "Devices", description: "", page: "devicesManagementPage"
         }
-        section("Apple Menu BitBar Output Display Options") {
-            href name: "optionsPageLink", title: "BitBar Output Menu Display Options", description: "", page: "optionsPage"
+        section("Mac™ Menu BitBar Output Display Options") {
+            href name: "optionsPageLink", title: "Mac™ Top/SubMenu Menu Display Options", description: "", page: "optionsPage"
         }
         section(hideable: true, hidden: true, "Optional: Debuging") {
+            input "debugBool", "bool",
+                title: "Display general debug and informational messages in the ST IDE Live Logging View"
+                required: false
             input "debugDevices", "enum",
-                title: "Select a Category to send Debuging Information to IDE Live Logging Window",
+                title: "Select a Sensor capability category to send debuging information to IDE Live Logging Window",
                 options: ["Alarm Sensors", "Temp Sensors", "Contact Sensors", "Presence Sensors", "Motion Sensors", "Switches", "Locks",
                           "Music Players", "Thermostats", "RelativeHumidityMeasurements"].sort(),
                 required: false,
@@ -856,9 +866,24 @@ def enableAPIPage() {
 	}
 }
 
-def devicesPage() {
-	dynamicPage(name:"devicesPage") {
 
+def devicesManagementPage() {
+    dynamicPage(name:"devicesManagementPage") {
+
+        section("Select the devices for BitBar to work with") {
+            href name: "devicesPageLink", title: "Select sensors/devices for the ST BitBar app to view and/or control on the Mac™", description: "", page: "devicesPage"
+        }
+        section("Select sensor capabilities and devices") {
+            href name: "devicesTopMenuBarPageLink", title: "Select sensors/devices for ST BitBar app to place in the Mac's top menu bar", description: "", page: "devicesTopMenuBarPage"
+        }
+        //        section("Select devices for sensor event notifications") {
+        //            href name: "devicesNotificationsPageLink", title: "Select sensors for Mac™ sidebar event notification alerts", description: "", page: "devicesNotificationsPage"
+        //        }
+    }
+}
+
+def devicesTopMenuBarPage() {
+    dynamicPage(name:"devicesTopMenuBarPage") {
         section("MacOS Main Menu BitBar: Select one device to display a status.") {
             paragraph "The MacOS Main Menu Bar runs along the top of the screen on your Mac"
             input name: "displaySensorCapability", type: "enum",
@@ -881,75 +906,117 @@ def devicesPage() {
                 }
             }
             input "displaySensorShowName", "bool",
-                title: "Show Smart Home Monitor Status in MacOS Main Menu Bar)",
+                title: "Add Smart Home Monitor Status in MacOS Main Menu Bar)",
                 submitOnChange: true,
                 required: true
         }
+    }
+}
 
-		section ("Choose sensor devices to be displayed & controlled in the BitBar menu") {
-			paragraph "Select devices that you want to be displayed below the top MacOS Main Menu Bar (in the BitBar Sub-menu)."
-			input "alarms", "capability.alarmSensor",
-				title: "Which Alarm Sensors?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "contacts", "capability.contactSensor",
-				title: "Which Contact Sensors?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "relativeHumidityMeasurements", "capability.relativeHumidityMeasurement",
-				title: "Which Relative Humidity Measurement Sensors?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "locks", "capability.lock",
-				title: "Which Locks?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "musicplayers", "capability.musicPlayer",
-				title: "Which Music Players?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "motions", "capability.motionSensor",
-				title: "Which Motion Sensors?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "presences", "capability.presenceSensor",
-				title: "Which Presence Sensors?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "switches", "capability.switch",
-				title: "Which Lights & Switches?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "temps", "capability.temperatureMeasurement",
-				title: "Which Temperature Sensors?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "thermos", "capability.thermostat",
-				title: "Which Thermostats?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "waters", "capability.waterSensor",
-				title: "Which Water Sensors?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-			input "valves", "capability.valve",
-				title: "Which Valves?",
-				multiple: true,
-				hideWhenEmpty: true,
-				required: false
-		}
-	}
+
+def devicesNotificationsPage() {
+    dynamicPage(name:"devicesNotificationsPage") {
+        section ("Sensor Notifications from selected devices") {
+            def capabilityNames = ["switches", "contacts", "locks", "motions", "presences"]
+            def notificationSensorsList = []
+            def fieldNames
+            def tmpArray = [:]
+            def networkDeviceIdMap = [:]
+            for(item in capabilityNames){
+                fieldNames = settings["${item}"]
+                for (v in fieldNames) {
+                    tmpArray << [ "${v.deviceNetworkId}" : "${v.displayName}"]
+                    networkDeviceIdMap << [ (v.deviceNetworkId) : v ]
+                }
+                if (tmpArray) addGroup(notificationSensorsList, item.capitalize(), tmpArray)
+                tmpArray = [:]
+            }
+            paragraph "Select the sensors to be displayed in the MacOS Notification SideBar when an event changed state."
+            input "notificationSensors", "enum",
+                title: "Which Sensors for Sidebar Notifications?",
+                multiple: true,
+                groupedOptions: notificationSensorsList,
+                submitOnChange: true,
+                required: false
+            if (notificationSensors) {
+                def notificationSensorsMap = []
+                notificationSensors.each {
+                    notificationSensorsMap << networkDeviceIdMap["${it}"]
+                    log.debug networkDeviceIdMap["${it}"].capabilities
+                }
+                log.debug "notificationSensorsMap = ${notificationSensorsMap}"
+            }
+        }
+    }
+}
+
+
+def devicesPage() {
+    dynamicPage(name:"devicesPage") {
+        section ("Choose sensor devices to be displayed & controlled in the BitBar menu") {
+            paragraph "Select devices that you want to be displayed below the top MacOS Main Menu Bar (in the BitBar Sub-menu)."
+            input "alarms", "capability.alarmSensor",
+                title: "Which Alarm Sensors?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+            input "contacts", "capability.contactSensor",
+                title: "Which Contact Sensors?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+            input "relativeHumidityMeasurements", "capability.relativeHumidityMeasurement",
+                title: "Which Relative Humidity Measurement Sensors?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+            input "locks", "capability.lock",
+                title: "Which Locks?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+            input "musicplayers", "capability.musicPlayer",
+                title: "Which Music Players?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+            input "motions", "capability.motionSensor",
+                title: "Which Motion Sensors?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+            input "presences", "capability.presenceSensor",
+                title: "Which Presence Sensors?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+            input "switches", "capability.switch",
+                title: "Which Lights & Switches?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+            input "temps", "capability.temperatureMeasurement",
+                title: "Which Temperature Sensors?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+            input "thermos", "capability.thermostat",
+                title: "Which Thermostats?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+            input "waters", "capability.waterSensor",
+                title: "Which Water Sensors?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+            input "valves", "capability.valve",
+                title: "Which Valves?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+        }
+    }
 }
 
 def iconsPage() {
