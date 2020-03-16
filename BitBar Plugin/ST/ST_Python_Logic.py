@@ -24,9 +24,7 @@ locale.setlocale(locale.LC_ALL, '')
 # Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
 # Supports all minor changes in BitBar 2.1, 2.2, 2.31...
 PythonVersion = 4.00  # Must be float or Int
-
 ##################################
-
 
 # Define class for formatting numerical outputs (temp sensors)
 # Define NumberFormatter class
@@ -456,18 +454,30 @@ for sensorName in mainMenuMaxItemsDict:
 # Sort Sensors & Values in Dictionary/Lists
 if sortSensorsName is True:
     sortkey = 'name'
-    temps = sorted(temps, key=lambda k: k[sortkey])
-    contacts = sorted(contacts, key=lambda k: k[sortkey])
-    switches = sorted(switches, key=lambda k: k[sortkey])
-    motion = sorted(motion, key=lambda k: k[sortkey])
-    mainDisplay = sorted(mainDisplay, key=lambda k: k[sortkey])
-    musicplayers = sorted(musicplayers, key=lambda k: k[sortkey])
-    locks = sorted(locks, key=lambda k: k[sortkey])
-    relativeHumidityMeasurements = sorted(relativeHumidityMeasurements, key=lambda k: k[sortkey])
-    presences = sorted(presences, key=lambda k: k[sortkey])
-    modes = sorted(modes, key=lambda k: k[sortkey])
-    routines = sorted(routines)
+    if temps is not None:
+        temps = sorted(temps, key=lambda k: k[sortkey])
+    if contacts is not None:
+        contacts = sorted(contacts, key=lambda k: k[sortkey])
+    if switches is not None:
+        switches = sorted(switches, key=lambda k: k[sortkey])
+    if motion is not None:
+        motion = sorted(motion, key=lambda k: k[sortkey])
+    if mainDisplay is not None:
+        mainDisplay = sorted(mainDisplay, key=lambda k: k[sortkey])
+    if musicplayers is not None:
+        musicplayers = sorted(musicplayers, key=lambda k: k[sortkey])
+    if locks is not None:
+        locks = sorted(locks, key=lambda k: k[sortkey])
+    if relativeHumidityMeasurements is not None:
+        relativeHumidityMeasurements = sorted(relativeHumidityMeasurements, key=lambda k: k[sortkey])
+    if presences is not None:
+        presences = sorted(presences, key=lambda k: k[sortkey])
+    if modes is not None:
+        modes = sorted(modes, key=lambda k: k[sortkey])
+    if routines is not None:
+        routines = sorted(routines)
 
+# Add a section to the submenu for special devices designated in the SmartApp
 if favoriteDevices is not None:
     favoriteDevicesBool = True
     favoriteDevices = sorted(favoriteDevices, cmp=locale.strcoll)
@@ -803,32 +813,38 @@ if (modes is not None) and len(modes) > 0:
             currentModeURL = modeURL + urllib.quote(mode['name'].encode('utf8'))
             mode_param4 = 'param4=\"Setting House Mode to {}\"'.format(mode['name'])
             print "--• " + mode[
-                'name'], buildFontOptions(3), colorText, ' bash=' + callbackScript, ' param1=request param2=' + \
-                                                                                    currentModeURL, ' param3=' + secret, mode_param4, ' terminal=false refresh=false'
+                'name'], buildFontOptions(3), colorText, ' bash=' + callbackScript, ' param1=request param2=' + currentModeURL, \
+                ' param3=' + secret, mode_param4, ' terminal=false refresh=false'
         colorSwitch = not colorSwitch
 
 # Output Routines
 if (routines is not None) and len(routines) > 0:
-    print "--Routines (Select to Run)" + buildFontOptions()
+    if modes is None:
+        hortSeparatorBar()
+    print "Routines" + buildFontOptions()
+    print "--Select to Run" + buildFontOptions()
     for i, routine in enumerate(routines):
         routine_param4 = 'param4=\"{} {}\"'.format('Setting Routine to', routine)
         colorText = ''
         colorText = 'color=#333333' if colorSwitch else 'color=#666666'
         currentRoutineURL = routineURL + urllib.quote(routine.encode('utf8'))
-        print "--• " + routine, buildFontOptions(3), colorText, ' bash=' + callbackScript, ' param1=request param2=' + \
-                                                                                           currentRoutineURL, ' param3=' + secret, routine_param4, ' terminal=false refresh=false'
+        print "--• " + routine, buildFontOptions(3), colorText, ' bash=' + callbackScript, ' param1=request param2=' + currentRoutineURL, \
+            ' param3=' + secret, routine_param4, ' terminal=false refresh=false'
         colorSwitch = not colorSwitch
 
 # Output Smart Home Monitor
 shmCurrentState = None
-if shmDisplayBool:
+if shmDisplayBool and alarms is not None:
+    if modes is None or routines is None:
+        hortSeparatorBar()
+    print "Smart Home Monitor" + buildFontOptions()
     colorText = ''
     for i, alarm in enumerate(alarms):
         if alarm['name'] == 'shm':
             shmCurrentState = alarm['value']
     # Verify the SHM is configured:
     if shmCurrentState != "unconfigured":
-        print "--Smart Home Monitor (Select to Change)" + buildFontOptions()
+        print "--Select to Change" + buildFontOptions()
         for alarmState in alarmStates:
             colorText = 'color=#333333' if colorSwitch else 'color=#666666'
             if alarmState == shmCurrentState:
@@ -1391,6 +1407,6 @@ if favoriteDevicesBool:
             print ":small_blue_diamond: " + favoriteDevicesOutputDict[key] + ' | color=black font=Monaco  size=11'
         except:
             continue
-    hortSeparatorBar()
+    print '---'
     print fo.read()
     fo.close()

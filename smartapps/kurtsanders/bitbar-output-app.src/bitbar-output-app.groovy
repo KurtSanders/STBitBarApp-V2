@@ -66,6 +66,7 @@ import groovy.json.JsonSlurper
 import groovy.json.JsonBuilder
 import java.awt.Color;
 import java.util.ArrayList;
+import groovy.time.*
 
 definition(
     name: "BitBar Output App",
@@ -82,7 +83,6 @@ preferences {
   page(name:"devicesManagementPage")
   page(name:"devicesPage")
   page(name:"devicesTopMenuBarPage")
-  page(name:"devicesNotificationsPage")
   page(name:"optionsPage")
   page(name:"fontsPage")
   page(name:"iconsPage")
@@ -655,13 +655,14 @@ def getMainDisplayData() {
 }
 
 def getStatus() {
-    if (debugBool) log.debug "BitBar getStatus() called"
+    def timeStamp = new Date().format("h:mm:ss a", location.timeZone)
+    log.info "ST BitBar getStatus() started at ${timeStamp}"
     state.bbpluginfilename 	= params.bbpluginfilename
     state.bbpluginversion 	= params.bbpluginversion
     state.pythonAppVersion 	= params.pythonAppVersion
     state.pythonAppPath 	= params.path
-    state.bbFolder			= "Mac BitBar Plugin Folder: ${params.path}"
-    state.bbVersions		= "BitBar Output App Version: v${version()}, ST_Python_Logic.py Version: ${params.pythonAppVersion}, ${params.bbpluginfilename} Version: ${params.bbpluginversion}"
+    state.bbFolder			= "Mac BitBar Plugin Folder: ${params.path?:'Unavailable'}"
+    state.bbVersions		= "BitBar Output App Version: v${version()}, ST_Python_Logic.py Version: ${params.pythonAppVersion?:'Unavailable'}, ${params.bbpluginfilename?:'Unavailable'} Version: ${params.bbpluginversion?:'Unavailable'}"
     if (debugBool) {
         log.info "Mac BitBar Plugin Folder: ${params.path}"
         log.info "BitBar Output App Version: v${version()}, ST_Python_Logic.py Version: ${params.pythonAppVersion}, ${params.bbpluginfilename} Version: ${params.bbpluginversion}"
@@ -737,9 +738,9 @@ def getStatus() {
                 "Locks" : lockData,
                 "Music Players" : musicData,
                 "Thermostats" : thermoData,
-                "Routines" : location.helloHome?.getPhrases()*.label,
-                "Modes" : location.modes,
-                "CurrentMode" : ["name":location.mode],
+                "Routines" : routinesDisplayBool?location.helloHome?.getPhrases()*.label:null,
+                "Modes" : modesDisplayBool?location.modes:null,
+                "CurrentMode" : modesDisplayBool?["name":location.mode]:null,
                 "MainDisplay" : mainDisplay,
                 "RelativeHumidityMeasurements" : relativeHumidityMeasurementData,
                 "Waters" : waterData,
@@ -763,27 +764,33 @@ def getStatus() {
 
 private mainPage() {
     dynamicPage(name: "mainPage", uninstall:true, install:true) {
-        section("ST BitBar App Information") {
-            paragraph "${state.bbFolder},\n${state.bbVersions}"
+    def apiSetupState = (state.endpoint == null)?'Please complete API setup!':'API Setup is complete!'
+        section( "API Access Setup" ) {
+            href name: "APIPageLink", title: "${apiSetupState}", description: (state.endpoint == null)?"You must add these API strings to ST_Python_Logic.cfg":"", page: "APIPage"
         }
-        section("API Setup (Required before selecting devices)") {
-            href name: "APIPageLink", title: "API Setup ${state.endpoint?'(Completed)':'(Must Complete First)'}", description: "", page: "APIPage"
+        section("Sensor/Device Management & Setup") {
+            href name: "devicesManagementPageLink", title: "Select sensors/devices", description: "", page: "devicesManagementPage"
         }
-        section("Device Management & Setup") {
-            href name: "devicesManagementPageLink", title: "Devices", description: "", page: "devicesManagementPage"
+        section("Mac Menu Bar & SubMenu Display Options") {
+            href name: "optionsPageLink", title: "Select display options", description: "", page: "optionsPage"
         }
-        section("Mac™ Menu BitBar Output Display Options") {
-            href name: "optionsPageLink", title: "Mac™ Top/SubMenu Menu Display Options", description: "", page: "optionsPage"
+        section {
+            paragraph image: "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2.png",
+                title: "ST BitBar App Version Information",
+                required: false,
+                "${state.bbFolder}\n${state.bbVersions}"
         }
-        section(hideable: true, hidden: true, "Optional: Debuging") {
+        section(hideable: true, hidden: true, "Debuging Options for IDE Live Logging") {
             input "debugBool", "bool",
-                title: "Display general debug and informational messages in the ST IDE Live Logging View"
+                title: "Display general debug and informational messages in the ST IDE Live Logging View",
+                default: false,
                 required: false
             input "debugDevices", "enum",
                 title: "Select a Sensor capability category to send debuging information to IDE Live Logging Window",
                 options: ["Alarm Sensors", "Temp Sensors", "Contact Sensors", "Presence Sensors", "Motion Sensors", "Switches", "Locks",
                           "Music Players", "Thermostats", "RelativeHumidityMeasurements"].sort(),
                 required: false,
+                default: false,
                 multiple: false
         }
     }
@@ -870,15 +877,12 @@ def enableAPIPage() {
 def devicesManagementPage() {
     dynamicPage(name:"devicesManagementPage") {
 
-        section("Select the devices for BitBar to work with") {
-            href name: "devicesPageLink", title: "Select sensors/devices for the ST BitBar app to view and/or control on the Mac™", description: "", page: "devicesPage"
+        section("Sensors & Devices") {
+            href name: "devicesPageLink", title: "Select the sensors to display/control", description: "", page: "devicesPage"
         }
-        section("Select sensor capabilities and devices") {
-            href name: "devicesTopMenuBarPageLink", title: "Select sensors/devices for ST BitBar app to place in the Mac's top menu bar", description: "", page: "devicesTopMenuBarPage"
+        section('Main Menu Bar Icons') {
+            href name: "devicesTopMenuBarPageLink", title: "Select icons for the Main Menu Bar", description: "", page: "devicesTopMenuBarPage"
         }
-        //        section("Select devices for sensor event notifications") {
-        //            href name: "devicesNotificationsPageLink", title: "Select sensors for Mac™ sidebar event notification alerts", description: "", page: "devicesNotificationsPage"
-        //        }
     }
 }
 
@@ -887,7 +891,7 @@ def devicesTopMenuBarPage() {
         section("MacOS Main Menu BitBar: Select one device to display a status.") {
             paragraph "The MacOS Main Menu Bar runs along the top of the screen on your Mac"
             input name: "displaySensorCapability", type: "enum",
-                title: "Mac Menu Bar: Select a SmartThings Sensor Capability",
+                title: "Mac Menu Bar: Select up to 4 SmartThings Sensor Capabilities for the Menu Bar Icons",
                 options: ['contactSensor':'Contact','lock':'Lock','switch':'Switch','temperatureMeasurement':'Temperature Measurement'],
                 multiple: true,
                 submitOnChange: true,
@@ -899,53 +903,20 @@ def devicesTopMenuBarPage() {
                 }
                 for(int i = 0;i<displaySensorCapabilitySize;i++) {
                     input "displaySensor${i}", "capability.${displaySensorCapability[i]}",
-                        title: "Select one ${displaySensorCapability[i].replaceAll(/Measurement$|Sensor$/,'').capitalize()} sensor to place in the Mac Main BitBar Menu",
+                        title: "Select the one ${displaySensorCapability[i].replaceAll(/Measurement$|Sensor$/,'').toUpperCase()} sensor to place in the Mac Main Menu Bar",
                         multiple: false,
                         submitOnChange: true,
                         required: true
                 }
             }
-            input "displaySensorShowName", "bool",
-                title: "Add Smart Home Monitor Status in MacOS Main Menu Bar)",
-                submitOnChange: true,
-                required: true
         }
-    }
-}
-
-
-def devicesNotificationsPage() {
-    dynamicPage(name:"devicesNotificationsPage") {
-        section ("Sensor Notifications from selected devices") {
-            def capabilityNames = ["switches", "contacts", "locks", "motions", "presences"]
-            def notificationSensorsList = []
-            def fieldNames
-            def tmpArray = [:]
-            def networkDeviceIdMap = [:]
-            for(item in capabilityNames){
-                fieldNames = settings["${item}"]
-                for (v in fieldNames) {
-                    tmpArray << [ "${v.deviceNetworkId}" : "${v.displayName}"]
-                    networkDeviceIdMap << [ (v.deviceNetworkId) : v ]
-                }
-                if (tmpArray) addGroup(notificationSensorsList, item.capitalize(), tmpArray)
-                tmpArray = [:]
-            }
-            paragraph "Select the sensors to be displayed in the MacOS Notification SideBar when an event changed state."
-            input "notificationSensors", "enum",
-                title: "Which Sensors for Sidebar Notifications?",
-                multiple: true,
-                groupedOptions: notificationSensorsList,
+        section("Display Smart Home Monitor in Main Menu Bar") {
+            def displaySensorCapabilityMessage = displaySensorCapability?"along with the ${displaySensorCapability.size()} sensor(s) selected above":''
+            input "displaySensorShowName", "bool",
+                title: "Add the Smart Home Monitor status icon to the Main Menu Bar ${displaySensorCapabilityMessage}",
                 submitOnChange: true,
-                required: false
-            if (notificationSensors) {
-                def notificationSensorsMap = []
-                notificationSensors.each {
-                    notificationSensorsMap << networkDeviceIdMap["${it}"]
-                    log.debug networkDeviceIdMap["${it}"].capabilities
-                }
-                log.debug "notificationSensorsMap = ${notificationSensorsMap}"
-            }
+                default: false,
+                required: true
         }
     }
 }
@@ -953,7 +924,7 @@ def devicesNotificationsPage() {
 
 def devicesPage() {
     dynamicPage(name:"devicesPage") {
-        section ("Choose sensor devices to be displayed & controlled in the BitBar menu") {
+        section ("Choose the sensor devices to be displayed & controlled in the ST BitBar menu") {
             paragraph "Select devices that you want to be displayed below the top MacOS Main Menu Bar (in the BitBar Sub-menu)."
             input "alarms", "capability.alarmSensor",
                 title: "Which Alarm Sensors?",
@@ -1015,6 +986,13 @@ def devicesPage() {
                 multiple: true,
                 hideWhenEmpty: true,
                 required: false
+                }
+        section("Optional: Select a few 'Favorite Sensors' (Mix & Match) to display in separate 1st category section") {
+            input "favoriteDevices", "enum",
+                title: "Select Favorite 'Mix & Match' Sensors",
+                options: getAllDevices(),
+                required: false,
+                multiple: true
         }
     }
 }
@@ -1223,27 +1201,41 @@ def eventsPage() {
 }
 
 def optionsPage() {
-	dynamicPage(name:"optionsPage", hideWhenEmpty: true) {
-        section("Required: Images or Emojis for switch & lock status") {
+    dynamicPage(name:"optionsPage", hideWhenEmpty: true) {
+        section("Required: Smart Home Monitor, Modes & Routines") {
+        paragraph "Display/Hide SmartThings Modes, Routines and SHM to the BitBar SubMenu to display state & allow control?"
+            input "modesDisplayBool", "bool",
+                title: "Show SmartThings Modes?",
+                default: false,
+                required: true
+            input "routinesDisplayBool", "bool",
+                title: "Show SmartThings Routines?",
+                default: false,
+                required: true
+            input "shmDisplayBool", "bool",
+                title: "Show Smart Home Monitor",
+                default: false,
+                required: true
+        }
+        section("Required: Use High-Res Images or Low-Res Emojis for switch & lock status") {
 			input "useImages", "bool",
-				title: "Use images for switch & lock status (green/red images) instead of emojis",
+				title: "Use high-res images for switch & lock status (green/red images) instead of low-res emojis",
+                default: true,
 				required: true
             input "showSensorCount", "bool",
-                title: "Show the number of sensors in the sensor category title",
+                title: "Show the number of sensors in each sensor category title",
+                default: false,
                 required: true
         }
         section("Required: Sort sensors in menu by Name and Active Status") {
 			input "sortSensorsName", "bool",
 				title: "Sort sensors in menu by name",
+                default: true,
 				required: true
 			input "sortSensorsActive", "bool",
 				title: "Sort sensors in menu by Active Status",
+                default: true,
 				required: true
-        }
-        section("Show Smart Home Monitor along with House Modes & Routines") {
-            input "shmDisplayBool", "bool",
-                title: "Show Smart Home Monitor Status?",
-                required: true
         }
         section("Optional: Temperature Values Display Options") {
             input "numberOfDecimals", "number",
@@ -1276,13 +1268,6 @@ def optionsPage() {
         }
         section("Optional: Customize Sensor Status & Type Emoji Display Options") {
             href name: "iconsPageLink", title: "Customize Sensor Status & Type Display Settings", description: "", page: "iconsPage"
-        }
-        section("Optional: Select Your Favorite Devices (Mix & Match) to display in separate 1st category") {
-            input "favoriteDevices", "enum",
-                title: "Select Favorite 'Mix & Match' Devices",
-                options: getAllDevices(),
-                required: false,
-                multiple: true
         }
         section("Optional: Limit Color Choices for 'Color Control' capable devices") {
             input "colorChoices", "enum",
