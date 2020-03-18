@@ -1201,14 +1201,15 @@ if musicplayers is not None:
         subMenuText = ''
         # noinspection PyShadowingNames
         musicplayers = sorted(musicplayers, key=lambda x: x['name'], reverse=False)
+        musicplayers = sorted(musicplayers, key=lambda x: x['manufacturer'], reverse=True)
         # noinspection PyShadowingNames
-        for i, sensor in enumerate(sorted(musicplayers, key=lambda x: x['groupBool'], reverse=False)):
+        for i, sensor in enumerate(sorted(musicplayers, key=lambda x: x['groupRolePrimary'], reverse=True)):
             currentLength = len(sensor['name'])
             extraLength = maxLength - currentLength
             whiteSpace = ''
             img = ''
             for x in range(0, extraLength): whiteSpace += ' '
-            if "status" in sensor['trackData'] and sensor['trackData']['status'] == 'playing':
+            if sensor['status'] == 'playing':
                 sym = '🔛'
                 img = getImageString('greenImage')
             else:
@@ -1224,49 +1225,44 @@ if musicplayers is not None:
                     menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions(2)
                 )
                 subMenuText = "--"
-            if sensor['groupBool']: sensor['name'] += " - {}{}".format('Grouped', sensor['trackDescription'][1])
+            if sensor['groupRole'] is not None: sensor['name'] = "{} - ({})".format(sensor['name'], sensor['groupRole'])
             if useImages is True:
                 print subMenuText, sensor['name'], buildFontOptions(3) + colorText, 'image=', img
             else:
                 print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3) + colorText
 
             if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + \
-                                                            whiteSpace + " " + sym
-
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + whiteSpace + " " + sym
             if sensor['level'] is not None:
-                print "{}--• Volume Level: ({})".format(subMenuText, sensor['level']), buildFontOptions(3)
-                print "{}----Set Music Level".format(subMenuText), buildFontOptions(3), smallFontPitchSize
+                if sensor['manufacturer'] is not None:
+                    print "{}--{}".format(subMenuText, sensor['manufacturer']), buildFontOptions(2)
+                print "{}--• Current Volume: {} % of Maximum".format(subMenuText, sensor['level']), buildFontOptions(3)
+                print "{}----Set Music Level % of Max".format(subMenuText), buildFontOptions(3), smallFontPitchSize
                 currentLevel = 0
                 while currentLevel <= 100:
-                    currentMusicPlayerURL = musicplayerURL + sensor['id'] + '&command=' + 'level'
+                    currentMusicPlayerURL="{}{}&command=level&level={}".format(musicplayerURL, sensor['id'], currentLevel)
                     musicplayers_param4 = ' param4=\"{} {}\"'.format('Changing volume to', currentLevel)
                     print "{}----• {}".format(subMenuText, currentLevel), buildFontOptions(3), \
                         'bash=' + callbackScript, 'param1=request param2=' + currentMusicPlayerURL, \
                         ' param3=' + secret, musicplayers_param4, ' terminal=false refresh=false'
-                    currentLevel += 10
+                    currentLevel += 5
             if sensor['mute'] is not None:
-                command = "mute" if sensor['mute'] is "unmuted" else "unmute"
-                switch_param4 = 'param4=\"{} {}\"'.format('MusicPlayer:', command)
-                print "{}--• Mute : {}".format(subMenuText, TitleCase(sensor['mute'])), \
-                    buildFontOptions(3), 'bash=' + callbackScript, \
+                command = "mute"
+                musicplayers_param4 = 'param4=\"{} {}\"'.format('MusicPlayer:', command)
+                print "{}--• {}".format(subMenuText, TitleCase(sensor['mute'])), buildFontOptions(3)
+                print "{}----• {}".format(subMenuText, TitleCase(command)), buildFontOptions(3), 'bash=' + callbackScript, \
                     'param1=request param2=' + musicplayerURL + sensor['id'] + '&command=' + command, \
                     ' param3=' + secret, musicplayers_param4, 'terminal=false refresh=false'
-            if sensor['trackDescription'] is not None:
-                #           Check for Music Player playing a Streaming Live Radio Station
-                m = re.search('^x-sonosapi-hls:(.+)\?', sensor['trackDescription'][0])
-                if m:
-                    sensor['trackDescription'][0] = m.group(1)
-                else:
-                    sensor['trackDescription'][0] = sensor['trackDescription'][0].replace('\n', ' ')
-                print "{}--{}  {}".format(
-                    subMenuText, "Track:", sensor['trackDescription'][0]), buildFontOptions(3), "font=9"
-            if sensor["trackData"] is not None:
-                for key, value in sensor["trackData"].items():
-                    if key in ["album", "status", "name", "artist", "station", "trackNumber"]:
-                        if value is not None:
-                            print "{}--{}: {}".format(subMenuText, TitleCase(key), TitleCase(value)), \
-                                buildFontOptions(3)
+                command = "unmute"
+                musicplayers_param4 = 'param4=\"{} {}\"'.format('MusicPlayer:', command)
+                print "{}----• {}".format(subMenuText, TitleCase(command)), buildFontOptions(3), 'bash=' + callbackScript, \
+                    'param1=request param2=' + musicplayerURL + sensor['id'] + '&command=' + command, \
+                    ' param3=' + secret, musicplayers_param4, 'terminal=false refresh=false'
+            if sensor["audioTrackData"] is not None:
+                albumArt = "href={}".format(sensor["audioTrackData"].get('albumArtUrl', ''))
+                for key, value in sensor["audioTrackData"].items():
+                    if key != "albumArtUrl":
+                        print "{}--{}: {}".format(subMenuText, TitleCase(key), value), buildFontOptions(3), albumArt
             colorSwitch = not colorSwitch
 
 # Output Valves
@@ -1368,6 +1364,7 @@ if waters is not None:
 
 # Configuration Options
 hortSeparatorBar()
+print "Upgrade ST BitBar Plugins folder to latest {} release |".format(j['Version']), buildFontOptions(), "bash=" + callbackScript, ' param1=upgrade terminal=false'
 print "STBitBarApp Actions and Shortcuts" + buildFontOptions()
 print "--Your Current Running Program Version Information" + buildFontOptions()
 print "----BitBar Output App v" + j['Version'] + buildFontOptions()
@@ -1391,7 +1388,6 @@ for response_info_name in response.info():
 print "--Launch TextEdit " + cfgFileName + buildFontOptions() + openParamBuilder("open -e " + cfgFileName) + ' terminal=false'
 print "--Launch SmartThings IDE " + buildFontOptions() + openParamBuilder("open " + buildIDEURL(smartAppURL)) + ' terminal=false'
 print "--Launch Browser to View STBitBarAPP-V2 GitHub Software Resp " + buildFontOptions() + openParamBuilder("open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
-print "--Download ST BitBar Installation/Upgrade script to your 'Downloads' directory " + buildFontOptions(), "bash=" + callbackScript, ' param1=upgrade terminal=false'
 
 if favoriteDevicesBool:
     # noinspection PyUnboundLocalVariable

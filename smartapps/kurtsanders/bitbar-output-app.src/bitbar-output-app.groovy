@@ -290,10 +290,10 @@ def setMusicPlayer() {
     def id = params.id
 	def command = params.command
     def level = params.level
-    log.debug "setMusicPlayer called with command ${command} for id ${id} and level ${level}"
-    musicplayers.each {
+    log.debug "setMusicPlayer called with command ${command} for musicplayer id ${id} VolumeParm=${level}"
+    musicplayersWebSocket.each {
         if(it.id == id)  {
-            log.debug "Found Music Player: ${it.displayName} with id: ${it.id} with current volume level: ${it.currentLevel}"
+            log.debug "Found Music Player: ${it.displayName} with id: ${it.id} with current volume level: ${it.currentVolume}"
             switch (command) {
                 case 'mute':
                 it.mute()
@@ -304,9 +304,8 @@ def setMusicPlayer() {
                 return
                 break
                 case 'level':
-                def iLevel = Int.valueOf(level)
-                log.debug "Setting Mute level to ${iLevel}"
-                it.setLevel(iLevel)
+                log.debug "Setting New Volume level from ${it.currentVolume} to ${level}"
+                it.setVolume(level)
                 return
                 break
                 default:
@@ -546,21 +545,26 @@ def getLockData() {
 def getMusicPlayerData() {
 	def resp = []
     def slurper = new JsonSlurper()
-    musicplayers.each {
-        if (it.currentTrackData != null) {
-            slurper = new groovy.json.JsonSlurper().parseText(it.currentTrackData)
+    musicplayersWebSocket.each {
+        if (it.currentAudioTrackData != null) {
+            slurper = new groovy.json.JsonSlurper().parseText(it.currentAudioTrackData)
+        } else {
+            slurper = new JsonSlurper()
         }
+        log.debug "${it.displayName}: "
         resp << [
             name				: it.displayName,
-            groupBool			: it.currentTrackDescription.contains("Grouped"),
+            manufacturer		: it.getManufacturerName(),
+            groupRolePrimary	: it.currentGroupRole=='primary',
+            groupRole			: it.currentGroupRole,
             id 					: it.id,
-            level				: it.currentLevel,
+            level				: it.currentVolume,
             mute				: it.currentMute,
-            status				: it.status,
-            trackData			: slurper,
-            trackDescription	: it.currentTrackDescription.split('Grouped')
+            status				: it.currentPlaybackStatus,
+            audioTrackData		: slurper
         ];
     }
+
     return resp
 }
 def getThermoData() {
@@ -946,11 +950,19 @@ def devicesPage() {
                 multiple: true,
                 hideWhenEmpty: true,
                 required: false
-            input "musicplayers", "capability.musicPlayer",
-                title: "Which Music Players?",
+            input "musicplayersWebSocket", "capability.AudioTrackData",
+                title: "Which Media Playback Devices (ie. Sonos, Amazon, Google, etc)?",
                 multiple: true,
                 hideWhenEmpty: true,
                 required: false
+/* Old
+	        input "musicplayersWebSocket", "capability.mediaPlayback",
+			input "musicplayers", "capability.musicPlayer",
+                title: "Which Music Players (Legacy LAN Player)?",
+                multiple: true,
+                hideWhenEmpty: true,
+                required: false
+*/
             input "motions", "capability.motionSensor",
                 title: "Which Motion Sensors?",
                 multiple: true,
