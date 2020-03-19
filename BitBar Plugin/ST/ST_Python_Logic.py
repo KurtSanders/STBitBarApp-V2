@@ -12,6 +12,7 @@ import sys
 import tempfile
 import urllib
 import urllib2
+import time
 from urlparse import urlparse
 import base64
 import cStringIO
@@ -801,10 +802,17 @@ if relativeHumidityMeasurements is not None:
 if (modes is not None) and len(modes) > 0:
     hortSeparatorBar()
     if currentmode['name'] == "Home":
-        emoji = " :house: "
+        emoji = " :house:"
+    elif currentmode['name'] == "Night":
+        emoji = ' :zzz:'
     else:
         emoji = ""
-    print "Current House Mode: {} {}".format(emoji + currentmode['name'], buildFontOptions())
+    if 20 <= int(time.strftime("%M")) <= 40:
+        thirtyMin = '30'
+    else:
+        thirtyMin = ''
+    emojiClock = " :clock{}{}:".format(time.strftime("%-H"),thirtyMin)
+    print "Home Mode: (Current: {}{}{}){}".format(currentmode['name'], emoji, emojiClock, buildFontOptions())
     print "--Modes (Select to Change)" + buildFontOptions()
     for i, mode in enumerate(modes):
         colorText = ''
@@ -837,11 +845,11 @@ shmCurrentState = None
 if shmDisplayBool and alarms is not None:
     if modes is None or routines is None:
         hortSeparatorBar()
-    print "Smart Home Monitor" + buildFontOptions()
     colorText = ''
     for i, alarm in enumerate(alarms):
         if alarm['name'] == 'shm':
             shmCurrentState = alarm['value']
+            print "Smart Home Monitor: (Current: {}){}".format(alarm['value'].title(), buildFontOptions())
     # Verify the SHM is configured:
     if shmCurrentState != "unconfigured":
         print "--Select to Change" + buildFontOptions()

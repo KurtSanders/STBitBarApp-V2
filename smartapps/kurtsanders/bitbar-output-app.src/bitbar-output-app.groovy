@@ -887,6 +887,14 @@ def devicesManagementPage() {
         section('Main Menu Bar Icons') {
             href name: "devicesTopMenuBarPageLink", title: "Select icons for the Main Menu Bar", description: "", page: "devicesTopMenuBarPage"
         }
+        section("Favorite Sensors (Mix & Match) to display in separate 1st category section on subMenu") {
+            paragraph "The 'Favorite' sensors submenu is a section on the BitBar submenu to locate a few sensors that you wish to display/monitor quickly.  You cannot control them from this menu, just display."
+            input "favoriteDevices", "enum",
+                title: "Favorite sensors",
+                options: getAllDevices(),
+                required: false,
+                multiple: true
+        }
     }
 }
 
@@ -955,14 +963,6 @@ def devicesPage() {
                 multiple: true,
                 hideWhenEmpty: true,
                 required: false
-/* Old
-	        input "musicplayersWebSocket", "capability.mediaPlayback",
-			input "musicplayers", "capability.musicPlayer",
-                title: "Which Music Players (Legacy LAN Player)?",
-                multiple: true,
-                hideWhenEmpty: true,
-                required: false
-*/
             input "motions", "capability.motionSensor",
                 title: "Which Motion Sensors?",
                 multiple: true,
@@ -999,13 +999,6 @@ def devicesPage() {
                 hideWhenEmpty: true,
                 required: false
                 }
-        section("Optional: Select a few 'Favorite Sensors' (Mix & Match) to display in separate 1st category section") {
-            input "favoriteDevices", "enum",
-                title: "Select Favorite 'Mix & Match' Sensors",
-                options: getAllDevices(),
-                required: false,
-                multiple: true
-        }
     }
 }
 
