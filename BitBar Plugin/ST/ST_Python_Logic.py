@@ -811,7 +811,7 @@ if (modes is not None) and len(modes) > 0:
         thirtyMin = '30'
     else:
         thirtyMin = ''
-    emojiClock = " :clock{}{}:".format(time.strftime("%-H"),thirtyMin)
+    emojiClock = " :clock{}{}:".format(time.strftime("%-I"),thirtyMin)
     print "Home Mode: (Current: {}{}{}){}".format(currentmode['name'], emoji, emojiClock, buildFontOptions())
     print "--Modes (Select to Change)" + buildFontOptions()
     for i, mode in enumerate(modes):
