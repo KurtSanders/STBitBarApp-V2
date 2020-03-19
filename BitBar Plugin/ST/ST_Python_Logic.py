@@ -380,6 +380,7 @@ colorChoices = getOptions("colorChoices", None)
 colorBulbEmoji = getOptions("colorBulbEmoji", "🌈")
 dimmerBulbEmoji = getOptions("dimmerBulbEmoji", "🔆")
 dimmerValueOnMainMenu = getOptions("dimmerValueOnMainMenu", False)
+shmCurrentStateDict = {'off':'Disarmed','stay':'Armed/Stay','away':'Armed/Away'}
 
 # Read Temperature Formatting Settings
 numberOfDecimals = verifyInteger(getOptions("numberOfDecimals", "0"), 0)
@@ -593,9 +594,7 @@ if mainDisplay is not None:
                     mainDisplay[x]['value'] = mainDisplay[x]['value'] + degree_symbol
             elif mainDisplay[x]['capability'] == 'shm':
                 mainDisplay[x]['name'] = mainDisplay[x]['label']
-                mainDisplay[x]['value'] = mainDisplay[x]['value'][3:]
-                if mainDisplay[x]['value'] == 'off': mainDisplay[x]['value'] = 'disarmed'
-                else: mainDisplay[x]['value'] = 'Armed ({})'.format(mainDisplay[x]['value'])
+                mainDisplay[x]['value'] = shmCurrentStateDict.get(mainDisplay[x]['value'][3:],mainDisplay[x]['value'][3:])
             extraLength = len(max([sub['name'] for sub in mainDisplay],key=len)) - len(mainDisplay[x]['name'])
             whiteSpace = ''
             for y in range(0, extraLength): whiteSpace += ' '
@@ -788,8 +787,7 @@ if relativeHumidityMeasurements is not None:
                 subMenuText = "--"
             print subMenuText, sensor['name'], whiteSpace, currentValue + "%", buildFontOptions(3), colorText
             if favoriteDevicesBool and sensor['name'] in favoriteDevices:
-                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + \
-                                                            currentValue + "%"
+                favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + currentValue + "%"
             if (sensor['eventlog'] is not None) and (len(sensor['eventlog']) > 0):
                 eventGroupByDate([d for d in sensor['eventlog'] if d['name'] in "humidity"], subMenuText, "%")
             if sensor['battery'] != 'N/A':
@@ -812,7 +810,7 @@ if (modes is not None) and len(modes) > 0:
     else:
         thirtyMin = ''
     emojiClock = " :clock{}{}:".format(time.strftime("%-I"),thirtyMin)
-    print "Home Mode: (Current: {}{}{}){}".format(currentmode['name'], emoji, emojiClock, buildFontOptions())
+    print "Home Mode is {}{}{}{}".format(currentmode['name'], emoji, emojiClock, buildFontOptions())
     print "--Modes (Select to Change)" + buildFontOptions()
     for i, mode in enumerate(modes):
         colorText = ''
@@ -849,7 +847,7 @@ if shmDisplayBool and alarms is not None:
     for i, alarm in enumerate(alarms):
         if alarm['name'] == 'shm':
             shmCurrentState = alarm['value']
-            print "Smart Home Monitor: (Current: {}){}".format(alarm['value'].title(), buildFontOptions())
+            print "Smart Home Monitor is {}{}".format(shmCurrentStateDict.get(alarm['value'],alarm['value']), buildFontOptions())
     # Verify the SHM is configured:
     if shmCurrentState != "unconfigured":
         print "--Select to Change" + buildFontOptions()
@@ -1044,7 +1042,7 @@ if locks is not None:
             elif sensor['value'] is None:
                 sensor['name'] = sensor['name'] + "(No Status)"
             else:
-                sensor['name'] = sensor['name'] + "(" + str(sensor['value']) + ")"
+                sensor['name'] = "{} is {}".format(sensor['name'],sensor['value'])
             if i == mainMenuMaxItems:
                 print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
                 if not subMenuCompact: print "--{} ({}) {}".format(
@@ -1053,12 +1051,12 @@ if locks is not None:
                 subMenuText = "--"
             colorText = 'color=#333333' if colorSwitch else 'color=#666666'
             if useImages is True:
-                print subMenuText, sensor['name'] + ' (' + sensor['value'].capitalize() + ')', buildFontOptions(
+                print subMenuText, sensor['name'] + ' is ' + sensor['value'].capitalize(), buildFontOptions(
                     3) + colorText + ' bash=' + callbackScript, ' param1=request param2=' + currentLockURL, \
                     ' param3=' + secret, lock_param4, ' terminal=false refresh=false image=' + img
             else:
-                print subMenuText, sensor['name'] + ' (' + sensor[
-                    'value'].capitalize() + ')', whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=' + callbackScript, \
+                print subMenuText, sensor['name'] + ' is ' + sensor[
+                    'value'].capitalize(), whiteSpace, sym, buildFontOptions(3) + colorText + ' bash=' + callbackScript, \
                     ' param1=request param2=' + currentLockURL, ' param3=' + secret, lock_param4, ' terminal=false refresh=false'
             if favoriteDevicesBool and sensor['name'] in favoriteDevices:
                 favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + " " + sym
