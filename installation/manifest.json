@@ -1,5 +1,5 @@
 {
-  "3.0.0": [
+  "3": [
     {
       "bitbaroutputapp": {
         "name": "BitBar Output SmartApp",
@@ -23,7 +23,7 @@
       }
     }
   ],
-  "4.0.0": [
+  "4": [
     {
       "bitbaroutputapp": {
         "name": "BitBar Output SmartApp",
