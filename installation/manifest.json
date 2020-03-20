@@ -1,4 +1,28 @@
 {
+  "3.0.0": [
+    {
+      "bitbaroutputapp": {
+        "name": "BitBar Output SmartApp",
+        "version": "3.2.1.0",
+        "source": "SmartThings"
+      },
+      "st_python_logic_py": {
+        "name": "St_Python_Logic.py",
+        "version": "3.2.1.0",
+        "source": "BitBar Plugins ST subFolder"
+      },
+      "st_1m_sh": {
+        "name": "st.1m.sh",
+        "version": "3.2.1.0",
+        "source": "BitBar Plugins Folder"
+      },
+      "stbitbarinstall_command": {
+        "name": "STBitBarInstall.command",
+        "version": "3.2.1.0",
+        "source": "Downloads Folder"
+      }
+    }
+  ],
   "4.0.0": [
     {
       "bitbaroutputapp": {
@@ -21,11 +45,6 @@
         "version": "4.0.0.0",
         "source": "Downloads Folder"
       }
-    }
-  ],
-  "3.0.0": [
-    {
-      "Test": "True"
     }
   ]
 }
