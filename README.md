@@ -65,9 +65,9 @@ Sensor battery levels can be displayed for devices that have a battery capabilit
 	4. Drag/Move the BitBar.app into your Mac's Applications folder
 	5. Launch BitBar.app from your Mac's Application folder
 	6. Locate the BitBar icon displayed in the Mac's Top Menu Bar.  Click the BitBar icon to display preferences dialogue menu.
-	7. Set BitBar.app preferences to: 
-		* 'Open at Login'
-		* Designate the 'Plugin Folder' on the Mac (ie. /Users/{*your Mac login name*}/BitBar)
+	7. In the Mac Menu Bar, click the BitBar Icon and set BitBar preferences to: 
+		* √ Open at Login
+		* Select the 'Plugin Folder' on the Mac (.ie `/Users/smith/BitBar` )
 2. Launch the **Terminal.app** from the Mac Applications **'Utility'** SubFolder
 3. In the terminal console window, enter the following:
 
