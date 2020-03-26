@@ -43,7 +43,7 @@
 	
 10. Application version upgrade awareness will detect when local and/or ST cloud files require upgrades.  These upgrade notifications will be displayed in the BitBar submenu.  Please follow the instructions in these choices to keep current with the latest production release.  If you need to manually run this Terminal script, please copy/paste the string below into your Terminal.app window as well as perform an 'Update from Repo' from the ST IDE SmartApps view.
 
-	`sudo curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sudo sh ./STBitBarInstall.command`
+	`curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sh ./STBitBarInstall.command`
 
 11. Local python runtime statistics are now collected and presented in the BitBar's 'STBitBar Actions and Shortcuts' menu choice at the bottom of the BitBar submenu.  This wall clock time will help users with slower Mac's optimize the frequency of polling (See #6 above)
 
@@ -88,7 +88,7 @@ Sensor battery levels can be displayed for devices that have a battery capabilit
 4. Press <kbd>Return</kbd> 
 5. Select, copy and paste the following entire string into the Mac's Terminal Console Window.  
 
-	`sudo curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sudo sh ./STBitBarInstall.command`
+	`curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sh ./STBitBarInstall.command`
 
 6. Press <kbd>Return</kbd>  
 7. Read install/upgrade messages from the script.
