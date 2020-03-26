@@ -1,31 +1,70 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import ConfigParser
+import base64
+import cStringIO
 import decimal
 import json
 import locale
 import os
 import re
 import subprocess
-# noinspection PyUnresolvedReferences
 import sys
 import tempfile
+import time
+import timeit
 import urllib
 import urllib2
-import time
 from urlparse import urlparse
-import base64
-import cStringIO
 
+############################################
+ST_Logic_Python_Py_Local_Version    = "4.01"
+DEBUG                               = False
+############################################
+
+start = timeit.default_timer()
 reload(sys)
 sys.setdefaultencoding('utf8')
 locale.setlocale(locale.LC_ALL, '')
+imageLibraryNames       = {}
+manifestDict            = {}
+currentSTBitBarRelease  = None
+currentSTBitBarNews     = None
 
-##################################
-# Set Required SmartApp Version as Decimal, ie 2.0, 2.1, 2.12...
-# Supports all minor changes in BitBar 2.1, 2.2, 2.31...
-PythonVersion = 4.00  # Must be float or Int
-##################################
+# Get Application Meta Information from Github
+def getManifest():
+    global manifestDict
+    global currentSTBitBarRelease
+    global currentSTBitBarNews
+    req = urllib2.Request("https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/manifest.json")
+    try:
+        reqdata = urllib2.urlopen(req)
+    except urllib2.HTTPError as e:
+        print "Error getManifest() RC: {}".format(e.code)
+        print e.read()
+        exit(e.code)
+    except urllib2.URLError as e:
+        print 'Error: Failed to reach the STBitBarApp-V2 server for reading manifest file/version check.'
+        print 'Reason: ', e.reason
+        exit(99)
+    manifestDict            = json.loads(reqdata.read())
+    currentSTBitBarRelease  = manifestDict.get('current', None)
+    currentSTBitBarNews     = manifestDict.get('news', None)
+    return
+
+# Dynamically get image/icon files from github
+def getImageString(imageName):
+    global imageLibraryNames
+    if imageName not in imageLibraryNames:
+        imageURL = "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/{}.png".format(imageName)
+        try:
+            rawImagegithub = urllib2.urlopen(imageURL)
+        except urllib2.HTTPError, e:
+            print "{}: The icon '{}.png' was not found in github images folder".format(e, imageName)
+            imageURL = "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/{}.png".format('unknown')
+            rawImagegithub = urllib2.urlopen(imageURL)
+        imageLibraryNames[imageName] = base64.b64encode(cStringIO.StringIO(rawImagegithub.read()).getvalue())
+    return imageLibraryNames[imageName]
 
 # Define class for formatting numerical outputs (temp sensors)
 # Define NumberFormatter class
@@ -63,11 +102,9 @@ class NumberFormatter:
             else:
                 return str(r)
 
-
 # String Case Formatter
 def TitleCase(var):
     return var if var is None else var.capitalize()
-
 
 colorHueList = {
         "Orange"    : 10,
@@ -164,11 +201,11 @@ class Setting(object):
 # Builds the param statement for bitbar to launch the "open" command
 # noinspection PyShadowingNames
 def openParamBuilder(openCommand):
-    rc = " terminal=false bash={} ".format(sys.argv[1])
+    rc = " terminal=false bash='{}' ".format(sys.argv[1])
     i = 0
     for word in openCommand.split():
         i += 1
-        rc += "param{}={} ".format(i, word)
+        rc += "param{}='{}' ".format(i, word)
     return rc
 
 # Build the SmartThings IDE URL based on the SmartApp URL input
@@ -205,8 +242,15 @@ try:
 except IndexError:
     STPluginFilename = None
 
+try:
+    bbplugindir = os.path.split(os.path.dirname(sys.argv[0]))[0]
+except IndexError:
+    bbplugindir = sys.argv[0]
+
 # Set URLs
-statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + "{:0.2f}".format(PythonVersion) + "&path=" + sys.argv[0] + "&bbpluginfilename=" + STPluginFilename + "&bbpluginversion=" + STPluginVersion
+# statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + "{}".format(ST_Logic_Python_Py_Local_Version) + "&path=" + sys.argv[0] + "&bbpluginfilename=" + STPluginFilename + "&bbpluginversion=" + STPluginVersion
+f = dict(pythonAppVersion=ST_Logic_Python_Py_Local_Version, path=bbplugindir, bbpluginfilename=STPluginFilename, bbpluginversion=STPluginVersion)
+statusURL = "{}{}{}".format(smartAppURL, "GetStatus/?", urllib.urlencode(f))
 contactURL = smartAppURL + "ToggleSwitch/?id="
 valveURL = smartAppURL + "ToggleValve/?id="
 levelURL = smartAppURL + "SetLevel/?id="
@@ -221,7 +265,7 @@ alarmURL = smartAppURL + "SetAlarm/?id="
 # Set the callback script for switch/level commands from parameters
 # sys.argv[1] must contain the full path name to bitbar pluggins subdirectory
 # an example could be: /Users/[account name]/[directory]/Bitbar/ST/
-callbackScript = sys.argv[1]
+callbackScript = "'{}'".format(sys.argv[1])
 
 # Make the call the to the API and retrieve JSON data
 # Create the urllib2 Request
@@ -261,33 +305,6 @@ if "error" in j:
         print ":thumbsdown: Error Description: ", j['error_description']
     exit(99)
 
-# Verify SmartApp and local app version
-try:
-    majorBitBarVersion = int(j['Version'].encode('ascii').split('.')[0])
-    majorPythonVersion = int(PythonVersion)
-    if majorBitBarVersion != majorPythonVersion:
-        print ":rage:"
-        print "---"
-        print "Both ST_Python_Logic.py and BitBar Output SmartApp must be on same MAJOR release levels of {}.xx | color=red".format(max(majorBitBarVersion, majorPythonVersion))
-        print "Current BitBar Output SmartAPP Version: {}".format(j['Version'])
-        print "Current ST_Python_Logic.py Version    : {}".format(PythonVersion)
-        print "Current ST BitBar Plugin Version      : {}".format(STPluginVersion)
-        print "---"
-        print "Launch TextEdit " + cfgFileName + '|' + openParamBuilder("open -e " + cfgFileName) + ' terminal=false'
-        print "Launch SmartThings IDE" + '|' + openParamBuilder("open " + buildIDEURL(smartAppURL)) + ' terminal=false'
-        print "Launch Browser to View STBitBarAPP-V2 GitHub Software Resp" + '|' + openParamBuilder(
-            "open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
-        print "Download ST_Python_Logic.py v{:1.2f}".format(PythonVersion) + " to your 'Downloads' directory | ", \
-            " bash=" + callbackScript, ' param1=github_ST_Python_Logic terminal=false'
-        print "Download ST.5m.sh to your 'Downloads' directory |", " bash=" + callbackScript, ' param1=github_ST5MSH terminal=false'
-
-        raise SystemExit(0)
-except KeyError, e:
-    print "Error in ST API Data | color=red"
-    print "---"
-    print "Error Details: ", e
-    raise SystemExit(0)
-
 # Get the sensor arrays from the JSON data
 # print json.dumps(j['Motion Sensors'], indent=2)
 # exit(99)
@@ -309,12 +326,29 @@ try:
     options = j['Options']
     waters = j['Waters']
     valves = j['Valves']
+    bitbarOutputSmartAppVersion = j['Version']
 
 except KeyError, e:
     print ":rage:"
     print "---"
     print ":thumbsdown: Json File Error Details: ", e
     exit(99)
+
+# Verify SmartApp and local app version
+
+def upgradeAvailable():
+    getManifest()
+    BitBarNeedUpdate = currentSTBitBarRelease != bitbarOutputSmartAppVersion
+    PluginNeedUpdate = currentSTBitBarRelease != ST_Logic_Python_Py_Local_Version
+    if BitBarNeedUpdate or PluginNeedUpdate:
+        print '---'
+        print "STBitBarApp {} - SanderSoft™ | font=arial color=purple".format(currentSTBitBarRelease)
+        print ":computer: SmartApp Upgrade {} Now Available | color=red".format(currentSTBitBarRelease)
+        print "--:newspaper: {} | length=60 color=red font=16".format(currentSTBitBarNews)
+        if BitBarNeedUpdate:
+            print "--√ Click here to Launch SmartThings IDE | ", openParamBuilder("open " + buildIDEURL(smartAppURL)), ' terminal=false color=blue'
+        if PluginNeedUpdate:
+            print "--√ Click here to Upgrade ST BitBar Plugins App folder | color=blue bash={} param1=upgrade terminal=false".format(sys.argv[1])
 
 # noinspection PyShadowingNames
 def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
@@ -351,6 +385,7 @@ def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
 
 # Set User Display Options sent from BitBar Output SmartApp
 useImages = getOptions("useImages", True)
+useAlbumArtworkImages = getOptions("useAlbumArtworkImages", False)
 sortSensorsName = getOptions("sortSensorsName", True)
 subMenuCompact = getOptions("subMenuCompact", False)
 sortSensorsActive = getOptions("sortSensorsActive", True)
@@ -380,7 +415,7 @@ colorChoices = getOptions("colorChoices", None)
 colorBulbEmoji = getOptions("colorBulbEmoji", "🌈")
 dimmerBulbEmoji = getOptions("dimmerBulbEmoji", "🔆")
 dimmerValueOnMainMenu = getOptions("dimmerValueOnMainMenu", False)
-shmCurrentStateDict = {'off':'Disarmed','stay':'Armed/Stay','away':'Armed/Away'}
+shmCurrentStateDict = {'off': 'Disarmed', 'stay': 'Armed/Stay', 'away': 'Armed/Away'}
 
 # Read Temperature Formatting Settings
 numberOfDecimals = verifyInteger(getOptions("numberOfDecimals", "0"), 0)
@@ -480,7 +515,7 @@ if sortSensorsName is True:
         routines = sorted(routines)
 
 # Add a section to the submenu for special devices designated in the SmartApp
-if favoriteDevices is not None:
+if DEBUG is False and favoriteDevices is not None:
     favoriteDevicesBool = True
     favoriteDevices = sorted(favoriteDevices, cmp=locale.strcoll)
 else:
@@ -519,21 +554,6 @@ if (thermostats is not None) and (len(thermostats) > 0):
             thermoColor += "color=red"
         if thermostats[0]['thermostatOperatingState'] == "cooling":
             thermoColor += "color=blue"
-
-# Dynamically get image/icon files from github
-imageLibraryNames = {}
-def getImageString(imageName):
-    global imageLibraryNames
-    if imageName not in imageLibraryNames:
-        imageURL = "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/{}.png".format(imageName)
-        try:
-            rawImage = urllib2.urlopen(imageURL)
-        except urllib2.HTTPError, e:
-            print "{}: The icon '{}.png' was not found in github images folder".format(e,imageName)
-            imageURL = "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/{}.png".format('unknown')
-            rawImage = urllib2.urlopen(imageURL)
-        imageLibraryNames[imageName] = base64.b64encode(cStringIO.StringIO(rawImage.read()).getvalue())
-    return imageLibraryNames[imageName]
 
 # Print the main display
 degree_symbol = u'\xb0'.encode('utf-8')
@@ -594,8 +614,8 @@ if mainDisplay is not None:
                     mainDisplay[x]['value'] = mainDisplay[x]['value'] + degree_symbol
             elif mainDisplay[x]['capability'] == 'shm':
                 mainDisplay[x]['name'] = mainDisplay[x]['label']
-                mainDisplay[x]['value'] = shmCurrentStateDict.get(mainDisplay[x]['value'][3:],mainDisplay[x]['value'][3:])
-            extraLength = len(max([sub['name'] for sub in mainDisplay],key=len)) - len(mainDisplay[x]['name'])
+                mainDisplay[x]['value'] = shmCurrentStateDict.get(mainDisplay[x]['value'][3:], mainDisplay[x]['value'][3:])
+            extraLength = len(max([sub['name'] for sub in mainDisplay], key=len)) - len(mainDisplay[x]['name'])
             whiteSpace = ''
             for y in range(0, extraLength): whiteSpace += ' '
             print "--:small_blue_diamond: {}{} {} {} ".format(mainDisplay[x]['name'], whiteSpace, str(mainDisplay[x]['value']).upper(), buildFontOptions(3))
@@ -603,6 +623,7 @@ else:
     formattedMainDisplay = "ST BitBar"
     print "{} | {} {} dropdown=false".format(formattedMainDisplay.encode('utf-8'), 'size=14', mainMenuColor)
 
+upgradeAvailable()
 print "---"
 
 if favoriteDevicesBool:
@@ -610,7 +631,6 @@ if favoriteDevicesBool:
     favoriteDevicesOutputDict = {}
     fo = tempfile.TemporaryFile()
     sys.stdout = fo
-
 
 # Set the static amount of decimal places based on setting
 if matchOutputNumberOfDecimals is True:
@@ -705,7 +725,7 @@ if (thermostats is not None) and (len(thermostats) > 0):
                             c) + degree_symbol, buildFontOptions(3), "color=", numberToColorGrad(id, "red"), \
                             "bash=" + callbackScript, " param1=request param2=" + str(
                             heatingSetpointURL + str(c)), " param3=" + secret, thermo_param4, " terminal=false refresh=false"
-                    print "----",':heavy_check_mark:', str(currentHeatingSetPoint) + degree_symbol, "| color=black size=14 font='Menlo Bold'"
+                    print "----", ':heavy_check_mark:', str(currentHeatingSetPoint) + degree_symbol, "| color=black size=14 font='Menlo Bold'"
                     for c in range(currentHeatingSetPoint - 1, currentHeatingSetPoint - 6, -1):
                         thermo_param4 = 'param4=\"Setting {} to {}\"'.format(thermostat['displayName'], str(c) + degree_symbol)
                         print "----• ", str(c) + degree_symbol, buildFontOptions(3), "color=gray", \
@@ -809,7 +829,7 @@ if (modes is not None) and len(modes) > 0:
         thirtyMin = '30'
     else:
         thirtyMin = ''
-    emojiClock = " :clock{}{}:".format(time.strftime("%-I"),thirtyMin)
+    emojiClock = " :clock{}{}:".format(time.strftime("%-I"), thirtyMin)
     print "Home Mode is {}{}{}{}".format(currentmode['name'], emoji, emojiClock, buildFontOptions())
     print "--Modes (Select to Change)" + buildFontOptions()
     for i, mode in enumerate(modes):
@@ -847,7 +867,7 @@ if shmDisplayBool and alarms is not None:
     for i, alarm in enumerate(alarms):
         if alarm['name'] == 'shm':
             shmCurrentState = alarm['value']
-            print "Smart Home Monitor is {}{}".format(shmCurrentStateDict.get(alarm['value'],alarm['value']), buildFontOptions())
+            print "Smart Home Monitor is {}{}".format(shmCurrentStateDict.get(alarm['value'], alarm['value']), buildFontOptions())
     # Verify the SHM is configured:
     if shmCurrentState != "unconfigured":
         print "--Select to Change" + buildFontOptions()
@@ -860,7 +880,7 @@ if shmDisplayBool and alarms is not None:
                 currentAlarmURL = alarmURL + alarmState
                 currentAlarmStateDisplay = ""
                 alarm_param4 = 'param4=\"{} {}{}\"'.format('Setting Alarm to', alarmState.title(), currentAlarmStateDisplay)
-                currentAlarmURL = 'bash= ' + callbackScript + ' param1=request param2=' + currentAlarmURL + \
+                currentAlarmURL = 'bash=' + callbackScript + ' param1=request param2=' + currentAlarmURL + \
                                   ' param3=' + secret, alarm_param4, ' terminal=false refresh=false'
             print "--• {}{}".format(alarmState.title(), currentAlarmStateDisplay), buildFontOptions(3), \
                 colorText, currentAlarmURL
@@ -1042,7 +1062,7 @@ if locks is not None:
             elif sensor['value'] is None:
                 sensor['name'] = sensor['name'] + "(No Status)"
             else:
-                sensor['name'] = "{} is {}".format(sensor['name'],sensor['value'])
+                sensor['name'] = "{} is {}".format(sensor['name'], sensor['value'])
             if i == mainMenuMaxItems:
                 print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
                 if not subMenuCompact: print "--{} ({}) {}".format(
@@ -1192,15 +1212,15 @@ if switches is not None:
             colorSwitch = not colorSwitch
     #        print '==>', sensor["name"], sensor
 
-# Output MusicPlayers
+# Output Media Players
 if musicplayers is not None:
     sensorName = "MusicPlayers"
     countSensors = len(musicplayers)
     if countSensors > 0:
         hortSeparatorBar()
-        menuTitle = "Music Players"
+        menuTitle = "Media Players"
         mainTitle = menuTitle
-        subMenuTitle = "More Music Players..."
+        subMenuTitle = "More Media Players..."
         if showSensorCount: mainTitle += " (" + str(countSensors) + ")"
         print mainTitle, buildFontOptions()
         mainMenuMaxItems = mainMenuMaxItemsDict[sensorName]
@@ -1223,7 +1243,7 @@ if musicplayers is not None:
                 img = getImageString('redImage')
                 if mainMenuAutoSizeDict[sensorName] is True:
                     if mainMenuMaxItems > i: mainMenuMaxItems = i
-                    subMenuTitle = "More Music Players Inactive..."
+                    subMenuTitle = "More Media Players Inactive..."
             colorText = 'color=#333333' if colorSwitch else 'color=#666666'
             if i == mainMenuMaxItems:
                 print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions())
@@ -1231,9 +1251,9 @@ if musicplayers is not None:
                     menuTitle, str(countSensors - mainMenuMaxItems), buildFontOptions(2)
                 )
                 subMenuText = "--"
-            if sensor['groupRole'] is not None: sensor['name'] = "{} - ({})".format(sensor['name'], sensor['groupRole'])
+            if sensor['groupRole'] is not None: sensor['name'] = "{} - ({})".format(sensor['name'], sensor['groupRole'].capitalize())
             if useImages is True:
-                print subMenuText, sensor['name'], buildFontOptions(3) + colorText, 'image=', img
+                print subMenuText, sensor['name'], buildFontOptions(3) + colorText, 'image=' + img
             else:
                 print subMenuText, sensor['name'], whiteSpace, sym, buildFontOptions(3) + colorText
 
@@ -1242,33 +1262,51 @@ if musicplayers is not None:
             if sensor['level'] is not None:
                 if sensor['manufacturer'] is not None:
                     print "{}--{}".format(subMenuText, sensor['manufacturer']), buildFontOptions(2)
-                print "{}--• Current Volume: {} % of Maximum".format(subMenuText, sensor['level']), buildFontOptions(3)
-                print "{}----Set Music Level % of Max".format(subMenuText), buildFontOptions(3), smallFontPitchSize
+                print "{}--• Volume: {} % of Maximum".format(subMenuText, sensor['level']), buildFontOptions(3)
+                print "{}----Change Music Volume".format(subMenuText), buildFontOptions(3), smallFontPitchSize
                 currentLevel = 0
                 while currentLevel <= 100:
-                    currentMusicPlayerURL="{}{}&command=level&level={}".format(musicplayerURL, sensor['id'], currentLevel)
+                    currentMusicPlayerURL = "{}{}&command=level&level={}".format(musicplayerURL, sensor['id'], currentLevel)
                     musicplayers_param4 = ' param4=\"{} {}\"'.format('Changing volume to', currentLevel)
                     print "{}----• {}".format(subMenuText, currentLevel), buildFontOptions(3), \
                         'bash=' + callbackScript, 'param1=request param2=' + currentMusicPlayerURL, \
                         ' param3=' + secret, musicplayers_param4, ' terminal=false refresh=false'
                     currentLevel += 5
             if sensor['mute'] is not None:
-                command = "mute"
-                musicplayers_param4 = 'param4=\"{} {}\"'.format('MusicPlayer:', command)
-                print "{}--• {}".format(subMenuText, TitleCase(sensor['mute'])), buildFontOptions(3)
-                print "{}----• {}".format(subMenuText, TitleCase(command)), buildFontOptions(3), 'bash=' + callbackScript, \
-                    'param1=request param2=' + musicplayerURL + sensor['id'] + '&command=' + command, \
-                    ' param3=' + secret, musicplayers_param4, 'terminal=false refresh=false'
-                command = "unmute"
-                musicplayers_param4 = 'param4=\"{} {}\"'.format('MusicPlayer:', command)
-                print "{}----• {}".format(subMenuText, TitleCase(command)), buildFontOptions(3), 'bash=' + callbackScript, \
-                    'param1=request param2=' + musicplayerURL + sensor['id'] + '&command=' + command, \
-                    ' param3=' + secret, musicplayers_param4, 'terminal=false refresh=false'
+                for command in ["mute", "unmute"]:
+                    musicplayers_param4 = 'param4=\"{} {}\"'.format('MediaPlayer:', TitleCase(command))
+                    if sensor['mute'].startswith(command):
+                        muteState = " :white_check_mark: "
+                    else:
+                        muteState = '• '
+                    print "{}--{}{}".format(subMenuText,muteState, TitleCase(command)), buildFontOptions(3), 'bash=' + callbackScript, \
+                        'param1=request param2=' + musicplayerURL + sensor['id'] + '&command=' + command, ' param3=' + secret, musicplayers_param4, 'terminal=false refresh=false'
+            if sensor['supportedCommands'] is not None:
+                for supportedCommand in sorted(sensor['supportedCommands']):
+                    musicplayers_param4 = 'param4=\"{} {}\"'.format('MusicPlayer:', TitleCase(supportedCommand))
+                    print "{}--• {}".format(subMenuText, TitleCase(supportedCommand)), buildFontOptions(3), 'bash=' + callbackScript, \
+                        'param1=request param2=' + musicplayerURL + sensor['id'] + '&command=' + supportedCommand, \
+                        ' param3=' + secret, musicplayers_param4, 'terminal=false refresh=false'
             if sensor["audioTrackData"] is not None:
-                albumArt = "href={}".format(sensor["audioTrackData"].get('albumArtUrl', ''))
-                for key, value in sensor["audioTrackData"].items():
-                    if key != "albumArtUrl":
-                        print "{}--{}: {}".format(subMenuText, TitleCase(key), value), buildFontOptions(3), albumArt
+                albumArtworkImageLink = ''
+                if "albumArtUrl" in sensor["audioTrackData"]:
+                    if useAlbumArtworkImages:
+                        try:
+                            rawImage = urllib2.urlopen(sensor["audioTrackData"]['albumArtUrl'])
+                            albumArtworkImageLink = " image=" + base64.b64encode(cStringIO.StringIO(rawImage.read()).getvalue())
+                        except urllib2.HTTPError, e:
+                            pass
+                    else:
+                        albumArtworkImageLink = " href={}".format(sensor["audioTrackData"].get('albumArtUrl', ''))
+                for key, value in sorted(sensor["audioTrackData"].items()):
+                    if key == "albumArtUrl":
+                        if useAlbumArtworkImages:
+                            print "{}--• Display Album Cover Art".format(subMenuText), buildFontOptions(3)
+                            print "{}----".format(subMenuText), buildFontOptions(3), albumArtworkImageLink
+                        else:
+                            print "{}--• Click to display album cover art".format(subMenuText), buildFontOptions(3), "color=red", albumArtworkImageLink
+                    else:
+                        print "{}--{}: {}".format(subMenuText, TitleCase(key), value), buildFontOptions(3), "length=50 color=blue"
             colorSwitch = not colorSwitch
 
 # Output Valves
@@ -1312,11 +1350,11 @@ if valves is not None:
                 )
                 subMenuText = "--"
             if useImages is True:
-                print subMenuText, thisSensor, buildFontOptions(3) + colorText + ' bash=', callbackScript, \
+                print subMenuText, thisSensor, buildFontOptions(3) + colorText + ' bash=' + callbackScript, \
                     ' param1=request param2=', currentValveURL, ' param3=', secret, valve_param4, ' terminal=false refresh=false image=', img
             else:
                 print subMenuText, thisSensor, whiteSpace, sym, buildFontOptions(
-                    3) + colorText + ' bash=', callbackScript, ' param1=request param2=', currentValveURL, \
+                    3) + colorText + ' bash=' + callbackScript, ' param1=request param2=', currentValveURL, \
                     ' param3=', secret, valve_param4, ' terminal=false refresh=false'
             if favoriteDevicesBool and sensor['name'] in favoriteDevices:
                 favoriteDevicesOutputDict[sensor['name']] = sensor['name'] + whiteSpace + sym
@@ -1370,11 +1408,12 @@ if waters is not None:
 
 # Configuration Options
 hortSeparatorBar()
-print "Upgrade ST BitBar Plugins folder to latest {} release |".format(j['Version']), buildFontOptions(), "bash=" + callbackScript, ' param1=upgrade terminal=false'
-print "STBitBarApp Actions and Shortcuts" + buildFontOptions()
-print "--Your Current Running Program Version Information" + buildFontOptions()
-print "----BitBar Output App v" + j['Version'] + buildFontOptions()
-print "----ST_Python_Logic.py v{:1.2f}".format(PythonVersion) + buildFontOptions()
+stop = timeit.default_timer()
+print ":crystal_ball: STBitBarApp Actions and Shortcuts" + buildFontOptions(2)
+print "--• Upgrade ST BitBar Plugins App folder to latest {} release |".format(currentSTBitBarRelease), buildFontOptions(3), "bash=" + callbackScript, ' param1=upgrade terminal=false'
+print "--:computer: Your Current Running Program Version Information" + buildFontOptions()
+print "----BitBar Output App Version: {} ".format(currentSTBitBarRelease), buildFontOptions()
+print "----ST_Python_Logic.py Local Version: {}".format(ST_Logic_Python_Py_Local_Version), buildFontOptions()
 print "----BitBar Plugin GUI Options" + buildFontOptions()
 print "------" + sys.argv[0] + buildFontOptions()
 printFormatString = "------{:" + len(max(options, key=len)).__str__() + "} = {} {}"
@@ -1391,9 +1430,9 @@ print "----SmartThings HTTP Server Response", buildFontOptions()
 for response_info_name in response.info():
     if response_info_name[0:6] == 'x-rate':
         print "------{:20} = {:>3} {}".format(response_info_name, response.info()[response_info_name], buildFontOptions(3))
-print "--Launch TextEdit " + cfgFileName + buildFontOptions() + openParamBuilder("open -e " + cfgFileName) + ' terminal=false'
-print "--Launch SmartThings IDE " + buildFontOptions() + openParamBuilder("open " + buildIDEURL(smartAppURL)) + ' terminal=false'
-print "--Launch Browser to View STBitBarAPP-V2 GitHub Software Resp " + buildFontOptions() + openParamBuilder("open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
+print "--• Launch SmartThings IDE " + buildFontOptions() + openParamBuilder("open " + buildIDEURL(smartAppURL)) + ' terminal=false'
+print "--• Launch Mac Default Browser to View STBitBarAPP-V2 GitHub Software Resp " + buildFontOptions() + openParamBuilder("open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
+print "--:loop: Program Execution RunTine: {:.1f} secs".format(stop - start), buildFontOptions()
 
 if favoriteDevicesBool:
     # noinspection PyUnboundLocalVariable

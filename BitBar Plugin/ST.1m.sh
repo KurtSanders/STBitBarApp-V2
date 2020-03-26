@@ -17,7 +17,7 @@ verbose_request_notify=true
 # Main Program
 
 st_python_logic_filename=`dirname $0`/ST/ST_Python_Logic.py
-version="4.00"
+version="4.01"
 
 if [[ ! -f "${st_python_logic_filename}" ]]; then
 	osascript -e "display alert \"ST BitBar ERROR\" message \"${st_python_logic_filename} file not found!\""

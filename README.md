@@ -1,5 +1,5 @@
 # STBitBarApp-V2 (For Apple![macOS logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/macos_logo.jpg))
-### Version: 4.0.0 (Beta Testing)
+### Version: 4.01 (Beta Testing)
 
 <img src="https://raw.githubusercontent.com/KurtSanders/STAmbientWeather/master/images/readme.png" width="50">[Change-log & Version Release Features](https://github.com/KurtSanders/STBitBarApp-V2/wiki/Features-by-Version)
 
@@ -28,12 +28,24 @@
 6. Added the following information to be displayed in the mobile ST BitBar Output SmartApp main menu for:
 	* ST BitBar Output SmartApp version
 	* ST_Python_Logic.py version
-	* ST.xm.sh version (where 'x' is an integer number (default is now 1 for version 4.x.x) reflecting the number of minutes for normal polling of SmartThings devices defined to ST BitBar Output App.  Please do not change this value (x) to less than 1m which polls excessively and will impact Mac performance and the SmartThings API cloud.  If you would like a slower polling rate, I recommend '3m' or '5m' for 'x' in ST.xm.sh file (Example: rename ST.1m.sh to ST.5m.sh)
+	* ST.xm.sh version (where 'x' is an integer number (default is now 1 for version 4.x.x) reflecting the number of minutes for normal polling of SmartThings devices defined to ST BitBar Output App.  Please do not change this value (x) to less than 1m which polls excessively and will impact Mac performance and the SmartThings API cloud.  If you would like a slower polling rate or your Mac is not capable of completing a poll within the time period, I recommend '3m' or '5m' for 'x' in ST.xm.sh file (Example: rename ST.1m.sh to ST.5m.sh)
 	* BitBar Plugin Folder Location on Mac
 7. A new Install/Upgrade command script for ease of setting up or maintaining the BitBar Plugin Folder (See Installation below).  The install script can either create a new ST BitBar folder structure and download local files, or be used in an existing install to 'refresh/download' new local files.
 	* The ST_Python_logic.cfg will not be overwritten if it exists in the BitBar plugin folder.  You must manually add your ST BitBar Output API strings for a new installation using a text editor on the Mac, like Textedit.
 8. Added a 'Download ST BitBar Installation/Upgrade script to your 'Downloads' directory' to the 'STBitBarApp Actions and Shortcuts' choice on the BitBar Menu (located at the bottom of the screen).  This choice will download the command file to your Downloads folder so you can double click in Finder to execute.
+9. Enhanced the Media Playback Functions
+	* The new capabilities for Media Playback has been expanded and these new functions will be sent to the device with 'best effort' for action.  Not all media playback devices can accomodate these commands. 
+	* Album artwork can be displayed via a new browser tab by clicking the choice or rendered in a nested submenu depending on the preferences set in the BitBar SmartApp display options.
+	* Volume level is represented as a percentage of the devices maximum capability.
+	* Multi-device group playback is displayed on capable media playback devices with either a 'Primary' or 'Auxiliary' label which is provided by SmartThings API.  This label designation assists one in sending a change command to the 'Primary' group controller which should scope the whole group of Media Playback devices. 
+ 
+	<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/MediaPlaySubmenu.png width="600"/>
+	
+10. Application version upgrade awareness will detect when local and/or ST cloud files require upgrades.  These upgrade notifications will be displayed in the BitBar submenu.  Please follow the instructions in these choices to keep current with the latest production release.  If you need to manually run this Terminal script, please copy/paste the string below into your Terminal.app window as well as perform an 'Update from Repo' from the ST IDE SmartApps view.
 
+	`sudo curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sudo sh ./STBitBarInstall.command`
+
+11. Local python runtime statistics are now collected and presented in the BitBar's 'STBitBar Actions and Shortcuts' menu choice at the bottom of the BitBar submenu.  This wall clock time will help users with slower Mac's optimize the frequency of polling (See #6 above)
 
 ## Overview:
 Monitor and control [SmartThings](https://www.smartthings.com/) devices, sensors, Smart Home Monitor, Modes & Routines from the Apple MacOS Menu Bar.  This application is controlled via the SmartThings Mobile Client named **BitBar Output App**.  Selected program scripts and configuration files are installed locally on the Apple Mac in the BitBar plugin folder.
@@ -76,7 +88,7 @@ Sensor battery levels can be displayed for devices that have a battery capabilit
 4. Press <kbd>Return</kbd> 
 5. Select, copy and paste the following entire string into the Mac's Terminal Console Window.  
 
-	`curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sh ./STBitBarInstall.command`
+	`sudo curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sudo sh ./STBitBarInstall.command`
 
 6. Press <kbd>Return</kbd>  
 7. Read install/upgrade messages from the script.

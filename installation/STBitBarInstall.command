@@ -1,9 +1,11 @@
 # Author: SandersSoft (c) 2020
 # STBitBar-V2
 # https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command
+version="4.01"
 
 echo "STBitBar-V2 Installer/Upgrader (c) SanderSoft"
 echo "============================================="
+echo "Version ${version}"
 
 # Begin Define Variables #
 STBitBarPlistFilename="${HOME}/Library/Preferences/com.matryer.BitBar"
@@ -122,4 +124,4 @@ mkdir -p "${STBitBarPluginsDirectory}/ST"
 cd "${STBitBarPluginsDirectory}/ST"
 curl -s -O -J -L "${STBitBarGitHubRawHttp}/BitBar%20Plugin/ST/ST_Python_Logic.py"
 chmod +x "ST_Python_Logic.py"
-echo "Install/Update completed..."
+echo "Install/Update completed to ${version}..."

@@ -59,9 +59,7 @@
  // V 3.2x Bug Fixes and added logic for ST users with minimal devices
  // V 4.00 Major upgrade to add new features (See release notes on github)
 // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
- // Example:  BitBar 2.0, 3.0, 4.0  Major Releases (Requires both ST Code and Python to be upgraded to the same major release number)
- //           BitBar 2.1, 2.2, 2.21 Minor releases (No change needed to the Python Code on MacOS if same Python major release number)
-def version() { return "4.00" } // Must be a Floating Number String "2.1", "2.01", "2.113"
+def appVersion() { return "4.01" }
 import groovy.json.JsonSlurper
 import groovy.json.JsonBuilder
 import java.awt.Color;
@@ -92,6 +90,7 @@ preferences {
   page(name:"enableAPIPage")
   page(name:"APIPage")
   page(name:"APISendSMSPage")
+  /*
   section ("Display Sensor") {
   input "displayTempName", "string", multiple: false, required: false
     input "displayTemp", "capability.temperatureMeasurement", multiple: false, required: false
@@ -117,6 +116,7 @@ preferences {
   section ("Allow external service to get the presence status ...") {
     input "presences", "capability.presenceSensor", multiple: true, required: false
   }
+*/
 }
 mappings {
 
@@ -295,22 +295,19 @@ def setMusicPlayer() {
         if(it.id == id)  {
             log.debug "Found Music Player: ${it.displayName} with id: ${it.id} with current volume level: ${it.currentVolume}"
             switch (command) {
-                case 'mute':
-                it.mute()
-                return
-                break
-                case 'unmute':
-                it.unmute()
-                return
-                break
                 case 'level':
                 log.debug "Setting New Volume level from ${it.currentVolume} to ${level}"
                 it.setVolume(level)
                 return
                 break
                 default:
-                log.debug "Music Player command ${command} was not valid...Ignoring"
-                    break
+                    if (supportedMusicPlayerDeviceCommands().contains(command)) {
+                        log.debug "The Music Playback device was sent command: '${command}'"
+                        it."$command"()
+                    } else {
+                        log.debug "The Music Playback device was sent and invalid playback/track control command: '${command}'"
+                    }
+                break
                 return
             }
         }
@@ -544,24 +541,26 @@ def getLockData() {
 }
 def getMusicPlayerData() {
 	def resp = []
-    def slurper = new JsonSlurper()
+    def slurperATD 			= new JsonSlurper()
     musicplayersWebSocket.each {
         if (it.currentAudioTrackData != null) {
-            slurper = new groovy.json.JsonSlurper().parseText(it.currentAudioTrackData)
+            slurperATD = new groovy.json.JsonSlurper().parseText(it.currentAudioTrackData)
         } else {
-            slurper = new JsonSlurper()
+            slurperATD = new JsonSlurper()
         }
-        log.debug "${it.displayName}: "
+
         resp << [
-            name				: it.displayName,
-            manufacturer		: it.getManufacturerName(),
-            groupRolePrimary	: it.currentGroupRole=='primary',
-            groupRole			: it.currentGroupRole,
-            id 					: it.id,
-            level				: it.currentVolume,
-            mute				: it.currentMute,
-            status				: it.currentPlaybackStatus,
-            audioTrackData		: slurper
+            name							: it.displayName,
+            manufacturer					: it.getManufacturerName()?:it.currentDeviceStyle?:null,
+            groupRolePrimary				: it.currentGroupRole=='primary',
+            groupRole						: it.currentGroupRole,
+            id 								: it.id,
+            level							: it.currentVolume,
+            mute							: it.currentMute,
+            status							: it.currentPlaybackStatus,
+            audioTrackData					: slurperATD,
+            supportedCommands				: supportedMusicPlayerDeviceCommands(),
+            groupVolume						: it.currentGroupVolume?:null
         ];
     }
 
@@ -660,16 +659,16 @@ def getMainDisplayData() {
 
 def getStatus() {
     def timeStamp = new Date().format("h:mm:ss a", location.timeZone)
-    log.info "ST BitBar getStatus() started at ${timeStamp}"
+    if (debugBool) log.info "ST BitBar getStatus() started at ${timeStamp}"
     state.bbpluginfilename 	= params.bbpluginfilename
     state.bbpluginversion 	= params.bbpluginversion
     state.pythonAppVersion 	= params.pythonAppVersion
     state.pythonAppPath 	= params.path
-    state.bbFolder			= "Mac BitBar Plugin Folder: ${params.path?:'Unavailable'}"
-    state.bbVersions		= "BitBar Output App Version: v${version()}, ST_Python_Logic.py Version: ${params.pythonAppVersion?:'Unavailable'}, ${params.bbpluginfilename?:'Unavailable'} Version: ${params.bbpluginversion?:'Unavailable'}"
+    state.bbFolder			= "Mac BitBar Plugin Folder:\n${params.path?:'Unavailable'}"
+    state.bbVersions		= "Current Installed Versions:\nSmartApp: ${appVersion()}\nST_Python_Logic: ${params.pythonAppVersion?:'Unavailable'}\n${params.bbpluginfilename?:'Unavailable'}: ${params.bbpluginversion?:'Unavailable'}"
     if (debugBool) {
         log.info "Mac BitBar Plugin Folder: ${params.path}"
-        log.info "BitBar Output App Version: v${version()}, ST_Python_Logic.py Version: ${params.pythonAppVersion}, ${params.bbpluginfilename} Version: ${params.bbpluginversion}"
+        log.info "BitBar Output App Version: ${appVersion()}, ST_Python_Logic.py Version: ${params.pythonAppVersion}, ${params.bbpluginfilename} Version: ${params.bbpluginversion}"
     }
     def alarmData = getAlarmData()
     def tempData = getTempData()
@@ -685,6 +684,7 @@ def getStatus() {
     def waterData = getWaterData()
     def valveData = getValveData()
     def optionsData = [ "useImages" 				: useImages,
+                       "useAlbumArtworkImages" 		: useAlbumArtworkImages,
                        "sortSensorsName" 			: sortSensorsName,
                        "sortSensorsActive" 			: sortSensorsActive,
                        "mainMenuMaxItemsTemps" 		: mainMenuMaxItemsTemps,
@@ -732,7 +732,7 @@ def getStatus() {
                        ],
                        "sortTemperatureAscending"	: (sortTemperatureAscending == null) ? false : sortTemperatureAscending
                       ]
-    def resp = [ "Version" : version(),
+    def resp = [ "Version" : appVersion(),
                 "Alarm Sensors" : alarmData,
                 "Temp Sensors" : tempData,
                 "Contact Sensors" : contactData,
@@ -782,7 +782,7 @@ private mainPage() {
             paragraph image: "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2.png",
                 title: "ST BitBar App Version Information",
                 required: false,
-                "${state.bbFolder}\n${state.bbVersions}"
+                "${state.bbFolder}\n\n${state.bbVersions}"
         }
         section(hideable: true, hidden: true, "Debuging Options for IDE Live Logging") {
             input "debugBool", "bool",
@@ -1222,11 +1222,17 @@ def optionsPage() {
                 default: false,
                 required: true
         }
-        section("Required: Use High-Res Images or Low-Res Emojis for switch & lock status") {
+        section("Required: Use High-Res Images (More CPU required) or Low-Res Emojis") {
 			input "useImages", "bool",
 				title: "Use high-res images for switch & lock status (green/red images) instead of low-res emojis",
                 default: true,
 				required: true
+			input "useAlbumArtworkImages", "bool",
+				title: "Display hi-res album artwork images instead of open new browser tab to display	",
+                default: false,
+				required: true
+        }
+        section {
             input "showSensorCount", "bool",
                 title: "Show the number of sensors in each sensor category title",
                 default: false,
@@ -1421,4 +1427,8 @@ def colorChoiceList() {
             "green yellow","azure","mistyrose","cadetblue","oldlace","gray","honeydew","peachpuff","tan","thistle","palegoldenrod","mediumorchid","rosybrown","mediumturquoise",
             "lemonchiffon","maroon","mediumvioletred","violet","yellow green","coral","lightgreen","cornsilk","mediumblue","aliceblue","forestgreen","aquamarine","deepskyblue",
             "lightslategray","darksalmon","crimson","sandybrown","lightpink","seashell"].sort()
+}
+
+def supportedMusicPlayerDeviceCommands() {
+    return ['nextTrack','pause','play','playTrack','previousTrack','stop']
 }
