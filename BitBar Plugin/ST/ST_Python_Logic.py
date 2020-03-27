@@ -1290,21 +1290,34 @@ if musicplayers is not None:
             if sensor["audioTrackData"] is not None:
                 albumArtworkImageLink = ''
                 if "albumArtUrl" in sensor["audioTrackData"]:
+                    errorURL = False
+                    url = sensor["audioTrackData"]['albumArtUrl']
+                    if not urlparse(url).scheme:
+                        url = 'http://' + url
                     if useAlbumArtworkImages:
                         try:
-                            rawImage = urllib2.urlopen(sensor["audioTrackData"]['albumArtUrl'])
+                            req = urllib2.Request(url, headers={'User-Agent': "Magic Browser"})
+                            rawImage = urllib2.urlopen(req)
                             albumArtworkImageLink = " image=" + base64.b64encode(cStringIO.StringIO(rawImage.read()).getvalue())
-                        except urllib2.HTTPError, e:
-                            pass
+                        except Exception, e:
+                            errorMessage = e
+                            albumArtworkImageLink = " href={}".format(url)
+                            useAlbumArtworkImages = False
+                            errorURL = True
                     else:
-                        albumArtworkImageLink = " href={}".format(sensor["audioTrackData"].get('albumArtUrl', ''))
+                        albumArtworkImageLink = " href={}".format(url)
                 for key, value in sorted(sensor["audioTrackData"].items()):
                     if key == "albumArtUrl":
                         if useAlbumArtworkImages:
                             print "{}--• Display Album Cover Art".format(subMenuText), buildFontOptions(3)
                             print "{}----".format(subMenuText), buildFontOptions(3), albumArtworkImageLink
                         else:
-                            print "{}--• Click to display album cover art".format(subMenuText), buildFontOptions(3), "color=red", albumArtworkImageLink
+                            if errorURL:
+                                print "{}--• Click to display album cover art".format(subMenuText), buildFontOptions(3), "color=red"
+                                print "{}----ErrorURL: {}".format(subMenuText, url), buildFontOptions(3)
+                                print "{}----ErrorMessage: {}".format(subMenuText, errorMessage), buildFontOptions(3)
+                            else:
+                                print "{}--• Click to display album cover art".format(subMenuText), buildFontOptions(3), "color=red", albumArtworkImageLink
                     else:
                         print "{}--{}: {}".format(subMenuText, TitleCase(key), value), buildFontOptions(3), "length=50 color=blue"
             colorSwitch = not colorSwitch
