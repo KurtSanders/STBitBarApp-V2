@@ -605,6 +605,7 @@ if mainDisplay is not None:
                 formattedMainDisplay = "ST BitBar"
                 print "{} | {} {} dropdown=false".format(formattedMainDisplay.encode('utf-8'), 'size=14', mainMenuColor)
     if mainDisplaylen > 0:
+        maxLengthDisplayName = 0
         print "---"
         print "Main Menu Bar Icon Status ({}) | {}".format(mainDisplaylen, buildFontOptions(2))
         for x in range(len(mainDisplay)):
@@ -615,10 +616,9 @@ if mainDisplay is not None:
             elif mainDisplay[x]['capability'] == 'shm':
                 mainDisplay[x]['name'] = mainDisplay[x]['label']
                 mainDisplay[x]['value'] = shmCurrentStateDict.get(mainDisplay[x]['value'][3:], mainDisplay[x]['value'][3:])
-            extraLength = len(max([sub['name'] for sub in mainDisplay], key=len)) - len(mainDisplay[x]['name'])
-            whiteSpace = ''
-            for y in range(0, extraLength): whiteSpace += ' '
-            print "--:small_blue_diamond: {}{} {} {} ".format(mainDisplay[x]['name'], whiteSpace, str(mainDisplay[x]['value']).upper(), buildFontOptions(3))
+            maxLengthDisplayName = len(mainDisplay[x]['name']) if len(mainDisplay[x]['name']) > maxLengthDisplayName else maxLengthDisplayName
+        for x in range(len(mainDisplay)):
+            print "--:small_blue_diamond: {} {} {} ".format(mainDisplay[x]['name'].ljust(maxLengthDisplayName,'.'), str(mainDisplay[x]['value']).upper(), buildFontOptions(3))
 else:
     formattedMainDisplay = "ST BitBar"
     print "{} | {} {} dropdown=false".format(formattedMainDisplay.encode('utf-8'), 'size=14', mainMenuColor)
