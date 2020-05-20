@@ -535,7 +535,7 @@ def getSwitchData() {
 def getLockData() {
 	def resp = []
     locks.each {
-        resp << [name: it.displayName, value: it.currentLock, id : it.id, battery: "N/A", eventlog: null;
+        resp << [name: it.displayName, value: it.currentLock, id : it.id, battery: "N/A", eventlog: null]
     }
     return resp
 }
