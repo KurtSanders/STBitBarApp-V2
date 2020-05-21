@@ -418,14 +418,21 @@ def toggleLock() {
 }
 
 def getBatteryInfo(dev) {
-    if(dev.currentBattery) {
+	def batteryMap
+	try {
+		batteryMap = dev.currentBattery
+		}
+	catch (all) {
+		return "N/A"
+	}
+    if(batteryMap) {
         if(state.batteryWarningPct == null || state.batteryWarningPct < 0 || state.batteryWarningPct > 100 ) {
             state.batteryWarningPct = 50
         }
-        if(dev.currentBattery <= state.batteryWarningPct){
-            return [dev.currentBattery, batteryWarningPctEmoji == null?" :grimacing: ":" " + batteryWarningPctEmoji + " "]
+        if(batteryMap <= state.batteryWarningPct){
+            return [batteryMap, batteryWarningPctEmoji == null?" :grimacing: ":" " + batteryWarningPctEmoji + " "]
         }
-        return [dev.currentBattery, ""]
+        return [batteryMap, ""]
     }
     else return "N/A"
 }
@@ -535,7 +542,7 @@ def getSwitchData() {
 def getLockData() {
 	def resp = []
     locks.each {
-        resp << [name: it.displayName, value: it.currentLock, id : it.id, battery: "N/A", eventlog: null]
+        resp << [name: it.displayName, value: it.currentLock, id : it.id, battery: getBatteryInfo(it), eventlog: null]
     }
     return resp
 }
@@ -1312,28 +1319,29 @@ private initializeAppEndpoint() {
 }
 
 def getEventsOfDevice(device) {
-//   log.debug "Start: state.eventsDays = ${state.eventsDays}"
-//   log.debug "Start: state.eventsMax = ${state.eventsMax}"
+    def deviceHistory
 
     if (eventsShow==null || eventsShow==false) {return}
 
     if (state.eventsDays==null) {
-    	state.eventsDays = 1
-//        log.debug "Null: state.eventsDays = ${state.eventsDays}"
-        }
+        state.eventsDays = 1
+    }
     if (state.eventsMax==null) {
-    	state.eventsMax = 10
-//        log.debug "Null: state.eventsMax = ${state.eventsMax}"
-        }
+        state.eventsMax = 10
+    }
     if (state.eventsDays > 7) {state.eventsDays = 1}
     if (state.eventsMax > 100) {state.eventsMax = 100}
 
-//    log.debug "StartQuery: state.eventsDays = ${state.eventsDays}"
-//    log.debug "StartQuery: state.eventsMax = ${state.eventsMax}"
-	def today = new Date()
-	def then = timeToday(today.format("HH:mm"), TimeZone.getTimeZone('UTC')) - state.eventsDays
+    def today = new Date()
+    def then = timeToday(today.format("HH:mm"), TimeZone.getTimeZone('UTC')) - state.eventsDays
     def timeFormatString = eventsTimeFormat=="12 Hour Clock Format with AM/PM"?'EEE MMM dd hh:mm a z':'EEE MMM dd HH:mm z'
-	device.eventsBetween(then, today, [max: state.eventsMax])?.findAll{"$it.source" == "DEVICE"}?.collect{[date: it.date.format(timeFormatString , location.timeZone), name: it.name, value: it.value]}
+    try {
+        deviceHistory = device.eventsBetween(then, today, [max: state.eventsMax])?.findAll{"$it.source" == "DEVICE"}?.collect{[date: it.date.format(timeFormatString , location.timeZone), name: it.name, value: it.value]}
+    }
+    catch (all) {
+        return deviceHistory
+    }
+    return deviceHistory
 }
 
 private getAllDevices() {
