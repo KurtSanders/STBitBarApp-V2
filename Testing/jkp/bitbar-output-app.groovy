@@ -1193,7 +1193,7 @@ def batteryPage() {
         section("Optional: Battery Check for Selected Devices") {
             input "batteryExcludedDevices", "enum",
                 title: "Battery: Select Any Devices to Exclude from Battery Check [Default='None']",
-                options: getAllDevices(true),
+                options: getAllDevices(),
                 required: false,
                 multiple: true
         }
