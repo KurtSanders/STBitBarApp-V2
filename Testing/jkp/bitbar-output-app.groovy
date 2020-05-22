@@ -61,7 +61,6 @@
 // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
 def appVersion() { return "4.01" }
 import groovy.json.JsonSlurper
-import groovy.json.JsonBuilder
 import java.awt.Color;
 import java.util.ArrayList;
 import groovy.time.*
@@ -86,38 +85,13 @@ preferences {
   page(name:"iconsPage")
   page(name:"categoryPage")
   page(name:"eventsPage")
+  page(name:"batteryPage")
   page(name:"disableAPIPage")
   page(name:"enableAPIPage")
   page(name:"APIPage")
   page(name:"APISendSMSPage")
-  /*
-  section ("Display Sensor") {
-  input "displayTempName", "string", multiple: false, required: false
-    input "displayTemp", "capability.temperatureMeasurement", multiple: false, required: false
-  }
-  section ("Allow external service to get the temperature ...") {
-    input "temps", "capability.temperatureMeasurement", multiple: true, required: false
-  }
-  section ("Allow external service to get the alarm status ...") {
-    input "alarms", "capability.alarm", multiple: true, required: false
-  }
-  section ("Allow external service to get the contact status ...") {
-    input "contacts", "capability.contactSensor", multiple: true, required: false
-  }
-  section ("Allow external service to get the switches ...") {
-    input "switches", "capability.switch", multiple: true, required: false
-  }
-  section ("Allow external service to get the thermostat status ...") {
-    input "thermos", "capability.thermostat", multiple: true, required: false
-  }
-  section ("Allow external service to get the motion status ...") {
-    input "motions", "capability.motionSensor", multiple: true, required: false
-  }
-  section ("Allow external service to get the presence status ...") {
-    input "presences", "capability.presenceSensor", multiple: true, required: false
-  }
-*/
 }
+
 mappings {
 
     path("/GetStatus/") {
@@ -418,8 +392,14 @@ def toggleLock() {
 }
 
 def getBatteryInfo(dev) {
-    if (dev.capabilities.any { it.name.contains('Lock') } == true) {
-        log.debug "${dev} Capabilities: ${dev.capabilities}"
+    if (dev.capabilities.any { it.name.contains('Lock') } == true) log.debug "${dev} Capabilities: ${dev.capabilities}"
+
+//    log.debug "batteryExcludedDevices = ${batteryExcludedDevices}"
+    if (batteryExcludedDevices) {
+        if (batteryExcludedDevices.contains(dev.id)) {
+            log.debug "${dev} Battery Level: Excluded in BitBar Preference"
+            return "N/A"
+        }
     }
     if (dev.capabilities.any { it.name.contains('Battery') } == true) {
         def batteryMap
@@ -614,7 +594,7 @@ def getValveData() {
 }
 
 def getMainDisplayData() {
-    def displaySensorCapabilitySize = displaySensorCapability.size()
+    def displaySensorCapabilitySize = displaySensorCapability?displaySensorCapability.size():0
     def returnCapability
     def returnName
     def returnValue
@@ -1205,7 +1185,18 @@ def eventsPage() {
                  url: "http://www.webpagefx.com/tools/emoji-cheat-sheet/",
                  description: "tap here to view valid list of Emoji names in your mobile browser"
                 )
-                }
+        }
+    }
+}
+def batteryPage() {
+    dynamicPage(name:"batteryPage", hideWhenEmpty: true) {
+        section("Optional: Battery Check for Selected Devices") {
+            input "batteryExcludedDevices", "enum",
+                title: "Battery: Select Any Devices to Exclude from Battery Check [Default='None']",
+                options: getAllDevices(true),
+                required: false,
+                multiple: true
+        }
         section("Optional: Battery Level Options for Devices") {
             input "batteryWarningPctEmoji", "text",
                 title: "Battery: Emoji ShortCode ':xxx:' to Display for Low Battery Warning [Default=':grimacing:']",
@@ -1284,8 +1275,11 @@ def optionsPage() {
         section("Optional: Number of Devices per ST Sensor category to display") {
             href name: "categoryPageLink", title: "Number of Devices per ST Sensor Categories to Display Options", description: "", page: "categoryPage"
         }
-        section("Optional: Event History and Battery Level Options for Devices") {
-            href name: "eventsPageLink", title: "Event History and Battery Level Options", description: "", page: "eventsPage"
+        section("Optional: Battery Options") {
+            href name: "batteryPageLink", title: "Battery Check/Display/Level", description: "", page: "batteryPage"
+        }
+        section("Optional: Event History Options for Devices") {
+            href name: "eventsPageLink", title: "Event History", description: "", page: "eventsPage"
         }
         section("Optional: Font Names, Pitch Size and Colors") {
             href name: "fontsPageLink", title: "BitBar Output Menu Text Display Settings", description: "", page: "fontsPage"
@@ -1350,31 +1344,43 @@ def getEventsOfDevice(device) {
     return deviceHistory
 }
 
-private getAllDevices() {
-    //contactSensors + presenceSensors + temperatureSensors + accelerationSensors + waterSensors + lightSensors + humiditySensors
-     def dev_list =
-     	([] + switches
-        + dimmers
-        + motions
-        + accelerations
-        + contacts
-        + illuminants
-        + temps
-        + relativeHumidityMeasurements
-        + locks
-        + alarms
-        + batteries
-        + thermos
-        + medias
-        + musicplayers
-        + speeches
-        + colors
-        + valves
-        + waters
-        + presences
-        + leaks)?.findAll()?.unique { it.id }
-        dev_list = dev_list.collect{ it.toString() }
-        return dev_list.sort()
+private getAllDevices(BatteryCapabilityOnly=false) {
+    def devicePickMap = [:]
+    def dev_list =
+        ([] + switches
+         + dimmers
+         + motions
+         + accelerations
+         + contacts
+         + illuminants
+         + temps
+         + relativeHumidityMeasurements
+         + locks
+         + alarms
+         + batteries
+         + thermos
+         + medias
+         + musicplayers
+         + speeches
+         + colors
+         + valves
+         + waters
+         + presences
+         + leaks)?.findAll()?.unique { it.id }
+    dev_list.each {
+        if (BatteryCapabilityOnly) {
+            if (it.capabilities.any { it.name.contains('Battery') } == true) {
+                devicePickMap << ["${it.id}": "${it.displayName}"]
+            }
+        } else {
+            devicePickMap << ["${it.id}": "${it.displayName}"]
+        }
+    }
+    //    dev_list = dev_list.collect{ it.toString() }
+    //    return dev_list.sort()
+    //    log.debug "devicePickMap: ${devicePickMap}"
+    //    log.debug "devicePickMap.sort() {it.value} = ${devicePickMap.sort() {it.value}}"
+    return devicePickMap.sort() {it.value}
 }
 
 def getHueSatLevel(color) {
