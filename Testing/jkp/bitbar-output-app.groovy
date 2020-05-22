@@ -418,23 +418,29 @@ def toggleLock() {
 }
 
 def getBatteryInfo(dev) {
-	def batteryMap
-	try {
-		batteryMap = dev.currentBattery
-		}
-	catch (all) {
-		return "N/A"
-	}
-    if(batteryMap) {
-        if(state.batteryWarningPct == null || state.batteryWarningPct < 0 || state.batteryWarningPct > 100 ) {
-            state.batteryWarningPct = 50
-        }
-        if(batteryMap <= state.batteryWarningPct){
-            return [batteryMap, batteryWarningPctEmoji == null?" :grimacing: ":" " + batteryWarningPctEmoji + " "]
-        }
-        return [batteryMap, ""]
+    if (dev.capabilities.any { it.name.contains('Lock') } == true) {
+        log.debug "${dev} Capabilities: ${dev.capabilities}"
     }
-    else return "N/A"
+    if (dev.capabilities.any { it.name.contains('Battery') } == true) {
+        def batteryMap
+        try {
+            batteryMap = dev.currentBattery
+            log.debug "${dev} Battery Level: ${batteryMap}%"
+        }
+        catch (all) {
+            return "N/A"
+        }
+        if(batteryMap) {
+            if(state.batteryWarningPct == null || state.batteryWarningPct < 0 || state.batteryWarningPct > 100 ) {
+                state.batteryWarningPct = 50
+            }
+            if(batteryMap <= state.batteryWarningPct){
+                return [batteryMap, batteryWarningPctEmoji == null?" :grimacing: ":" " + batteryWarningPctEmoji + " "]
+            }
+            return [batteryMap, ""]
+        }
+    }
+    return "N/A"
 }
 
 def getAlarmData() {
