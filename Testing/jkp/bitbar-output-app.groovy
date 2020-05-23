@@ -392,7 +392,7 @@ def toggleLock() {
 }
 
 def getBatteryInfo(dev) {
-    if (dev.capabilities.any { it.name.contains('Lock') } == true) log.debug "${dev} Capabilities: ${dev.capabilities}"
+    if (dev.capabilities.any { it.name.contains('Lock') } == true) log.debug "${dev} Attributes/Capabilities: ${dev.supportedAttributes}"
 
 //    log.debug "batteryExcludedDevices = ${batteryExcludedDevices}"
     if (batteryExcludedDevices) {
