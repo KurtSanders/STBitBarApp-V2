@@ -404,7 +404,8 @@ def getBatteryInfo(dev) {
     if (dev.capabilities.any { it.name.contains('Battery') } == true) {
         def batteryMap
         try {
-            batteryMap = dev.currentBattery
+//            batteryMap = dev.currentBattery
+            batteryMap = dev.currentValue("battery")
             log.debug "${dev} Battery Level: ${batteryMap}%"
         }
         catch (all) {
