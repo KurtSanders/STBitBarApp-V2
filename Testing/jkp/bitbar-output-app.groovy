@@ -412,13 +412,13 @@ def getBatteryInfo(dev) {
             return "N/A"
         }
         if(batteryMap) {
-            if(state.batteryWarningPct == null || state.batteryWarningPct < 0 || state.batteryWarningPct > 100 ) {
+            if(state.batteryWarningPct == null || state.batteryWarningPct.toInteger() < 0 || state.batteryWarningPct.toInteger() > 100 ) {
                 state.batteryWarningPct = 50
             }
-            if(batteryMap <= state.batteryWarningPct){
-                return [batteryMap, batteryWarningPctEmoji == null?" :grimacing: ":" " + batteryWarningPctEmoji + " "]
+            if(batteryMap.toInteger() <= state.batteryWarningPct.toInteger()){
+                return ["${batteryMap}%", batteryWarningPctEmoji == null?" :grimacing: ":" " + batteryWarningPctEmoji + " "]
             }
-            return [batteryMap, ""]
+            return ["${batteryMap}%", ""]
         }
     }
     return "N/A"
