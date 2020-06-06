@@ -1,5 +1,5 @@
 # STBitBarApp-V2 (For Apple![macOS logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/macos_logo.jpg))
-### Version: 4.01 (Beta Testing)
+### Version: 4.01 (Stable)
 
 <img src="https://raw.githubusercontent.com/KurtSanders/STAmbientWeather/master/images/readme.png" width="50">[Change-log & Version Release Features](https://github.com/KurtSanders/STBitBarApp-V2/wiki/Features-by-Version)
 
@@ -7,7 +7,7 @@
 
 ![STBitBarApp-V2 logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-Menu.png)
 
-### New V4.x.x Beta Features:
+### New V4.0.1 Features:
 
 1. Allow one SmartThings device of either a lock, contact, switch, or temperature sensor to be designated in the BitBar Top Menu Bar.  Red & green circle emoji's will be shown in the top Mac menu bar for the selected device status for a contact sensor (Open/Close) or switch sensor (On/Off).  An integer value with degree symbol will be displayed when a temperature sensor is designated.  The top menu bar sensor choice settings is set in the ST BitBar Output SmartApp under 'Select devices'.
  
