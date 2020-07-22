@@ -12,7 +12,7 @@
 			"id" : "4ff00390-e8be-48ea-8f1c-3f01eed4f2c6",
 			"name": "BitBar Output App V2",
 			"namespace": "kurtsanders",
-			"location": "https://raw.githubusercontent.com/KurtSanders/STAmbientWeather/master/hubitat/smartapps/kurtsanders/ambient-weather-station.src/ambient-weather-station.groovy",
+			"location": "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/hubitat/smartapps/kurtsanders/bitbar-output-app.src/bitbar-output-app.groovy",
 			"required": true,
 			"primary": true,
 			"oauth": true
