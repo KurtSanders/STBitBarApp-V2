@@ -1,0 +1,21 @@
+{
+	"packageName": "BitBar Output App V2",
+	"author": "Kurt Sanders",
+	"version": "4.0.2",
+	"minimumHEVersion": "1.0.0",
+	"dateReleased": "2020-07-22",
+	"documentationLink": "https://github.com/KurtSanders/STBitBarApp-V2/blob/master/hubitat/README.md",
+	"licenseFile": "",
+	"releaseNotes": "BitBar Output App for Hubitat",
+	"apps" : [
+		{
+			"id" : "4ff00390-e8be-48ea-8f1c-3f01eed4f2c6",
+			"name": "BitBar Output App V2",
+			"namespace": "kurtsanders",
+			"location": "https://raw.githubusercontent.com/KurtSanders/STAmbientWeather/master/hubitat/smartapps/kurtsanders/ambient-weather-station.src/ambient-weather-station.groovy",
+			"required": true,
+			"primary": true,
+			"oauth": true
+		}
+	]
+}
