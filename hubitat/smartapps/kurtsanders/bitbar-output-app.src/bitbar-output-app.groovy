@@ -728,10 +728,10 @@ def getStatus() {
 }
 
 private mainPage() {
+    if (app.getInstallationState()=='INCOMPLETE'){getAppInfo()}
     def currentYear = new Date().format("yyyy", location.timeZone)
     dynamicPage(name: "mainPage", uninstall:true, install:true, submitOnChange: true) {
         def apiSetupState = (state.accessToken==null)?'Please complete API setup!':'API Setup is complete!'
-        getAppInfo()
         section( "API Access Setup" ) {
             if (isST) {
                 href name: "APIPageLink", title: "${apiSetupState}", description: (state.endpoint == null)?"You must add these API strings to ST_Python_Logic.cfg":"", page: "APIPage"
