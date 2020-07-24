@@ -135,7 +135,7 @@ def uninstalled() {
 def updated() {
 	// Added additional logging from @kurtsanders
     log.debug "##########################################################################################"
-    log.debug "secret=${state.endpointSecret}"
+    log.debug "secret=${state.accessToken}"
     log.debug "smartAppURL=${state.endpointURL}"
     log.debug "##########################################################################################"
     log.debug "The API has been setup. Please enter the next two strings exactly as shown into the HE_Python_Logic.cfg file which is in your BitBar plugins directory."
@@ -728,12 +728,19 @@ def getStatus() {
 }
 
 private mainPage() {
-    appInfo
     def currentYear = new Date().format("yyyy", location.timeZone)
-    dynamicPage(name: "mainPage", uninstall:true, install:true) {
-    def apiSetupState = (state.endpoint == null)?'Please complete API setup!':'API Setup is complete!'
+    dynamicPage(name: "mainPage", uninstall:true, install:true, submitOnChange: true) {
+        def apiSetupState = (state.accessToken==null)?'Please complete API setup!':'API Setup is complete!'
+        getAppInfo()
         section( "API Access Setup" ) {
-            href name: "APIPageLink", title: "${apiSetupState}", description: (state.endpoint == null)?"You must add these API strings to ST_Python_Logic.cfg":"", page: "APIPage"
+            if (isST) {
+                href name: "APIPageLink", title: "${apiSetupState}", description: (state.endpoint == null)?"You must add these API strings to ST_Python_Logic.cfg":"", page: "APIPage"
+            } else {
+                app.updateSetting("testAPI", false)
+                app.updateSetting("okSend", false)
+                app.updateSetting("sendAPI", false)
+                href name: "APIPageLink", title: "${apiSetupState}", description: (state.endpoint == null)?"You must add these API strings to HE_Python_Logic.cfg":"", page: "APIPage"
+            }
         }
         section("Sensor/Device Management & Setup") {
             href name: "devicesManagementPageLink", title: "Select sensors/devices", description: "", page: "devicesManagementPage"
@@ -775,96 +782,93 @@ private mainPage() {
 
 def APIPage() {
     dynamicPage(name: "APIPage") {
-        def localUri = getFullLocalApiServerUrl()+ "/Test/" + "?access_token=${state.accessToken}"
         section("API Setup") {
-            state.endpoint=getFullLocalApiServerUrl()+ "/?access_token=${state.accessToken}"
-            if (state.endpoint) {
-                if (isST) {
-                    paragraph "API has been setup. Please enter the following two strings in your 'ST_Python_Logic.cfg' file in your Apple Mac BitBar Plugins directory."
-                    paragraph "smartAppURL=${state.endpointURL}"
-                    paragraph "secret=${state.endpointSecret}"
-                } else {
-                    paragraph "API has been setup. Please enter the following two strings in your 'HE_Python_Logic.cfg' file in your Apple Mac BitBar Plugins directory."
-                    paragraph "smartAppURL=${state.endpointURL}/<br>"+
-                        "secret=${state.endpointSecret}"
-                }
-                if (isHE) {
-                    input "testAPI", "bool",
-                        title: "Select to test the http API access to '${app.name}'?",
-                        submitOnChange: true,
-                        required: false
-                    if (testAPI) {
-                        app.updateSetting("testAPI", false)
-                        def hubHttpIp = "http://${location.hub.localIP}:8080"
-                        try {
-                            log.debug "Testing http GET app access: '${localUri}'"
-                            def params = [
-                                uri        : hubHttpIp,
-                                path       : "/apps/api/${app.getId()}/Test/",
-                                query      : ["access_token": "${state.accessToken}"]
-                            ]
-                            // log.debug "getHttp params Map = '${params}'"
-                            // "http://10.0.0.80:8080/apps/api/655/Test/?access_token=5dd86abc-59af-452e-b8c1-fbf676723174"
-                            httpGet(params) { resp ->
-                                if (resp.success) {
-                                    paragraph("${resp.data}")
-                                    paragraph(doneImage)
-                                } else {
-                                    paragraph("Failed: ${resp.data}")
-                                }
-                            }
-                        } catch (Exception e) {
-                            log.warn "Test Call to on failed: ${e.message}"
-                            paragraph("Test Call to on failed: ${e.message}")
-                        }
-                    }
-                }
-                // paragraph("Use the following URI to test the access of the '${app.name}' endpoint:<br />Local: <a href='${localUri}'>Local Test URL</a>")
-
-                input "sendAPI", "bool",
-                    title: "Select to send these two secret strings as a notification message",
-                    submitOnChange: true,
-                    required: false
-                if (sendAPI) {
-                    if (isST) {
-                        input "phone", "phone",
-                            title: "Enter the US mobile phone number",
-                            submitOnChange: true,
-                            required: true
-                        if (sendAPI && phone) {
-                            href name: "APISendSMSPageLink", title: "Send API Now to ${phone.replaceFirst('(\\d{3})(\\d{3})(\\d+)', '($1) $2-$3')}", description: "", page: "APISendSMSPage"
-                        }
-                    } else {
-                        section("Enable Pushover™ and/or Twilio™ service(s). (Must install virtual device(s) and have an active service account):") {
-                            input ("pushoverEnabled", "bool", title: "Use Pushover™ and/or Twilio™ Service(s) for Alert Notifications", required: false, submitOnChange: true)
-                            if (pushoverEnabled) {
-                                input(name: "pushoverDevices", type: "capability.notification", title: "", required: false, multiple: true,
-                                      description: "Select notification device(s)", submitOnChange: true)
-                                paragraph ""
-                            }
-                            if (pushoverDevices) {
-                                input ("okSend", "bool", title: "Select to send API strings NOW to ${pushoverDevices}?", defaultValue: false, required: false, submitOnChange: true)
-                                if (okSend) {
-                                    app.updateSetting("okSend", false)
-                                    def msgData = "Add the following two API strings to your ST_Python_Logic.cfg in the BitBar Plugins Mac Folder"
-                                    msgData += "\nsmartAppURL=${state.endpointURL}"
-                                    msgData += "\nsecret=${state.endpointSecret}"
-                                    if (settings.pushoverDevices != null) {
-                                        settings.pushoverDevices.each {							// Use notification devices on Hubitat
-                                            it.deviceNotification(msgData)
-                                        }
-                                    }
-                                }
-                            }
-                            href "disableAPIPage", title: "Disable API (Only use this if you want to generate a new secret)", description: ""
-                        }
-                    }
-                }
-            }
-            else {
+            if (!state.accessToken) {
                 paragraph "Required: The API has not been setup. Tap below to enable it."
                 href name: "enableAPIPageLink", title: "Enable API", description: "", page: "enableAPIPage"
             }
+            if (isST) {
+                paragraph "API has been setup. Using a text editor, please enter the following two API strings in your 'ST_Python_Logic.cfg' file located in your Apple Mac BitBar Plugins directory."
+                paragraph "smartAppURL=${state.endpointURL}"
+                paragraph "secret=${state.accessToken}"
+            } else {
+                state.endpoint=getFullLocalApiServerUrl()+ "/?access_token=${state.accessToken}"
+                def localUri = getFullLocalApiServerUrl()+ "/Test/" + "?access_token=${state.accessToken}"
+                paragraph "API has been setup!<br><br>Using a text editor, please enter the following two strings in your 'HE_Python_Logic.cfg' file located in your Apple Mac BitBar Plugins directory."
+                paragraph "<html><head><style>p.ex1{border: 5px solid red; padding-left: 50px;}</style></head><body><p class='ex1'><b>smartAppURL=${state.endpointURL}/<br>"+"secret=${state.accessToken}</b></body></html>"
+                input "testAPI", "bool",
+                    title: "Select to test the http API access to '${app.name}'?",
+                    submitOnChange: true,
+                    required: false
+                if (testAPI) {
+                    app.updateSetting("testAPI", false)
+                    def hubHttpIp = "http://${location.hub.localIP}:8080"
+                    try {
+                        log.debug "Testing http GET app access: '${localUri}'"
+                        def params = [
+                            uri        : hubHttpIp,
+                            path       : "/apps/api/${app.getId()}/Test/",
+                            query      : ["access_token": "${state.accessToken}"]
+                        ]
+                        // log.debug "getHttp params Map = '${params}'"
+                        // "http://10.0.0.80:8080/apps/api/655/Test/?access_token=5dd86abc-59af-452e-b8c1-fbf676723174"
+                        httpGet(params) { resp ->
+                            if (resp.success) {
+                                paragraph("${resp.data}")
+                                paragraph(doneImage)
+                            } else {
+                                paragraph("Failed: ${resp.data}")
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn "Test Call to on failed: ${e.message}"
+                        paragraph("Test Call to on failed: ${e.message}")
+                    }
+                }
+            }
+            // paragraph("Use the following URI to test the access of the '${app.name}' endpoint:<br />Local: <a href='${localUri}'>Local Test URL</a>")
+
+            input "sendAPI", "bool",
+                title: "Select to send these two secret strings as a notification message",
+                submitOnChange: true,
+                required: false
+            if (sendAPI) {
+                if (isST) {
+                    input "phone", "phone",
+                        title: "Enter the US mobile phone number",
+                        submitOnChange: true,
+                        required: true
+                    if (sendAPI && phone) {
+                        href name: "APISendSMSPageLink", title: "Send API Now to ${phone.replaceFirst('(\\d{3})(\\d{3})(\\d+)', '($1) $2-$3')}", description: "", page: "APISendSMSPage"
+                    }
+                } else {
+                    section("Enable Pushover™ and/or Twilio™ service(s). (Must install virtual device(s) and have an active service account):") {
+                        input ("pushoverEnabled", "bool", title: "Use Pushover™ and/or Twilio™ Service(s) for Alert Notifications", required: false, submitOnChange: true)
+                        if (pushoverEnabled) {
+                            input(name: "pushoverDevices", type: "capability.notification", title: "", required: false, multiple: true,
+                                  description: "Select notification device(s)", submitOnChange: true)
+                            paragraph ""
+                        }
+                        if (pushoverDevices) {
+                            input ("okSend", "bool", title: "Select to send API strings NOW to ${pushoverDevices}?", defaultValue: false, required: false, submitOnChange: true)
+                            if (okSend) {
+                                app.updateSetting("okSend", false)
+                                def msgData = "Add the following two API strings to your ST_Python_Logic.cfg in the BitBar Plugins Mac Folder"
+                                msgData += "\nsmartAppURL=${state.endpointURL}"
+                                msgData += "\nsecret=${state.accessToken}"
+                                if (settings.pushoverDevices != null) {
+                                    settings.pushoverDevices.each {							// Use notification devices on Hubitat
+                                        it.deviceNotification(msgData)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        section() {
+            href "disableAPIPage", title: "Disable/Reset API (Only use this if you want to generate a new oauth secret)", description: ""
         }
     }
 }
@@ -877,7 +881,7 @@ def APISendSMSPage() {
                 sendPush("BitBar Output API strings sent to ${phone.replaceFirst('(\\d{3})(\\d{3})(\\d+)', '($1) $2-$3')}")
                 sendSms(phone, "Add the following two API strings to your ST_Python_Logic.cfg in the BitBar Plugins Mac Folder")
                 sendSms(phone, "smartAppURL=${state.endpointURL}")
-                sendSms(phone, "secret=${state.endpointSecret}")
+                sendSms(phone, "secret=${state.accessToken}")
             }
         }
     }
@@ -1345,26 +1349,21 @@ def optionsPage() {
 }
 
 private initializeAppEndpoint() {
-    if (!state.endpoint) {
+    if(!state.accessToken) {
+        createAccessToken()
+    }
+    try {
         if (isST) {
-            try {
-                def accessToken = createAccessToken()
-                if (accessToken) {
-                    state.endpoint = apiServerUrl("/api/token/${accessToken}/smartapps/installations/${app.id}/")
-                    state.endpointURL = apiServerUrl("/api/smartapps/installations/${app.id}/")
-                    state.endpointSecret = accessToken
-                }
-            }
-            catch(e) {
-                state.endpoint = null
-            }
+            state.endpoint = apiServerUrl("/api/token/${state.accessToken}/smartapps/installations/${app.id}/")
+            state.endpointURL = apiServerUrl("/api/smartapps/installations/${app.id}/")
         } else {
             state.endpoint=getFullLocalApiServerUrl()+ "/?access_token=${state.accessToken}"
             state.endpointURL=getFullLocalApiServerUrl()
-            state.endpointSecret=createAccessToken() //be sure to enable OAuth in the app settings or this call will fail
         }
     }
-    return state.endpoint
+    catch(e) {
+        state.remove('endpoint')
+    }
 }
 
 def getEventsOfDevice(device) {
@@ -1520,15 +1519,16 @@ boolean getIsSTHub() { return state.isST }					// if (isSTHub) ...
 boolean getIsHEHub() { return state.isHE }					// if (isHEHub) ...
 String getBitBarLogo(){ return "<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2.png width=60 style='float: left; padding: 0px 10px 0px 0px;' alt='BitBar Logo' height=60 align=left /><br>"}
 String getDoneImage(){ return "<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/done.png width=60 style='float: left; padding: 0px 10px 0px 0px;' alt='Done!' height=60 align=left /><br>"}
-String getAppInfo(params) {
+String getAppInfo(params=[]) {
+    def na="Value not initialized, awiting first run of Mac BitBar app"
     if (isST) {
-        state.bbFolder			= "Mac BitBar Plugin Folder:\n${params.path?:'Unavailable'}"
-        state.bbVersions		= "Current Installed Versions:\nSmartApp: ${appVersion()}\nST_Python_Logic: ${params.pythonAppVersion?:'Unavailable'}\n${params.bbpluginfilename?:'Unavailable'}: ${params.bbpluginversion?:'Unavailable'}"
+        state.bbFolder			= "Mac BitBar Plugin Folder:\n${params.path?:na}"
+        state.bbVersions		= "Current Installed Versions:\nSmartApp: ${appVersion()}\nST_Python_Logic: ${params.pythonAppVersion?:na}\n${params.bbpluginfilename?:na}: ${params.bbpluginversion?:na}"
     } else {
-        state.bbFolder			= "Mac BitBar Plugin Folder: ${params.path?:'Unavailable'}"
+        state.bbFolder			= "Mac BitBar Plugin Folder: ${params.path?:na}"
         state.bbVersions		= "<b>Current Installed Versions:</b><br>" +
             "SmartApp: ${appVersion()}<br>" +
-            "HE_Python_Logic: ${params.pythonAppVersion?:'Unavailable'}<br>" +
-            "${params.bbpluginfilename?:''}: ${params.bbpluginversion?:''}"
+            "HE_Python_Logic: ${params.pythonAppVersion?:na}<br>" +
+                "${params.bbpluginfilename?:''}: ${params.bbpluginversion?:''}"
     }
 }
