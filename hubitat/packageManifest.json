@@ -1,12 +1,12 @@
 {
 	"packageName": "BitBar Output App V2",
 	"author": "Kurt Sanders",
-	"version": "4.0.2",
+	"version": "4.0.3",
 	"minimumHEVersion": "1.0.0",
-	"dateReleased": "2020-07-22",
+	"dateReleased": "2020-07-24",
 	"documentationLink": "https://github.com/KurtSanders/STBitBarApp-V2/blob/master/hubitat/README.md",
 	"licenseFile": "",
-	"releaseNotes": "BitBar Output App for Hubitat",
+	"releaseNotes": "Updated BitBar Output App for Hubitat™.  Added improved installation methods.",
 	"apps" : [
 		{
 			"id" : "4ff00390-e8be-48ea-8f1c-3f01eed4f2c6",
