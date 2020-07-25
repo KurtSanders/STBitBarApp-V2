@@ -1,7 +1,7 @@
 # Author: SandersSoft (c) 2020
 # STBitBar-V2
 # https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command
-version="4.01"
+version="4.02"
 
 echo "STBitBar-V2 Installer/Upgrader (c) SanderSoft"
 echo "============================================="
@@ -14,6 +14,7 @@ STBitBarGitHubRawHttp="https://raw.githubusercontent.com/KurtSanders/STBitBarApp
 STBitBarPluginScriptFilename="ST.1m.sh"
 STBitBarPythonCfgFilename="ST_Python_Logic.cfg"
 STBitBarPythontFilename="ST_Python_Logic.py"
+STBitBarManifestFilename="manifest.json"
 BitBarSoftwareURL="https://github.com/matryer/bitbar/releases/download/v1.9.2"
 BitBarSoftwareFilename="BitBar-v1.9.2.zip"
 downloadsFolder="$HOME/Downloads"
@@ -124,4 +125,6 @@ mkdir -p "${STBitBarPluginsDirectory}/ST"
 cd "${STBitBarPluginsDirectory}/ST"
 curl -s -O -J -L "${STBitBarGitHubRawHttp}/BitBar%20Plugin/ST/ST_Python_Logic.py"
 chmod +x "ST_Python_Logic.py"
-echo "Install/Update completed to ${version}..."
+echo "Downloading/Updating STBitBar-V2 Github's '${STBitBarManifestFilename}' to the BitBar plugin '${STBitBarPluginsDirectory}/ST' folder..."
+curl -s -O -J -L "${STBitBarGitHubRawHttp}/installation/manifest.json"
+echo "STBitBar-V2 Install/Update completed..."

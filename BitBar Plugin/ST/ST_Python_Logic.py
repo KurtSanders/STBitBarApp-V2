@@ -1,5 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+"""
+ *
+ *  Copyright 2018,2019,2020 Kurt Sanders
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+"""
 import ConfigParser
 import base64
 import cStringIO
@@ -16,55 +30,140 @@ import timeit
 import urllib
 import urllib2
 from urlparse import urlparse
-
-############################################
-ST_Logic_Python_Py_Local_Version    = "4.01"
-DEBUG                               = False
-############################################
-
 start = timeit.default_timer()
+
+# -------------------------------------------- #
+ST_Logic_Python_Py_Local_Version = "4.02"      #
+DEBUG = False                                  #
+# -------------------------------------------- #
+
 reload(sys)
 sys.setdefaultencoding('utf8')
 locale.setlocale(locale.LC_ALL, '')
-imageLibraryNames       = {}
-manifestDict            = {}
-currentSTBitBarRelease  = None
-currentSTBitBarNews     = None
+imageLibraryNames = {}
+manifestDict = {}
+timePollEvery = 600
+currentSTBitBarRelease = None
+currentSTBitBarNews = None
+# Version Information of ST BitBar Plugin File
+STPluginFilename_argPosition = 1
+STPluginVersion_argPosition = 2
+
+# Setting Class
+class Setting(object):
+    def __init__(self, cfg_path):
+        self.cfg = ConfigParser.ConfigParser()
+        self.cfg.read(cfg_path)
+
+    # noinspection PyShadowingNames
+    def get_setting(self, my_setting, default_value, severe_bool=False):
+        try:
+            ret = self.cfg.get("My Section", my_setting)
+        except ConfigParser.NoOptionError as e:
+            if severe_bool:
+                print "Severe Error:" + str(e)
+                raise SystemExit(0)
+            else:
+                ret = default_value
+                # Remove Extra Quotes, etc
+        return re.sub(r'^"|"$', '', ret)
+# End Class Setting
+
+# Begin Read User Config File for SmartThings Oauth and global variables
+cfgFileName         = sys.argv[0][:-2] + "cfg"
+cfgFileObj          = Setting(cfgFileName)
+cfgGetValue         = cfgFileObj.get_setting
+smartAppURL         = cfgGetValue('smartAppURL', "", True).strip('\'"')
+secret              = cfgGetValue('secret', "", True).strip('\'"')
+header              = {"Authorization": "Bearer " + secret}
+manifest_replace    = cfgGetValue('manifest_replace', "True", False).strip('\'"')
+# End Read User Config File
+
+# Get application pathnames and version info
+manifestFile        = "manifest.json"
+STPluginFolder      = os.path.dirname(sys.argv[0])
+try:
+    STPluginVersion = sys.argv[STPluginVersion_argPosition]
+except IndexError:
+    STPluginVersion = None
+try:
+    STPluginFilename = os.path.basename(sys.argv[STPluginFilename_argPosition])
+except IndexError:
+    STPluginFilename = None
+try:
+    bbplugindir = os.path.split(os.path.dirname(sys.argv[0]))[0]
+except IndexError:
+    bbplugindir = sys.argv[0]
+
+# Read the local manifest.json file for icon images and application variables, re-download from GitHub if changed
+try:
+    with open("{}/{}".format(STPluginFolder, manifestFile)) as manifest_json_file:
+        manifestDict = json.load(manifest_json_file)
+        currentSTBitBarRelease = manifestDict.get('current', None)
+        currentSTBitBarNews = manifestDict.get('news', None)
+except IOError, e:
+    print "{}".format(e)
+    print "BitBar Error: the {}' file is not accessible in BitBar ST subfolder".format(manifestFile)
+    print "BitBar ST Folder = '{}'".format(STPluginFolder)
+    print "Please verify the files in the BitBar Plugin Folder per the documentation"
+    exit(99)
 
 # Get Application Meta Information from Github
 def getManifest():
-    global manifestDict
-    global currentSTBitBarRelease
-    global currentSTBitBarNews
-    req = urllib2.Request("https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/manifest.json")
-    try:
-        reqdata = urllib2.urlopen(req)
-    except urllib2.HTTPError as e:
-        print "Error getManifest() RC: {}".format(e.code)
-        print e.read()
-        exit(e.code)
-    except urllib2.URLError as e:
-        print 'Error: Failed to reach the STBitBarApp-V2 server for reading manifest file/version check.'
-        print 'Reason: ', e.reason
-        exit(99)
-    manifestDict            = json.loads(reqdata.read())
-    currentSTBitBarRelease  = manifestDict.get('current', None)
-    currentSTBitBarNews     = manifestDict.get('news', None)
-    return
-
-# Dynamically get image/icon files from github
-def getImageString(imageName):
-    global imageLibraryNames
-    if imageName not in imageLibraryNames:
-        imageURL = "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/{}.png".format(imageName)
+    # Only get live updates timePollEvery per hour
+    if (int(time.strftime("%H%M", time.localtime())) % timePollEvery) == 0:
+        global currentSTBitBarRelease
+        global currentSTBitBarNews
+        req = urllib2.Request("https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/manifest.json")
         try:
-            rawImagegithub = urllib2.urlopen(imageURL)
-        except urllib2.HTTPError, e:
-            print "{}: The icon '{}.png' was not found in github images folder".format(e, imageName)
-            imageURL = "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/{}.png".format('unknown')
-            rawImagegithub = urllib2.urlopen(imageURL)
-        imageLibraryNames[imageName] = base64.b64encode(cStringIO.StringIO(rawImagegithub.read()).getvalue())
-    return imageLibraryNames[imageName]
+            reqdata = urllib2.urlopen(req)
+        except urllib2.HTTPError as e:
+            print "Error getManifest() RC: {}".format(e.code)
+            print e.read()
+            return
+        except urllib2.URLError as e:
+            print 'Error: Failed to reach the STBitBarApp-V2 server for reading manifest file/version check.'
+            print 'Reason: ', e.reason
+            return
+        try:
+            gethubManifestDict = json.loads(reqdata.read())
+        except (ValueError, TypeError):
+            return
+        currentSTBitBarRelease = gethubManifestDict.get('current', None)
+        currentSTBitBarNews = gethubManifestDict.get('news', None)
+        if DEBUG or manifest_replace == "False":
+            return
+        BitBarNeedUpdate = currentSTBitBarRelease != bitbarOutputSmartAppVersion
+        PluginNeedUpdate = currentSTBitBarRelease != ST_Logic_Python_Py_Local_Version
+        if BitBarNeedUpdate or PluginNeedUpdate:
+            try:
+                with open("{}/{}".format(STPluginFolder, manifestFile), 'w') as manifest_json_file:
+                    json.dump(gethubManifestDict, manifest_json_file)
+            except IOError:
+                json.dump(manifestDict, manifest_json_file)
+                pass
+# Wrapper to get image/icon file
+def getImageString(imageName):
+    return manifestDict['icons'].get(imageName, "iVBORw0KGgoAAAANSUhEUgAAABcAAAAXCAYAAADgKtSgAAAAAXNSR0IArs4c6QAAAIRlWElmTU0AKgAAAAgABQESAAMAAAABAAEAAAEaAAUAAAABAAAASgEbAAUAAAABAAAAUgEoAAMAAAABAAIAAIdpAAQAAAABAAAAWgAAAAAAAABIAAAAAQAAAEgAAAABAAOgAQADAAAAAQABAACgAgAEAAAAAQAAABegAwAEAAAAAQAAABcAAAAAVd28qgAAAAlwSFlzAAALEwAACxMBAJqcGAAAAVlpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IlhNUCBDb3JlIDUuNC4wIj4KICAgPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICAgICAgPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIKICAgICAgICAgICAgeG1sbnM6dGlmZj0iaHR0cDovL25zLmFkb2JlLmNvbS90aWZmLzEuMC8iPgogICAgICAgICA8dGlmZjpPcmllbnRhdGlvbj4xPC90aWZmOk9yaWVudGF0aW9uPgogICAgICA8L3JkZjpEZXNjcmlwdGlvbj4KICAgPC9yZGY6UkRGPgo8L3g6eG1wbWV0YT4KTMInWQAAAzFJREFUSA111FmIT1EcwHGDYexjCGNpGEbMYjfKLiEaEg9EWbJkKx4kMp4kokhZaxJZHoQsqbEkxoO1bJElYx5kGabGkJ3x/d7/nPHH+NXnnnPu/Z/fPdv9J9SqORK4rZ81P47uZnOdgSwkIRFPsB+XUGmCv6M2N+KTNqPdAHb+ineYgGnYiLoYgjLcxzw8wvr45NZlYhPlIB0ZSEFjfEIlOmIycrEYuzACDmINduCSyQxLOxndMBHdUYJzVWU5ZRrysRsX0Rb2e4kp6IKdqMAJRIktjVE4gEU2/hN7uN8EdeKez6Z+HO5DiMJQsXRax9DDBuEU6yM+SVfaBegEw/U2RqJDVIv1s1oYOrquqzEfz2Bi1/cHnHYvLEcmesMBOG33px0G4i1e4zvmoNzkjm4VjsJEa2HnSXiOUqTiA07iGtzs/rgI92sM7uIN3OBBWOexcwNb4TRa4j1S4HH6BuMWXLLRcITL4LFcCAfRBgtQBHOtwFuTu4luhuEoXIpiOIvH8DfGXjSEy+dS+Ny6iT0EnqAXuI5XSLDjUJyC4ci/wPVsDzu6robtQ3AWw2CCJdgAR+wHtAvd4GmqdLfdvM8wniIPW3AWnl/3xdncwSa0wCxUILzYQVovwTg4Q5e31hkvRJi+o82ES2SE0rqnxr+DvyP8pikPtsFZRuc0JLVtOF2FcG0dvXE7VvxzNbm/S8ZHRAfBZXGNfYEPjdQqnnOVwg5GGEhYjtjd39eOVMtgv2jkNymH4wIMpz4eHjk/iHcoxwPcgBFG6susW/pCj6qzcz+i6fqWuTgOZ/IMRTBRMfzIeiIbfjh+hY7OpTKhM06Emz4ThfAg+MJoZwsoB9ggfEFN0Zqbq7Ay7mEOdWdpLIUfT9gf70XRl+theISMegjTdQTxHTyKRnPkIxdpOIgMGNGoY9XYdQbFfsS/wCeN4PFMRmf4uTvTeTDScQQjbRDVA3F0YXN84AvysBlXYWRhOhyxJ0f+ed3DcLhfW1EEozqfFaP6BvU+8A/JpdmHK3DDkuDm+9vBmApP1Hb4ZRvxeaJG7PafD1waT8dY9EPo5JT9Li7jPB7Cf0cj/CbW4voLDfW7VhbDSSIAAAAASUVORK5CYII=")
+
+# def getImageStringOld(imageName):
+#     global imageLibraryNames
+#     if imageName not in imageLibraryNames:
+#         imageURL = "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/{}.png".format(imageName)
+#         try:
+#             rawImagegithub = urllib2.urlopen(imageURL)
+#         except urllib2.HTTPError, e:
+#             print "{}: GitHub is unavailable or the icon '{}.png' was not found in github images folder".format(e, imageName)
+#             exit(99)
+#         imageLibraryNames[imageName] = base64.b64encode(cStringIO.StringIO(rawImagegithub.read()).getvalue())
+#     return imageLibraryNames[imageName]
+#
+# def imageLibraryGeneration():
+#     imageDict = {}
+#     for imageName in ['open', 'closed', 'on', 'off','unknown','shmoff','thermoImage','redImage','greenImage','number','shmstay','shmaway','locked','unlocked','new-logo']:
+#         imageDict[imageName] = getImageStringOld(imageName)
+#     with open('data.txt', 'w') as outfile:
+#         json.dump(imageDict, outfile)
 
 # Define class for formatting numerical outputs (temp sensors)
 # Define NumberFormatter class
@@ -177,26 +276,6 @@ def getOptions(dictvarname, nonedefault):
     tmp = options.get(dictvarname, nonedefault)
     return tmp if tmp is not None else nonedefault
 
-# Setting Class
-class Setting(object):
-    def __init__(self, cfg_path):
-        self.cfg = ConfigParser.ConfigParser()
-        self.cfg.read(cfg_path)
-
-    # noinspection PyShadowingNames
-    def get_setting(self, my_setting, default_value, severe_bool=False):
-        try:
-            ret = self.cfg.get("My Section", my_setting)
-        except ConfigParser.NoOptionError as e:
-            if severe_bool:
-                print "Severe Error:" + str(e)
-                raise SystemExit(0)
-            else:
-                ret = default_value
-                # Remove Extra Quotes, etc
-        return re.sub(r'^"|"$', '', ret)
-
-# End Class Setting
 
 # Builds the param statement for bitbar to launch the "open" command
 # noinspection PyShadowingNames
@@ -220,35 +299,8 @@ def verifyInteger(intValue, errorIntValue):
     else:
         return errorIntValue
 
-# Begin Read User Config File
-cfgFileName = sys.argv[0][:-2] + "cfg"
-cfgFileObj = Setting(cfgFileName)
-cfgGetValue = cfgFileObj.get_setting
-smartAppURL = cfgGetValue('smartAppURL', "", True).strip('\'"')
-secret = cfgGetValue('secret', "", True).strip('\'"')
-header = {"Authorization": "Bearer " + secret}
-
-# Version Information of ST BitBar Plugin File
-STPluginFilename_argPosition = 1
-STPluginVersion_argPosition = 2
-
-try:
-    STPluginVersion = sys.argv[STPluginVersion_argPosition]
-except IndexError:
-    STPluginVersion = None
-
-try:
-    STPluginFilename = os.path.basename(sys.argv[STPluginFilename_argPosition])
-except IndexError:
-    STPluginFilename = None
-
-try:
-    bbplugindir = os.path.split(os.path.dirname(sys.argv[0]))[0]
-except IndexError:
-    bbplugindir = sys.argv[0]
-
 # Set URLs
-# statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + "{}".format(ST_Logic_Python_Py_Local_Version) + "&path=" + sys.argv[0] + "&bbpluginfilename=" + STPluginFilename + "&bbpluginversion=" + STPluginVersion
+# statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + "{}".format(HE_Logic_Python_Py_Local_Version) + "&path=" + sys.argv[0] + "&bbpluginfilename=" + STPluginFilename + "&bbpluginversion=" + STPluginVersion
 f = dict(pythonAppVersion=ST_Logic_Python_Py_Local_Version, path=bbplugindir, bbpluginfilename=STPluginFilename, bbpluginversion=STPluginVersion)
 statusURL = "{}{}{}".format(smartAppURL, "GetStatus/?", urllib.urlencode(f))
 contactURL = smartAppURL + "ToggleSwitch/?id="
@@ -288,10 +340,17 @@ if response.code != 200:
     print '---'
     print ":thumbsdown: Error Communicating with ST API, HTTPS rc={}".format(response.code)
     print "Content:", response.content
+    print "--SmartThings HTTP Server Response"
+    for response_info_name in response.info():
+        if response_info_name[0:6] == 'x-rate':
+            print "----{:20} = {:>3}".format(response_info_name, response.info()[response_info_name])
     exit(99)
 
 # Parse the JSON data
-j = json.loads(response.read())
+try:
+    j = json.loads(response.read())
+except (ValueError, TypeError) as err:
+    pass
 
 # API Return Error Handling
 if "error" in j:
@@ -342,11 +401,11 @@ def upgradeAvailable():
     PluginNeedUpdate = currentSTBitBarRelease != ST_Logic_Python_Py_Local_Version
     if BitBarNeedUpdate or PluginNeedUpdate:
         print '---'
-        print "STBitBarApp {} - SanderSoft™ | font=arial color=purple".format(currentSTBitBarRelease)
-        print ":computer: SmartApp Upgrade {} Now Available | color=red".format(currentSTBitBarRelease)
+        print "STBitBarApp {} - SanderSoft™ | font=arial color=purple".format(bitbarOutputSmartAppVersion)
+        print ":computer: SmartApp Upgrade {} Now Available | color=red".format(bitbarOutputSmartAppVersion)
         print "--:newspaper: {} | length=60 color=red font=16".format(currentSTBitBarNews)
         if BitBarNeedUpdate:
-            print "--√ Click here to Launch SmartThings IDE | ", openParamBuilder("open " + buildIDEURL(smartAppURL)), ' terminal=false color=blue'
+            print "--√ Click this to Launch SmartThings IDE and manually 'Update from Repo' | ", openParamBuilder("open " + buildIDEURL(smartAppURL)), ' terminal=false color=blue'
         if PluginNeedUpdate:
             print "--√ Click here to Upgrade ST BitBar Plugins App folder | color=blue bash={} param1=upgrade terminal=false".format(sys.argv[1])
 
@@ -618,7 +677,7 @@ if mainDisplay is not None:
                 mainDisplay[x]['value'] = shmCurrentStateDict.get(mainDisplay[x]['value'][3:], mainDisplay[x]['value'][3:])
             maxLengthDisplayName = len(mainDisplay[x]['name']) if len(mainDisplay[x]['name']) > maxLengthDisplayName else maxLengthDisplayName
         for x in range(len(mainDisplay)):
-            print "--:small_blue_diamond: {} {} {} ".format(mainDisplay[x]['name'].ljust(maxLengthDisplayName,'.'), str(mainDisplay[x]['value']).upper(), buildFontOptions(3))
+            print "--:small_blue_diamond: {} {} {} ".format(mainDisplay[x]['name'].ljust(maxLengthDisplayName, '.'), str(mainDisplay[x]['value']).upper(), buildFontOptions(3))
 else:
     formattedMainDisplay = "ST BitBar"
     print "{} | {} {} dropdown=false".format(formattedMainDisplay.encode('utf-8'), 'size=14', mainMenuColor)
@@ -1059,9 +1118,10 @@ if locks is not None:
                 sym = '🔓'
                 img = getImageString(sensor['value'])
                 lock_param4 = 'param4=\"{} {}\"'.format('Locking', sensor['name'])
-            elif sensor['value'] is None:
-                sensor['name'] = sensor['name'] + "(No Status)"
             else:
+                sym = '🔴'
+                img = getImageString(sensor['value'])
+                lock_param4 = ''
                 sensor['name'] = "{} is {}".format(sensor['name'], sensor['value'])
             if i == mainMenuMaxItems:
                 print "{} {} {}".format(countSensors - mainMenuMaxItems, subMenuTitle, buildFontOptions(2))
@@ -1210,7 +1270,6 @@ if switches is not None:
                 print subMenuText + "-- 🎯 Event History", buildFontOptions(3)
                 eventGroupByDate(sensor['eventlog'], subMenuText + indent, "")
             colorSwitch = not colorSwitch
-    #        print '==>', sensor["name"], sensor
 
 # Output Media Players
 if musicplayers is not None:
@@ -1279,7 +1338,7 @@ if musicplayers is not None:
                         muteState = " :white_check_mark: "
                     else:
                         muteState = '• '
-                    print "{}--{}{}".format(subMenuText,muteState, TitleCase(command)), buildFontOptions(3), 'bash=' + callbackScript, \
+                    print "{}--{}{}".format(subMenuText, muteState, TitleCase(command)), buildFontOptions(3), 'bash=' + callbackScript, \
                         'param1=request param2=' + musicplayerURL + sensor['id'] + '&command=' + command, ' param3=' + secret, musicplayers_param4, 'terminal=false refresh=false'
             if sensor['supportedCommands'] is not None:
                 for supportedCommand in sorted(sensor['supportedCommands']):
@@ -1287,13 +1346,21 @@ if musicplayers is not None:
                     print "{}--• {}".format(subMenuText, TitleCase(supportedCommand)), buildFontOptions(3), 'bash=' + callbackScript, \
                         'param1=request param2=' + musicplayerURL + sensor['id'] + '&command=' + supportedCommand, \
                         ' param3=' + secret, musicplayers_param4, 'terminal=false refresh=false'
-            if sensor["audioTrackData"] is not None:
+            if sensor["audioTrackData"] not in [None, '{}', '']:
                 albumArtworkImageLink = ''
-                if "albumArtUrl" in sensor["audioTrackData"]:
-                    errorURL = False
+                albumArtwortkBullet = ''
+                errorURL = False
+                padwidth = 10
+                try:
+                    sensor["audioTrackData"] = json.loads(sensor["audioTrackData"])
+                except ValueError:
+                    errorURL = True
+                    useAlbumArtworkImages = False
+                print "{}--• Track Now Playing Info".format(subMenuText), buildFontOptions(3)
+                albumArtwortkBullet = ''
+                if "albumArtUrl" in sensor["audioTrackData"] and sensor["audioTrackData"]['albumArtUrl'].startswith("http"):
+                    albumArtwortkBullet = '•'
                     url = sensor["audioTrackData"]['albumArtUrl']
-                    if not urlparse(url).scheme:
-                        url = 'http://' + url
                     if useAlbumArtworkImages:
                         try:
                             req = urllib2.Request(url, headers={'User-Agent': "Magic Browser"})
@@ -1306,20 +1373,44 @@ if musicplayers is not None:
                             errorURL = True
                     else:
                         albumArtworkImageLink = " href={}".format(url)
+                else:
+                    padwidth = 8
                 for key, value in sorted(sensor["audioTrackData"].items()):
-                    if key == "albumArtUrl":
-                        if useAlbumArtworkImages:
-                            print "{}--• Display Album Cover Art".format(subMenuText), buildFontOptions(3)
-                            print "{}----".format(subMenuText), buildFontOptions(3), albumArtworkImageLink
+                    if key == "album":
+                        if errorURL:
+                            print "{}----•{:{width}}: {}".format(subMenuText, TitleCase(key), value, width=padwidth), buildFontOptions(3)
+                            print "{}------ErrorURL: {}".format(subMenuText, url), buildFontOptions(3)
+                            print "{}------ErrorMessage: {}".format(subMenuText, errorMessage), buildFontOptions(3)
                         else:
-                            if errorURL:
-                                print "{}--• Click to display album cover art".format(subMenuText), buildFontOptions(3), "color=red"
-                                print "{}----ErrorURL: {}".format(subMenuText, url), buildFontOptions(3)
-                                print "{}----ErrorMessage: {}".format(subMenuText, errorMessage), buildFontOptions(3)
+                            if useAlbumArtworkImages:
+                                print "{}----{} {:{width}}: {}".format(subMenuText, albumArtwortkBullet, TitleCase(key), value, width=padwidth), buildFontOptions(3)
+                                print "{}------ ".format(subMenuText), buildFontOptions(3), albumArtworkImageLink
                             else:
-                                print "{}--• Click to display album cover art".format(subMenuText), buildFontOptions(3), "color=red", albumArtworkImageLink
-                    else:
-                        print "{}--{}: {}".format(subMenuText, TitleCase(key), value), buildFontOptions(3), "length=50 color=blue"
+                                print "{}----{} {:{width}}: {}".format(subMenuText, albumArtwortkBullet, TitleCase(key), value, width=padwidth), buildFontOptions(3), albumArtworkImageLink
+                    elif key != "albumArtUrl":
+                        print "{}----{:{width}}: {}".format(subMenuText, TitleCase(key), value, width=padwidth+2), buildFontOptions(3)
+            if sensor['presets'] is not None:
+                print "{}--• {} Favorite Playlists".format(subMenuText, sensor['manufacturer']), buildFontOptions(3)
+                print "{}----Select Favorite Playlist Preset".format(subMenuText), buildFontOptions(3), smallFontPitchSize
+                for num, preset in enumerate(json.loads(sensor['presets']), start=1):
+                    currentMusicPlayerURL = "{}{}&command=preset&presetid={}".format(musicplayerURL, sensor['id'], preset['id'])
+                    musicplayers_param4 = ' param4=\"Playing {}\"'.format(preset['name'].replace('"', '\\"').replace("'", ''))
+                    print "{}----• {:2d}. {}".format(subMenuText, num, preset['name']), buildFontOptions(3), \
+                        'bash=' + callbackScript, 'param1=request param2=' + currentMusicPlayerURL, \
+                        ' param3=' + secret, musicplayers_param4, ' terminal=false refresh=false length=40'
+            if sensor['alexaPlaylists']:
+                print "{}--• {} Favorite Playlists".format(subMenuText, sensor['manufacturer']), buildFontOptions(3)
+                print "{}----Favorite Playlists (Voice Cmd Only)".format(subMenuText), buildFontOptions(3), smallFontPitchSize
+                for num, alexaPlaylist in enumerate(sensor['alexaPlaylists'][1:-3].split('}], '),start=1):
+                    alexaPlaylistObj = re.search("^(.*?)=.*?playlistId=(.*?),.*", alexaPlaylist)
+                    if alexaPlaylistObj:
+                        print "{}----{:2d}. {}".format(subMenuText, num, alexaPlaylistObj.group(1)), buildFontOptions(3)
+                        # Echo Speaks DTH does not support invoking playlists like Sonos at this time.
+                        # currentMusicPlayerURL = "{}{}&command=preset&presetid={}".format(musicplayerURL, sensor['id'], alexaPlaylistObj.group(2))
+                        # musicplayers_param4 = ' param4=\"Playing {}\"'.format(alexaPlaylistObj.group(1).replace('"', '\\"').replace("'", ''))
+                        # print "{}----• {}".format(subMenuText, alexaPlaylistObj.group(1)), buildFontOptions(3), \
+                        #     'bash=' + callbackScript, 'param1=request param2=' + currentMusicPlayerURL, \
+                        #     ' param3=' + secret, musicplayers_param4, ' terminal=false refresh=false length=40'
             colorSwitch = not colorSwitch
 
 # Output Valves

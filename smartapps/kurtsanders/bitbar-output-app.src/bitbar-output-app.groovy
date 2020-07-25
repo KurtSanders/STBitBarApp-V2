@@ -13,56 +13,10 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  */
-
- // V 1.0 Initial release by Matt (V1)
- // V 1.1 Added logging from @kurtsanders making it easier to copy/paste URL and secret
- // V 1.2 Add extra handling if Main Display is not set (right now N/A is displayed)
- // V 1.3 Add Lock capability support
- // V 1.4 Add Thermostat selection and battery data output
- // V 1.5 Add Thermostat control options and version verification
- // V 1.6 Merge changes from @kurtsanders adding presence and motion capability
- // V 1.7 Added Routine changes capability from @kurtsanders
- // V 1.8 Add multiple thermostat support
- // V 2.0 Application Migrated & Converted to use the "KurtSanders" GitHub after repeatedly asking
- //       original developer to pull merge requests without any responses.  All code is V2 is now maintained by Kurt Sanders
- // V 2.0 Moved all MacOS display options to the SmartApp, Added Sort by Activity, Changed Version Logic,
- //       Added 'About' SubMenu for Version Checking
- //       Local config file only requires the SmartThings URL and Secret
- // V 2.1 Added Auto Active Device SubMenu Switch Option
- // V 2.2 Added Support for Extended Ascii and Unicode Characters
- // V 2.22 Added Option for Compact Display of Submenu (No Repeat Header)
- // V 2.23 Revised Battery Display from N/A to blank
- // V 2.24 Added Event History Sub Menu to EaCH Presence Sensor
- // V 2.25 Added Capability for User Control Fonts, Pitch and Color
- // V 2.26 Added Manual or Dynamic Auto-sizing Device Categories by Each Category
- // V 2.27 Revised how Thermostat information is displayed in menu bar when in Auto mode
- // V 2.28 Added Horizontal Separator Bar Option in the GUI
- // V 2.30 Added History Events to selected devices, modified GUI with Event options
- //        Added Support for Extended Ascii in Modes and Routine Names
- //        Added Additional Control of Font Names, Colors and Sizes used in BitBar display
- //        Added Battery Warning Emoji Level
- //        Better formatting of the API URL and Secret displayed in the ST Live Logging Screen and GUI
- // V 2.31 Added Music Players with extended information
- //        Added Smart Home Monitor Status and State Change
- // V 2.32 Added Humidity Sensors, Fixed Military Time Bug
- // V 2.33 No Changes, matched version to Python code
- // V 3.0  Added Sort Direction Capabilities, Favorite Devices, Supress EventLog Display
- // V 3.01 Added Debuging Information Option which displays in Live Logging IDE
- // V 3.10 Added RGB Support for Device with Color Changes, Added Emoji icons for Device Capabilities of Dimmer and Color Devices
- // V 3.11 Added Saturation control to BitBar sub-menu for devices with a Capability of Color Changes
- // V 3.13 Added Fuzzy logic to determine ColorName from hue values
- // V 3.14 Bug Fix
- // V 3.15 Added Customized emoji for dimmer and RGB switches
- // V 3.16 Bug Fix
- // V 3.17 Added Water and Valve Sensors
- // V 3.18 Removed errors associated with single quotes from local cfg file url and secret strings
- // V 3.2x Bug Fixes and added logic for ST users with minimal devices
- // V 4.00 Major upgrade to add new features (See release notes on github)
 // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
-def appVersion() { return "4.01" }
+def appVersion() { return "4.02" }
 import groovy.json.JsonSlurper
-import groovy.json.JsonBuilder
-import java.awt.Color;
+// import java.awt.Color;
 import java.util.ArrayList;
 import groovy.time.*
 
@@ -86,38 +40,13 @@ preferences {
   page(name:"iconsPage")
   page(name:"categoryPage")
   page(name:"eventsPage")
+  page(name:"batteryPage")
   page(name:"disableAPIPage")
   page(name:"enableAPIPage")
   page(name:"APIPage")
   page(name:"APISendSMSPage")
-  /*
-  section ("Display Sensor") {
-  input "displayTempName", "string", multiple: false, required: false
-    input "displayTemp", "capability.temperatureMeasurement", multiple: false, required: false
-  }
-  section ("Allow external service to get the temperature ...") {
-    input "temps", "capability.temperatureMeasurement", multiple: true, required: false
-  }
-  section ("Allow external service to get the alarm status ...") {
-    input "alarms", "capability.alarm", multiple: true, required: false
-  }
-  section ("Allow external service to get the contact status ...") {
-    input "contacts", "capability.contactSensor", multiple: true, required: false
-  }
-  section ("Allow external service to get the switches ...") {
-    input "switches", "capability.switch", multiple: true, required: false
-  }
-  section ("Allow external service to get the thermostat status ...") {
-    input "thermos", "capability.thermostat", multiple: true, required: false
-  }
-  section ("Allow external service to get the motion status ...") {
-    input "motions", "capability.motionSensor", multiple: true, required: false
-  }
-  section ("Allow external service to get the presence status ...") {
-    input "presences", "capability.presenceSensor", multiple: true, required: false
-  }
-*/
 }
+
 mappings {
 
     path("/GetStatus/") {
@@ -175,7 +104,19 @@ mappings {
             GET: "toggleCloseOpen"
         ]
     }
+    path("/Test/") {
+        action: [
+            GET: "test"
+        ]
+    }
 }
+
+def test() {
+    def msg = ["Test Success! BitBar Output App Version: ${appVersion()}"]
+    log.debug msg
+    return msg
+}
+
 def installed() {
     //	log.debug "Installed with settings: ${settings}\n"
 	initialize()
@@ -194,10 +135,10 @@ def uninstalled() {
 def updated() {
 	// Added additional logging from @kurtsanders
     log.debug "##########################################################################################"
-    log.debug "secret=${state.endpointSecret}"
+    log.debug "secret=${state.accessToken}"
     log.debug "smartAppURL=${state.endpointURL}"
     log.debug "##########################################################################################"
-    log.debug "The API has been setup. Please enter the next two strings exactly as shown into the ST_Python_Logic.cfg file which is in your BitBar plugins directory."
+    log.debug "The API has been setup. Please enter the next two strings exactly as shown into the HE_Python_Logic.cfg file which is in your BitBar plugins directory."
     log.debug "##########################################################################################"
 
 	unsubscribe()
@@ -287,10 +228,11 @@ def toggleValve() {
     }
 }
 def setMusicPlayer() {
-    def id = params.id
-	def command = params.command
-    def level = params.level
-    log.debug "setMusicPlayer called with command ${command} for musicplayer id ${id} VolumeParm=${level}"
+    def id 			= params.id
+	def command 	= params.command
+    def level 		= params.level
+    def presetid 	= params.presetid
+    log.debug "setMusicPlayer called with command ${command} for musicplayer id ${id} VolumeParm=${level} and presetid=${presetid}"
     musicplayersWebSocket.each {
         if(it.id == id)  {
             log.debug "Found Music Player: ${it.displayName} with id: ${it.id} with current volume level: ${it.currentVolume}"
@@ -298,6 +240,11 @@ def setMusicPlayer() {
                 case 'level':
                 log.debug "Setting New Volume level from ${it.currentVolume} to ${level}"
                 it.setVolume(level)
+                return
+                break
+                case 'preset':
+                log.debug "Setting Preset to id: ${presetid}"
+                it.playPreset(presetid)
                 return
                 break
                 default:
@@ -418,16 +365,36 @@ def toggleLock() {
 }
 
 def getBatteryInfo(dev) {
-    if(dev.currentBattery) {
-        if(state.batteryWarningPct == null || state.batteryWarningPct < 0 || state.batteryWarningPct > 100 ) {
-            state.batteryWarningPct = 50
+//    if (dev.capabilities.any { it.name.contains('Lock') } == true) log.debug "${dev} Attributes/Capabilities: ${dev.supportedAttributes}"
+
+//    log.debug "batteryExcludedDevices = ${batteryExcludedDevices}"
+    if (batteryExcludedDevices) {
+        if (batteryExcludedDevices.contains(dev.id)) {
+            log.debug "${dev} Battery Level: Excluded in BitBar Preference"
+            return "N/A"
         }
-        if(dev.currentBattery <= state.batteryWarningPct){
-            return [dev.currentBattery, batteryWarningPctEmoji == null?" :grimacing: ":" " + batteryWarningPctEmoji + " "]
-        }
-        return [dev.currentBattery, ""]
     }
-    else return "N/A"
+    if (dev.capabilities.any { it.name.contains('Battery') } == true) {
+        def batteryMap
+        try {
+//            batteryMap = dev.currentBattery
+            batteryMap = dev.currentValue("battery")
+//            log.debug "${dev} Battery Level: ${batteryMap}%"
+        }
+        catch (all) {
+            return "N/A"
+        }
+        if(batteryMap) {
+            if(state.batteryWarningPct == null || state.batteryWarningPct.toInteger() < 0 || state.batteryWarningPct.toInteger() > 100 ) {
+                state.batteryWarningPct = 50
+            }
+            if(batteryMap.toInteger() <= state.batteryWarningPct.toInteger()){
+                return ["${batteryMap}%", batteryWarningPctEmoji == null?" :grimacing: ":" " + batteryWarningPctEmoji + " "]
+            }
+            return ["${batteryMap}%", ""]
+        }
+    }
+    return "N/A"
 }
 
 def getAlarmData() {
@@ -540,25 +507,20 @@ def getLockData() {
     return resp
 }
 def getMusicPlayerData() {
-	def resp = []
-    def slurperATD 			= new JsonSlurper()
+    def resp = []
     musicplayersWebSocket.each {
-        if (it.currentAudioTrackData != null) {
-            slurperATD = new groovy.json.JsonSlurper().parseText(it.currentAudioTrackData)
-        } else {
-            slurperATD = new JsonSlurper()
-        }
-
         resp << [
             name							: it.displayName,
-            manufacturer					: it.getManufacturerName()?:it.currentDeviceStyle?:null,
-            groupRolePrimary				: it.currentGroupRole=='primary',
-            groupRole						: it.currentGroupRole,
+            manufacturer					: it?.getManufacturerName()?:it?.currentDeviceStyle?:null,
+            groupRolePrimary				: it?.currentGroupRole=='primary',
+            groupRole						: it?.currentGroupRole,
             id 								: it.id,
             level							: it.currentVolume,
             mute							: it.currentMute,
+            presets							: it.currentPresets?:null,
             status							: it.currentPlaybackStatus,
-            audioTrackData					: slurperATD,
+            audioTrackData					: it.currentAudioTrackData?:null,
+            alexaPlaylists 					: it.currentAlexaPlaylists?:null,
             supportedCommands				: supportedMusicPlayerDeviceCommands(),
             groupVolume						: it.currentGroupVolume?:null
         ];
@@ -601,7 +563,7 @@ def getValveData() {
 }
 
 def getMainDisplayData() {
-    def displaySensorCapabilitySize = displaySensorCapability.size()
+    def displaySensorCapabilitySize = displaySensorCapability?displaySensorCapability.size():0
     def returnCapability
     def returnName
     def returnValue
@@ -658,17 +620,21 @@ def getMainDisplayData() {
 }
 
 def getStatus() {
-    def timeStamp = new Date().format("h:mm:ss a", location.timeZone)
-    if (debugBool) log.info "ST BitBar getStatus() started at ${timeStamp}"
+    def timeStamp = new Date().format("h:mm:ss a", location.timeZone);
+    def lastUpdateTime = new Date().format("EEE, MMM d, h:mm a", location.timeZone)
+    log.info "BitBar getStatus() started at ${timeStamp}"
+    if (isHE) {
+        def newLabel = "BitBar Output App<p style='color:green;'> (Last Web Update @ ${lastUpdateTime.replace("AM", "am").replace("PM","pm")})</p>"
+        app.updateLabel(newLabel)
+    }
     state.bbpluginfilename 	= params.bbpluginfilename
     state.bbpluginversion 	= params.bbpluginversion
     state.pythonAppVersion 	= params.pythonAppVersion
     state.pythonAppPath 	= params.path
-    state.bbFolder			= "Mac BitBar Plugin Folder:\n${params.path?:'Unavailable'}"
-    state.bbVersions		= "Current Installed Versions:\nSmartApp: ${appVersion()}\nST_Python_Logic: ${params.pythonAppVersion?:'Unavailable'}\n${params.bbpluginfilename?:'Unavailable'}: ${params.bbpluginversion?:'Unavailable'}"
+    getAppInfo(params)
     if (debugBool) {
         log.info "Mac BitBar Plugin Folder: ${params.path}"
-        log.info "BitBar Output App Version: ${appVersion()}, ST_Python_Logic.py Version: ${params.pythonAppVersion}, ${params.bbpluginfilename} Version: ${params.bbpluginversion}"
+        log.info "BitBar Output App Version: ${appVersion()}, XX_Python_Logic.py Version: ${params.pythonAppVersion}, ${params.bbpluginfilename} Version: ${params.bbpluginversion}"
     }
     def alarmData = getAlarmData()
     def tempData = getTempData()
@@ -762,15 +728,24 @@ def getStatus() {
             }
         }
     }
-    if (debugBool) log.debug "getStatus complete"
+    log.info "getStatus routine completed. Returning ${resp.size()} keys"
     return resp
 }
 
 private mainPage() {
-    dynamicPage(name: "mainPage", uninstall:true, install:true) {
-    def apiSetupState = (state.endpoint == null)?'Please complete API setup!':'API Setup is complete!'
+    if (app.getInstallationState()=='INCOMPLETE'){getAppInfo()}
+    def currentYear = new Date().format("yyyy", location.timeZone)
+    dynamicPage(name: "mainPage", uninstall:true, install:true, submitOnChange: true) {
+        def apiSetupState = (state.accessToken==null)?'Please complete API setup!':'API Setup is complete!'
         section( "API Access Setup" ) {
-            href name: "APIPageLink", title: "${apiSetupState}", description: (state.endpoint == null)?"You must add these API strings to ST_Python_Logic.cfg":"", page: "APIPage"
+            if (isST) {
+                href name: "APIPageLink", title: "${apiSetupState}", description: (state.endpoint == null)?"You must add these API strings to ST_Python_Logic.cfg":"", page: "APIPage"
+            } else {
+                app.updateSetting("testAPI", false)
+                app.updateSetting("okSend", false)
+                app.updateSetting("sendAPI", false)
+                href name: "APIPageLink", title: "${apiSetupState}", description: (state.endpoint == null)?"You must add these API strings to HE_Python_Logic.cfg":"", page: "APIPage"
+            }
         }
         section("Sensor/Device Management & Setup") {
             href name: "devicesManagementPageLink", title: "Select sensors/devices", description: "", page: "devicesManagementPage"
@@ -779,10 +754,20 @@ private mainPage() {
             href name: "optionsPageLink", title: "Select display options", description: "", page: "optionsPage"
         }
         section {
-            paragraph image: "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2.png",
-                title: "ST BitBar App Version Information",
-                required: false,
-                "${state.bbFolder}\n\n${state.bbVersions}"
+            if (isST) {
+                paragraph image: "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2.png",
+                    title: "ST BitBar App Version Information",
+                    required: false,
+                    "${state.bbFolder?:''}\n\n${state.bbVersions?:''}"
+            } else {
+                section() {
+                    paragraph("${bitBarLogo}" +
+                              "<a href='https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=D4PYWK33KARSS&source=url'>Please consider donating to this application via PayPal™.</a><br>" +
+                              "<small><i>Copyright \u00a9 2018-${currentYear} SandersSoft™ Inc - All rights reserved.</i></small><br>" +
+                              "==> ${state.bbVersions}<br>${state.bbFolder}")
+                }
+
+            }
         }
         section(hideable: true, hidden: true, "Debuging Options for IDE Live Logging") {
             input "debugBool", "bool",
@@ -800,36 +785,60 @@ private mainPage() {
     }
 }
 
-
-def disableAPIPage() {
-	dynamicPage(name: "disableAPIPage", title: "") {
-		section() {
-			if (state.endpoint) {
-				try {
-					revokeAccessToken()
-				}
-				catch (e) {
-					log.debug "Unable to revoke access token: $e"
-				}
-				state.endpoint = null
-			}
-			paragraph "It has been done. Your token has been REVOKED. You're no longer allowed in API Town (I mean, you can always have a new token). Tap Done to continue."
-		}
-	}
-}
-
 def APIPage() {
     dynamicPage(name: "APIPage") {
         section("API Setup") {
-            if (state.endpoint) {
-                paragraph "API has been setup. Please enter the following two strings in your 'ST_Python_Logic.cfg' file in your Apple Mac BitBar Plugins directory."
+            if (!state.accessToken) {
+                paragraph "Required: The API has not been setup. Tap below to enable it."
+                href name: "enableAPIPageLink", title: "Enable API", description: "", page: "enableAPIPage"
+            }
+            if (isST) {
+                paragraph "API has been setup. Using a text editor, please enter the following two API strings in your 'ST_Python_Logic.cfg' file located in your Apple Mac BitBar Plugins directory."
                 paragraph "smartAppURL=${state.endpointURL}"
-                paragraph "secret=${state.endpointSecret}"
-                input "sendAPI", "bool",
-                    title: "Send these two secret strings as a SMS text message",
+                paragraph "secret=${state.accessToken}"
+            } else {
+                state.endpoint=getFullLocalApiServerUrl()+ "/?access_token=${state.accessToken}"
+                def localUri = getFullLocalApiServerUrl()+ "/Test/" + "?access_token=${state.accessToken}"
+                paragraph "API has been setup!<br><br>Using a text editor, please enter the following two strings in your 'HE_Python_Logic.cfg' file located in your Apple Mac BitBar Plugins directory."
+                paragraph "<html><head><style>p.ex1{border: 5px solid red; padding-left: 50px;}</style></head><body><p class='ex1'><b>smartAppURL=${state.endpointURL}/<br>"+"secret=${state.accessToken}</b></body></html>"
+                input "testAPI", "bool",
+                    title: "Select to test the http API access to '${app.name}'?",
                     submitOnChange: true,
                     required: false
-                if (sendAPI) {
+                if (testAPI) {
+                    app.updateSetting("testAPI", false)
+                    def hubHttpIp = "http://${location.hub.localIP}:8080"
+                    try {
+                        log.debug "Testing http GET app access: '${localUri}'"
+                        def params = [
+                            uri        : hubHttpIp,
+                            path       : "/apps/api/${app.getId()}/Test/",
+                            query      : ["access_token": "${state.accessToken}"]
+                        ]
+                        // log.debug "getHttp params Map = '${params}'"
+                        // "http://XXX.XXXX.XXX.XXX:8080/apps/api/NNN/Test/?access_token=xxxxxxxx"
+                        httpGet(params) { resp ->
+                            if (resp.success) {
+                                paragraph("${resp.data}")
+                                paragraph(doneImage)
+                            } else {
+                                paragraph("Failed: ${resp.data}")
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn "Test Call to on failed: ${e.message}"
+                        paragraph("Test Call to on failed: ${e.message}")
+                    }
+                }
+            }
+            // paragraph("Use the following URI to test the access of the '${app.name}' endpoint:<br />Local: <a href='${localUri}'>Local Test URL</a>")
+
+            input "sendAPI", "bool",
+                title: "Select to send these two secret strings as a notification message",
+                submitOnChange: true,
+                required: false
+            if (sendAPI) {
+                if (isST) {
                     input "phone", "phone",
                         title: "Enter the US mobile phone number",
                         submitOnChange: true,
@@ -837,14 +846,34 @@ def APIPage() {
                     if (sendAPI && phone) {
                         href name: "APISendSMSPageLink", title: "Send API Now to ${phone.replaceFirst('(\\d{3})(\\d{3})(\\d+)', '($1) $2-$3')}", description: "", page: "APISendSMSPage"
                     }
-
+                } else {
+                    section("Enable Pushover™ and/or Twilio™ service(s). (Must install virtual device(s) and have an active service account):") {
+                        input ("pushoverEnabled", "bool", title: "Use Pushover™ and/or Twilio™ Service(s) for Alert Notifications", required: false, submitOnChange: true)
+                        if (pushoverEnabled) {
+                            input(name: "pushoverDevices", type: "capability.notification", title: "", required: false, multiple: true,
+                                  description: "Select notification device(s)", submitOnChange: true)
+                            paragraph ""
+                        }
+                        if (pushoverDevices) {
+                            input ("okSend", "bool", title: "Select to send API strings NOW to ${pushoverDevices}?", defaultValue: false, required: false, submitOnChange: true)
+                            if (okSend) {
+                                app.updateSetting("okSend", false)
+                                def msgData = "Add the following two API strings to your ST_Python_Logic.cfg in the BitBar Plugins Mac Folder"
+                                msgData += "\nsmartAppURL=${state.endpointURL}"
+                                msgData += "\nsecret=${state.accessToken}"
+                                if (settings.pushoverDevices != null) {
+                                    settings.pushoverDevices.each {							// Use notification devices on Hubitat
+                                        it.deviceNotification(msgData)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-                href "disableAPIPage", title: "Disable API (Only use this if you want to generate a new secret)", description: ""
             }
-            else {
-                paragraph "Required: The API has not been setup. Tap below to enable it."
-                href name: "enableAPIPageLink", title: "Enable API", description: "", page: "enableAPIPage"
-            }
+        }
+        section() {
+            href "disableAPIPage", title: "Disable/Reset API (Only use this if you want to generate a new oauth secret)", description: ""
         }
     }
 }
@@ -857,7 +886,7 @@ def APISendSMSPage() {
                 sendPush("BitBar Output API strings sent to ${phone.replaceFirst('(\\d{3})(\\d{3})(\\d+)', '($1) $2-$3')}")
                 sendSms(phone, "Add the following two API strings to your ST_Python_Logic.cfg in the BitBar Plugins Mac Folder")
                 sendSms(phone, "smartAppURL=${state.endpointURL}")
-                sendSms(phone, "secret=${state.endpointSecret}")
+                sendSms(phone, "secret=${state.accessToken}")
             }
         }
     }
@@ -877,20 +906,36 @@ def enableAPIPage() {
 	}
 }
 
+def disableAPIPage() {
+	dynamicPage(name: "disableAPIPage", title: "") {
+		section() {
+			if (state.endpoint) {
+				try {
+					revokeAccessToken()
+				}
+				catch (e) {
+					log.debug "Unable to revoke access token: $e"
+				}
+				state.endpoint = null
+			}
+			paragraph "It has been done. Your token has been REVOKED. You're no longer allowed in API Town (I mean, you can always have a new token). Tap Done to continue."
+		}
+	}
+}
 
 def devicesManagementPage() {
     dynamicPage(name:"devicesManagementPage") {
 
-        section("Sensors & Devices") {
-            href name: "devicesPageLink", title: "Select the sensors to display/control", description: "", page: "devicesPage"
+        section("Sensors & Devices (Required)") {
+            href name: "devicesPageLink", title: "Select the sensors to display/control", required: true, description: "", page: "devicesPage"
         }
-        section('Main Menu Bar Icons') {
-            href name: "devicesTopMenuBarPageLink", title: "Select icons for the Main Menu Bar", description: "", page: "devicesTopMenuBarPage"
+        section('Main Menu Bar Icons (Required)') {
+            href name: "devicesTopMenuBarPageLink", title: "Select icons for the Main Menu Bar", required: true, description: "", page: "devicesTopMenuBarPage"
         }
         section("Favorite Sensors (Mix & Match) to display in separate 1st category section on subMenu") {
             paragraph "The 'Favorite' sensors submenu is a section on the BitBar submenu to locate a few sensors that you wish to display/monitor quickly.  You cannot control them from this menu, just display."
             input "favoriteDevices", "enum",
-                title: "Favorite sensors",
+                title: "Favorite sensors (Optional)",
                 options: getAllDevices(),
                 required: false,
                 multiple: true
@@ -1192,7 +1237,18 @@ def eventsPage() {
                  url: "http://www.webpagefx.com/tools/emoji-cheat-sheet/",
                  description: "tap here to view valid list of Emoji names in your mobile browser"
                 )
-                }
+        }
+    }
+}
+def batteryPage() {
+    dynamicPage(name:"batteryPage", hideWhenEmpty: true) {
+        section("Optional: Battery Check for Selected Devices") {
+            input "batteryExcludedDevices", "enum",
+                title: "Battery: Select Any Devices to Exclude from Battery Check [Default='None']",
+                options: getAllDevices(),
+                required: false,
+                multiple: true
+        }
         section("Optional: Battery Level Options for Devices") {
             input "batteryWarningPctEmoji", "text",
                 title: "Battery: Emoji ShortCode ':xxx:' to Display for Low Battery Warning [Default=':grimacing:']",
@@ -1271,8 +1327,11 @@ def optionsPage() {
         section("Optional: Number of Devices per ST Sensor category to display") {
             href name: "categoryPageLink", title: "Number of Devices per ST Sensor Categories to Display Options", description: "", page: "categoryPage"
         }
-        section("Optional: Event History and Battery Level Options for Devices") {
-            href name: "eventsPageLink", title: "Event History and Battery Level Options", description: "", page: "eventsPage"
+        section("Optional: Battery Options") {
+            href name: "batteryPageLink", title: "Battery Check/Display/Level", description: "", page: "batteryPage"
+        }
+        section("Optional: Event History Options for Devices") {
+            href name: "eventsPageLink", title: "Event History", description: "", page: "eventsPage"
         }
         section("Optional: Font Names, Pitch Size and Colors") {
             href name: "fontsPageLink", title: "BitBar Output Menu Text Display Settings", description: "", page: "fontsPage"
@@ -1295,72 +1354,86 @@ def optionsPage() {
 }
 
 private initializeAppEndpoint() {
-	if (!state.endpoint) {
-		try {
-			def accessToken = createAccessToken()
-			if (accessToken) {
-				state.endpoint = apiServerUrl("/api/token/${accessToken}/smartapps/installations/${app.id}/")
-                state.endpointURL = apiServerUrl("/api/smartapps/installations/${app.id}/")
-                state.endpointSecret = accessToken
-			}
-		}
-		catch(e) {
-			state.endpoint = null
-		}
-	}
-	return state.endpoint
+    if(!state.accessToken) {
+        createAccessToken()
+    }
+    try {
+        if (isST) {
+            state.endpoint = apiServerUrl("/api/token/${state.accessToken}/smartapps/installations/${app.id}/")
+            state.endpointURL = apiServerUrl("/api/smartapps/installations/${app.id}/")
+        } else {
+            state.endpoint=getFullLocalApiServerUrl()+ "/?access_token=${state.accessToken}"
+            state.endpointURL=getFullLocalApiServerUrl()
+        }
+    }
+    catch(e) {
+        state.remove('endpoint')
+    }
 }
 
 def getEventsOfDevice(device) {
-//   log.debug "Start: state.eventsDays = ${state.eventsDays}"
-//   log.debug "Start: state.eventsMax = ${state.eventsMax}"
+    def deviceHistory
 
     if (eventsShow==null || eventsShow==false) {return}
 
     if (state.eventsDays==null) {
-    	state.eventsDays = 1
-//        log.debug "Null: state.eventsDays = ${state.eventsDays}"
-        }
+        state.eventsDays = 1
+    }
     if (state.eventsMax==null) {
-    	state.eventsMax = 10
-//        log.debug "Null: state.eventsMax = ${state.eventsMax}"
-        }
+        state.eventsMax = 10
+    }
     if (state.eventsDays > 7) {state.eventsDays = 1}
     if (state.eventsMax > 100) {state.eventsMax = 100}
 
-//    log.debug "StartQuery: state.eventsDays = ${state.eventsDays}"
-//    log.debug "StartQuery: state.eventsMax = ${state.eventsMax}"
-	def today = new Date()
-	def then = timeToday(today.format("HH:mm"), TimeZone.getTimeZone('UTC')) - state.eventsDays
+    def today = new Date()
+    def then = timeToday(today.format("HH:mm"), TimeZone.getTimeZone('UTC')) - state.eventsDays
     def timeFormatString = eventsTimeFormat=="12 Hour Clock Format with AM/PM"?'EEE MMM dd hh:mm a z':'EEE MMM dd HH:mm z'
-	device.eventsBetween(then, today, [max: state.eventsMax])?.findAll{"$it.source" == "DEVICE"}?.collect{[date: it.date.format(timeFormatString , location.timeZone), name: it.name, value: it.value]}
+    try {
+        deviceHistory = device.eventsBetween(then, today, [max: state.eventsMax])?.findAll{"$it.source" == "DEVICE"}?.collect{[date: it.date.format(timeFormatString , location.timeZone), name: it.name, value: it.value]}
+    }
+    catch (all) {
+        return deviceHistory
+    }
+    return deviceHistory
 }
 
-private getAllDevices() {
-    //contactSensors + presenceSensors + temperatureSensors + accelerationSensors + waterSensors + lightSensors + humiditySensors
-     def dev_list =
-     	([] + switches
-        + dimmers
-        + motions
-        + accelerations
-        + contacts
-        + illuminants
-        + temps
-        + relativeHumidityMeasurements
-        + locks
-        + alarms
-        + batteries
-        + thermos
-        + medias
-        + musicplayers
-        + speeches
-        + colors
-        + valves
-        + waters
-        + presences
-        + leaks)?.findAll()?.unique { it.id }
-        dev_list = dev_list.collect{ it.toString() }
-        return dev_list.sort()
+private getAllDevices(BatteryCapabilityOnly=false) {
+    def devicePickMap = [:]
+    def dev_list =
+        ([] + switches
+         + dimmers
+         + motions
+         + accelerations
+         + contacts
+         + illuminants
+         + temps
+         + relativeHumidityMeasurements
+         + locks
+         + alarms
+         + batteries
+         + thermos
+         + medias
+         + musicplayers
+         + speeches
+         + colors
+         + valves
+         + waters
+         + presences
+         + leaks)?.findAll()?.unique { it.id }
+    dev_list.each {
+        if (BatteryCapabilityOnly) {
+            if (it.capabilities.any { it.name.contains('Battery') } == true) {
+                devicePickMap << ["${it.id}": "${it.displayName}"]
+            }
+        } else {
+            devicePickMap << ["${it.id}": "${it.displayName}"]
+        }
+    }
+    //    dev_list = dev_list.collect{ it.toString() }
+    //    return dev_list.sort()
+    //    log.debug "devicePickMap: ${devicePickMap}"
+    //    log.debug "devicePickMap.sort() {it.value} = ${devicePickMap.sort() {it.value}}"
+    return devicePickMap.sort() {it.value}
 }
 
 def getHueSatLevel(color) {
@@ -1430,5 +1503,37 @@ def colorChoiceList() {
 }
 
 def supportedMusicPlayerDeviceCommands() {
-    return ['nextTrack','pause','play','playTrack','previousTrack','stop']
+    return ['nextTrack','pause','play','previousTrack','stop']
+}
+
+// SmartThings/Hubitat Portability Library (SHPL)
+// Copyright (c) 2019, Barry A. Burke (storageanarchy@gmail.com)
+String getPlatform()  { (physicalgraph?.device?.HubAction ? 'SmartThings' : 'Hubitat') }	// if (platform == 'SmartThings') ...
+boolean getIsST()     { (physicalgraph?.device?.HubAction ? true : false) }					// if (isST) ...
+boolean getIsHE()     { (hubitat?.device?.HubAction ? true : false) }						// if (isHE) ...
+
+String getHubPlatform() {
+	def pf = getPlatform()
+	state?.hubPlatform = pf			// if (state.hubPlatform == 'Hubitat') ...
+											// or if (state.hubPlatform == 'SmartThings')...
+	state?.isST = pf.startsWith('S')	// if (state.isST) ...
+	state?.isHE = pf.startsWith('H')	// if (state.isHE) ...
+	return pf
+}
+boolean getIsSTHub() { return state.isST }					// if (isSTHub) ...
+boolean getIsHEHub() { return state.isHE }					// if (isHEHub) ...
+String getBitBarLogo(){ return "<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2.png width=60 style='float: left; padding: 0px 10px 0px 0px;' alt='BitBar Logo' height=60 align=left /><br>"}
+String getDoneImage(){ return "<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/done.png width=60 style='float: left; padding: 0px 10px 0px 0px;' alt='Done!' height=60 align=left /><br>"}
+String getAppInfo(params=[]) {
+    def na="Value not initialized, awiting first run of Mac BitBar app"
+    if (isST) {
+        state.bbFolder			= "Mac BitBar Plugin Folder:\n${params.path?:na}"
+        state.bbVersions		= "Current Installed Versions:\nSmartApp: ${appVersion()}\nST_Python_Logic: ${params.pythonAppVersion?:na}\n${params.bbpluginfilename?:na}: ${params.bbpluginversion?:na}"
+    } else {
+        state.bbFolder			= "Mac BitBar Plugin Folder: ${params.path?:na}"
+        state.bbVersions		= "<b>Current Installed Versions:</b><br>" +
+            "SmartApp: ${appVersion()}<br>" +
+            "HE_Python_Logic: ${params.pythonAppVersion?:na}<br>" +
+                "${params.bbpluginfilename?:''}: ${params.bbpluginversion?:''}"
+    }
 }
