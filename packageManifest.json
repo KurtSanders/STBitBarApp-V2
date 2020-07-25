@@ -1,12 +1,12 @@
 {
-	"packageName": "BitBar Output App V2",
+	"packageName": "Bitbar Output App for the Apple MacOS™ Menubar",
 	"author": "Kurt Sanders",
 	"version": "4.0.4",
 	"minimumHEVersion": "1.0.0",
-	"dateReleased": "2020-07-24",
+	"dateReleased": "2020-07-25",
 	"documentationLink": "https://github.com/KurtSanders/STBitBarApp-V2/blob/master/README.md",
 	"licenseFile": "",
-	"releaseNotes": "Updated BitBar Output App for Hubitat™.  Added improved installation methods.",
+	"releaseNotes": "Updated Bitbar Output App for Hubitat™.  Added improved Hubitat-packagemanager installation routines and local macOS scripts.  Re-organized the GitHub folder structure to allow multi=platform support.",
 	"apps" : [
 		{
 			"id" : "4ff00390-e8be-48ea-8f1c-3f01eed4f2c6",
