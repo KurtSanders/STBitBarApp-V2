@@ -128,7 +128,7 @@ A new Install or Version Updates to the shell scripts and Python source code loc
 
 ### Example Directory Structure of the BitBar Plugin Folder
 
-<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/BitBarFolder.jpg width="600"/>
+<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/BitBarFolderST.jpg width="600"/>
 
 1. Required: You **must download** and install the core [BitBar app](https://github.com/matryer/bitbar/releases/tag/v1.9.2) on your Mac.  *This program is required to allow ST BitBar SmartApp to access the top menubar on the Mac.*
 2. After downloading and installing the BitBar App & moving the BitBar App file to your applications folder, launch the BitBar App so that you can set the path for your Plugin directory.
@@ -153,11 +153,36 @@ A new Install or Version Updates to the shell scripts and Python source code loc
 
 ### Section 1: Installing the BitBar Output App Code
 
-Install the App Code to your Hubitat platform via the [hubitat-packagemanager](https://github.com/dcmeglio/hubitat-packagemanager#hubitat-packagemanager). Do NOT select to launch BitBar after hubitat-packagemanager completes.  The BitBar application is listed in [hubitat-packagemanager](https://github.com/dcmeglio/hubitat-packagemanager#hubitat-packagemanager) under the categories of “Utility”, “Control”, “Convenience” and the tags of “Integrations”, “Monitoring”, “Dashboards”, “Tools & Utilities”.
+Install the App Code to your Hubitat platform via the [hubitat-packagemanager](https://github.com/dcmeglio/hubitat-packagemanager#hubitat-packagemanager). Do NOT select to launch BitBar Output App after hubitat-packagemanager completes.  The BitBar application is listed in [hubitat-packagemanager](https://github.com/dcmeglio/hubitat-packagemanager#hubitat-packagemanager) under the categories of “Utility”, “Control”, “Convenience” and the tags of “Integrations”, “Monitoring”, “Dashboards”, “Tools & Utilities”.
 
-After install of the BitBar Output App Code on Hubitat, you will need to follow the rest of the manual file & scripts install in the STBitBar-V2 Readme where it is specific to Hubitat. After all macOS files & scripts are installed, you may then return to Hubitat™ web page and launch the BitBar Output App, authorize Oauth API, add your two API strings to the HE_Python_Logic.cfg file and configure the app preferences for devices and display.
+After install of the BitBar Output App Code on Hubitat, you will need to follow the rest of the manual file & scripts install below where it is specific to Hubitat. After all macOS files & scripts are installed, you may then return to Hubitat™ web page and launch the BitBar Output App  You will need to authorize the Oauth and record the two API strings, add these two API strings to the HE_Python_Logic.cfg file and configure the BitBar Output App preferences for devices and display options.
 
-### Section 2: Installing the BitBar Output SmartApp
+### Section 2: Setting up BitBar and HE Plugin
+
+> *In Version V4, these manual steps below are now automated in [Section 1 Installation](https://github.com/KurtSanders/STBitBarApp-V2#section-1-installation).  If you prefer the manual install method, follow the steps below.*
+
+### Example Directory Structure of the BitBar Plugin Folder
+
+<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/BitBarFolderHE.jpg width="600"/>
+
+1. Required: You **must download** and install the core [BitBar app](https://github.com/matryer/bitbar/releases/tag/v1.9.2) on your Mac.  *This program is required to allow BitBar SmartApp to access the top menubar on the Mac.*
+2. After downloading and installing the BitBar App & moving the BitBar App file to your applications folder, launch the BitBar App so that you can set the path for your Plugin directory.
+
+	*IMPORTANT: When selecting a plugin directory where the plugins will reside, make sure you create one that does not contain spaces. There were issues in an older release of BitBar if the path contained spaces, but supposedly it’s fixed, but I still had issues in some cases. If there were no spaces, it always worked.*
+3. In the BitBar application menu, the last option is labeled 'Preferences', make sure you select 'Open at Login' and specify the Plugin directory where you will place the plugin files from this Github in the next step.   	
+4. Download the HE plugin from GitHub](https://github.com/kurtsanders/STBitBarApp-V2/tree/master/BitBar%20Plugin). Copy **ONLY** the HE.5m.sh file to the plugin directory you specified along with the HE subfolder containing the Python script and the HE_Python_Logic.cfg (make sure these two files stay in the folder named HE).  *These files should be the only files in the plugins directory and the HE subfolder.*
+5. Launch the BitBar Output App. Select API Setup and Activate.  Follow the screen instructions and record the Hubitat URL and secret strings.  One can choose to view Hubitat Live Logging screen to copy the strings when launching and exiting the BitBar Output App. 
+5. Add your URL and secret to the HE_Python_Logic.cfg file ***without any quotes***: Open the HE_Python_Logic.cfg with a text editor of your choice (eg. textedit). Put the URL that was displayed in step 5 in the smartAppURL variable and Secret in the secret variable without any quotes. 
+6. **Save** the **HE_Python_Logic.cfg** file in the ST subfolder.
+7. Ensure **execution rights** for the plugins:
+	* Launch the MacOS Terminal Application
+	* Navigate to your BitBar Plugins directory (eg. cd)
+	* Issue the admin commands on the following files: 
+		* **chmod +x HE.5m.sh**
+		* **chmod +x HE_Python_Logic.py**
+	* Exit the MacOS Terminal
+
+### Section 3: Installing the BitBar Output App
 
 1. Now for actually installing the App on the Hubitat Web Apps view, select the 'BitBar Output App'.
 2. Select **Enable the API** and follow the onscreen directions. 
@@ -166,37 +191,11 @@ After install of the BitBar Output App Code on Hubitat, you will need to follow 
 5. You may complete/customize your BitBar Top menu by:
 	* Selecting Devices: choose the devices you want to display/control then tap Done.
 	* Selecting Display Options: select the display options for the MacOS menu.  Please note that some option values are required.
+6. Make sure to **Start** the macos BitBar app from the macOS Applications folder and you should see your Hubitat™ devices and status’ in the MacOS menubar!
 
-### Section 3: Setting up BitBar and HE Plugin
+----
 
-> *In Version V4, these manual steps below are now automated in [Section 1 Installation](https://github.com/KurtSanders/STBitBarApp-V2#section-1-installation).  If you prefer the manual install method, follow the steps below.*
-
-### Example Directory Structure of the BitBar Plugin Folder
-
-<img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/BitBarFolder.jpg width="600"/>
-
-1. Required: You **must download** and install the core [BitBar app](https://github.com/matryer/bitbar/releases/tag/v1.9.2) on your Mac.  *This program is required to allow BitBar SmartApp to access the top menubar on the Mac.*
-2. After downloading and installing the BitBar App & moving the BitBar App file to your applications folder, launch the BitBar App so that you can set the path for your Plugin directory.
-
-	*IMPORTANT: When selecting a plugin directory where the plugins will reside, make sure you create one that does not contain spaces. There were issues in an older release of BitBar if the path contained spaces, but supposedly it’s fixed, but I still had issues in some cases. If there were no spaces, it always worked.*
-3. In the BitBar application menu, the last option is labeled 'Preferences', make sure you select 'Open at Login' and specify the Plugin directory where you will place the plugin files from this Github in the next step.   	
-4. Download the [ST plugin from GitHub](https://github.com/kurtsanders/STBitBarApp-V2/tree/master/BitBar%20Plugin). Copy **ONLY** the ST.5m.sh file to the plugin directory you specified along with the ST subfolder containing the Python script and the ST_Python_Logic.cfg (make sure these two files stay in the folder named ST).  *These files should be the only files in the plugins directory and the ST subfolder.*
-5. Launch the SmartThings BitBar Output App on your mobile device. Select API Setup and Activate.  Follow the screen instructions and record the SmartThings URL and secret strings.  One can view the ST IDE Live Logging screen to copy the strings when launching and exiting the BitBar Output App on your mobile screen. 
-	* Note: You can also choose to have your API strings send unencrypted to a mobile device with a USA phone number.  This will allow one to copy and paste these into your ST_Python_Logic.py file from the Mac messaging app.
-5. Add your URL and secret to the ST_Python_Logic.cfg file ***without any quotes***: Open the ST_Python_Logic.cfg with a text editor of your choice (eg. textedit). Put the URL that was displayed in step 5 in the smartAppURL variable and Secret in the secret variable without any quotes. 
-6. **Save** the **ST_Python_Logic.cfg** file in the ST subfolder.
-7. Ensure **execution rights** for the plugins:
-	* Launch the MacOS Terminal Application
-	* Navigate to your BitBar Plugins directory (eg. cd)
-	* Issue the admin commands on the following files: 
-		* **chmod +x ST.1m.sh**
-		* **chmod +x ST_Python_Logic.py**
-	* Exit the MacOS Terminal
-8. **Start** the BitBar app and you should see your SmartThings devices and status’ in the MacOS menubar!
-
-
-
-### Color Light Control Features:
+## Color Light Control Features:
 * Dimmer and Color Controls in BitBar Sub-Menus
 
 ![](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/new-logo.png)
@@ -206,7 +205,7 @@ After install of the BitBar Output App Code on Hubitat, you will need to follow 
 ## Issues / Limitations
 
 1. The BitBar App is capable of cycling through multiple status bar items.  However, this ST BitBar Plugin is designed to only display a ** temperature sensor, contact sensor, lock status, or switch sensor** at the top with the rest of the sensors displayed in the dropdown. 
-2. The ST BitBar app only allows a selection of one temp, lock, contact or switch sensor or a default 'ST BitBar' title.   It is not recommended to use the full sensor name since menubar real estate is top dollar.
+2. The SBitBar app only allows a selection of one temp, lock, contact or switch sensor or a default 'BitBar' title.   It is not recommended to use the full sensor name since menubar real estate is top dollar.
 3. There is no hortizontal alignment supported by BitBar so it’s all done by character spacing, which means using Apple system monospace fonts for data content. Menlo is the default font, but feel free to change it in the ST BitBar App in the mobile client Display Options.
 4. Selection of a proportional spaced font, pitch and color can be used for all other text areas of the display, like the ST Categories and the ...more... sections.  Be aware that some fonts, colors and sizes may cause the menu to become illegible.  Blank field defaults in the options fields will return the display to normal.
 5. Most areas of the menu will accomodate extended ascii character sets, but there might be areas that not.  If so, please rename these devices with US ascii characters and send a PM to me on the SmartThings Community Forum.
