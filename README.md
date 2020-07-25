@@ -56,13 +56,13 @@ Sensor battery levels can be displayed for devices that have a battery capabilit
  	`cd ~\Downloads`
  
 4. Press <kbd>Return</kbd> 
-5. Select, copy and paste the following entire string into the Mac's Terminal Console Window.  
+5. Select, copy and paste one of the following entire string into the Mac's Terminal Console Window.  
 
-	#### 	SmartThings:
+	#### 	SmartThings™ Hub:
 
 	`curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/STBitBarInstall.command" && sh ./STBitBarInstall.command`
 
-	#### 	Hubitat:
+	#### 	Hubitat™ Hub:
 	`curl -s -O -J -L "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/HEBitBarInstall.command" && sh ./HEBitBarInstall.command`
 
 6. Press <kbd>Return</kbd>  
@@ -72,6 +72,8 @@ Sensor battery levels can be displayed for devices that have a battery capabilit
 ---
 
 ## SmartThings™ Installation
+
+> *These instructions are ONLY for SmartThings Hub.  If you are installing for the Hubitat™ Hub platform, specific instructions are [here](https://github.com/KurtSanders/STBitBarApp-V2#hubitat-installation)
 
 ### Select from **ONE** of the sections below (Either 1a or 1b).
 
