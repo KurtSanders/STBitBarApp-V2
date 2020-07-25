@@ -11,13 +11,13 @@
 
 ### New V5.0.x Features:
 
-1. Integration of Hubitat™ and SmartThings into a reduced code stream multi-platform release.  Both Hubitat™ and SmartThings™ BitBar apps can run together or independently.
-2. Integration of [hubitat-packagemanager](https://github.com/dcmeglio/hubitat-packagemanager#hubitat-packagemanager) for the App Code install on the Hubitat™ platform.  The remaining install of the macOS files are still required and documented below where platform specific install or issues are unavoidable.
+1. Integration of Hubitat™ and SmartThings into a reduced code stream multi-platform release.  Both Hubitat™ and SmartThings™ BitBar apps can run together or independently depending on if you have one or both hubs.
+2. Integration of [hubitat-packagemanager](https://github.com/dcmeglio/hubitat-packagemanager#hubitat-packagemanager) for the App Code install on the the Hubitat™ platform.  The remaining manual install of the macOS files and scripts are still required and documented below in the [Hubitat Section Installation](https://github.com/KurtSanders/STBitBarApp-V2#hubitat-installation).
 
 ## Overview:
 Monitor and control [SmartThings](https://www.smartthings.com/) and [Hubitat™](https://hubitat.com/) devices, sensors, Smart Home Monitor, Modes & Routines from the Apple MacOS Menu Bar.  This application is controlled via the SmartThings Mobile Client named **BitBar Output App**.  Selected program scripts and configuration files are installed locally on the Apple Mac in the BitBar plugin folder.
 
-The STBitBarApp-V2 application works with the [macOS BitBar application](https://getbitbar.com/) as a custom BitBar Plugin and is controlled via the SmartThings BitBar Output SmartApp.  STBitBarApp-V2 **displays** SmartThings thermostat information, temperature, relative humidity, event-log statistics, contacts, music players, presence devices, locks, lights, and motion sensors.  It can also **control** color control (RGB) device levels, switch/dimmer level devices, locks and also thermostat control via the MacOS menubar.  The Mac menubar icon can be a thermostat reading, contact sensor, lock sensor or switch sensor and upon clicking the displayed state icon, renders more detailed information on all the SmartThings selected in the SmartApp GUI.
+The STBitBarApp-V2 application works with the [macOS BitBar application](https://getbitbar.com/) as a custom BitBar Plugin and is controlled via the BitBar Output App.  STBitBarApp-V2 **displays** thermostat information, temperature, relative humidity, event-log statistics, contacts, music players, presence devices, locks, lights, and motion sensors.  It can also **control** color control (RGB) device levels, switch/dimmer level devices, locks and also thermostat control via the MacOS menubar.  The Mac menubar icon can be a thermostat reading, contact sensor, lock sensor or switch sensor and upon clicking the displayed state icon, renders more detailed information on all the SmartThings selected in the SmartApp GUI.
 
 One can click on any controllable SmartThings or Hubitat device, mode or routine in the Mac's BitBar display to invoke the default action for that device, mode or routine.  Non-controllable devices (eg. presence sensors, motion sensors, temperature sensors) can show their event history.
 
@@ -28,14 +28,17 @@ Sensor battery levels can be displayed for devices that have a battery capabilit
 * [Apple macOS 10.x with Python 2.7](https://en.wikipedia.org/wiki/MacOS)
 * [BitBar Software Installed and Preferences set as 'Open at Login' and BitBar plugin folder designted \*Freeware\* ](https://getbitbar.com/)
 * [SmartThings Hub & Devices](https://shop.smartthings.com/) or Hubitat™ Hub & devices
-* [Knowledge of installing and configuring software on macOS and either Hubitat or SmartThings IDE](https://www.google.com/search?q=how+to+install+software+on+mac&rlz=1C5CHFA_enUS503US503&oq=how+to+install+softwate&aqs=chrome.2.69i57j0l5.9308j0j4&sourceid=chrome&ie=UTF-8)
-* Member of [SmartThings Community](https://community.smartthings.com/) or [Hubitat Community](https://community.hubitat.com/) for support and new release information.
+* [Knowledge of installing and configuring software on macOS and either Hubitat and/or SmartThings IDE](https://www.google.com/search?q=how+to+install+software+on+mac&rlz=1C5CHFA_enUS503US503&oq=how+to+install+softwate&aqs=chrome.2.69i57j0l5.9308j0j4&sourceid=chrome&ie=UTF-8)
+* Member of the [SmartThings Community](https://community.smartthings.com/) or [Hubitat Community](https://community.hubitat.com/) for support and new release information.
 
 
-## Section 1: Installation:
+## Section 1: Required Installation of core BitBar Application:
+
+> * Note: Mat Ryer's BitBar core app lets one put the output from any macOS script or program right in your macOS menu bar. And it's completely free. An impressive number of other plugins have already been contributed by a wide range of developers, and [his website](https://getbitbar.com/) makes it easy to find them.  
+
+> * This STBitBarApp-V2 plugin is uniquely specific to users of SmartThings™ and Hubitat™ and the installation and configuration are well documented below. 
 
 #### Create/Upgrade BitBar Plugin Folder: <img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/new-logo.png />
-
 
 1. Download and Install [BitBar Core Software \*Freeware\* ](https://github.com/matryer/bitbar/releases/download/v1.9.2/BitBar-v1.9.2.zip)
 	1. Download [BitBar-v1.9.2.zip](https://github.com/matryer/bitbar/releases/download/v1.9.2/BitBar-v1.9.2.zip) to your Downloads folder.
