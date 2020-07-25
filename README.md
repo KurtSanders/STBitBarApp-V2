@@ -1,5 +1,6 @@
 # STBitBarApp-V2 (For Apple![macOS logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/macos_logo.jpg))
-### Version: 4.04 (Alpha)
+### Version: 5.0x (Alpha)
+### Version: 4.01 (Stable)
 
 <img src="https://raw.githubusercontent.com/KurtSanders/STAmbientWeather/master/images/readme.png" width="50">[Change-log & Version Release Features](https://github.com/KurtSanders/STBitBarApp-V2/wiki/Features-by-Version)
 
@@ -7,7 +8,7 @@
 
 ![STBitBarApp-V2 logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2-Menu.png)
 
-### New V4.0.4 Features:
+### New V5.0.x Features:
 
 1. Integration of Hubitat™ and SmartThings into a reduced code stream multi-platform release.  Both Hubitat™ and SmartThings™ BitBar apps can run together or independently.
 2. Integration of [hubitat-packagemanager](https://github.com/dcmeglio/hubitat-packagemanager#hubitat-packagemanager) for the App Code install on the Hubitat™ platform.  The remaining install of the macOS files are still required and documented below where platform specific install or issues are unavoidable.
