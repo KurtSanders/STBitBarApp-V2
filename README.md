@@ -164,22 +164,16 @@ After install of the BitBar Output App Code on Hubitat, you will need to follow 
 
 ### Section 2: Setting up BitBar and HE Plugin
 
-> *In Version V4, these manual steps below are now automated in [Section 1 Installation](https://github.com/KurtSanders/STBitBarApp-V2#section-1-installation).  If you prefer the manual install method, follow the steps below.*
-
+> * Please make sure that the core BitBar application is installed and configured [per the instructions above](https://github.com/KurtSanders/STBitBarApp-V2#section-1-required-installation-of-core-bitbar-application).
+>   
 ### Example Directory Structure of the BitBar Plugin Folder
 
 <img src=https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/BitBarFolderHE.jpg width="600"/>
-
-1. Required: You **must download** and install the core [BitBar app](https://github.com/matryer/bitbar/releases/tag/v1.9.2) on your Mac.  *This program is required to allow BitBar SmartApp to access the top menubar on the Mac.*
-2. After downloading and installing the BitBar App & moving the BitBar App file to your applications folder, launch the BitBar App so that you can set the path for your Plugin directory.
-
-	*IMPORTANT: When selecting a plugin directory where the plugins will reside, make sure you create one that does not contain spaces. There were issues in an older release of BitBar if the path contained spaces, but supposedly it’s fixed, but I still had issues in some cases. If there were no spaces, it always worked.*
-3. In the BitBar application menu, the last option is labeled 'Preferences', make sure you select 'Open at Login' and specify the Plugin directory where you will place the plugin files from this Github in the next step.   	
-4. Download the HE plugin from GitHub](https://github.com/kurtsanders/STBitBarApp-V2/tree/master/BitBar%20Plugin). Copy **ONLY** the HE.5m.sh file to the plugin directory you specified along with the HE subfolder containing the Python script and the HE_Python_Logic.cfg (make sure these two files stay in the folder named HE).  *These files should be the only files in the plugins directory and the HE subfolder.*
-5. Launch the BitBar Output App. Select API Setup and Activate.  Follow the screen instructions and record the Hubitat URL and secret strings.  One can choose to view Hubitat Live Logging screen to copy the strings when launching and exiting the BitBar Output App. 
-5. Add your URL and secret to the HE_Python_Logic.cfg file ***without any quotes***: Open the HE_Python_Logic.cfg with a text editor of your choice (eg. textedit). Put the URL that was displayed in step 5 in the smartAppURL variable and Secret in the secret variable without any quotes. 
-6. **Save** the **HE_Python_Logic.cfg** file in the ST subfolder.
-7. Ensure **execution rights** for the plugins:
+ 	
+1. Launch the BitBar Output App. Select API Setup and activate it.  Follow the on screen instructions and record the Hubitat URL and secret strings. 
+2. Add your Hubitat URL and secret to the HE_Python_Logic.cfg file ***without any quotes***: Open the HE_Python_Logic.cfg with a text editor of your choice (eg. textedit). Put the Hubitat URL that was displayed in step 1 in the smartAppURL variable and Secret in the secret variable without any quotes. 
+3. **Save** the **HE_Python_Logic.cfg** file in the ST subfolder.
+4. Ensure **execution rights** for the plugins:
 	* Launch the MacOS Terminal Application
 	* Navigate to your BitBar Plugins directory (eg. cd)
 	* Issue the admin commands on the following files: 
@@ -187,16 +181,14 @@ After install of the BitBar Output App Code on Hubitat, you will need to follow 
 		* **chmod +x HE_Python_Logic.py**
 	* Exit the MacOS Terminal
 
-### Section 3: Installing the BitBar Output App
+### Section 3: Configuring the BitBar Output App
 
-1. Now for actually installing the App on the Hubitat Web Apps view, select the 'BitBar Output App'.
-2. Select **Enable the API** and follow the onscreen directions. 
-4. Your secret **URL and API secret** is displayed on the screen. 
-4. Copy/Save these two lines to input in the **HE_Python_Logic.cfg** in the step ahead.  Use Textedit.app to edit the **HE_Python_Logic.cfg** on the Mac.  Input the two secret strings exactly as the template shows, using double quotes.
-5. You may complete/customize your BitBar Top menu by:
-	* Selecting Devices: choose the devices you want to display/control then tap Done.
-	* Selecting Display Options: select the display options for the MacOS menu.  Please note that some option values are required.
-6. Make sure to **Start** the macos BitBar app from the macOS Applications folder and you should see your Hubitat™ devices and status’ in the MacOS menubar!
+1. Select the 'BitBar Output App' from the Hubitat Web Page 'Apps'.
+2. Complete/customize your BitBar Top menu preferences by:
+	* Selecting Devices: you must choose the devices you want to display/control then tap Done.
+	* Selecting Display Options: you must select the display options for the MacOS menu.  Please note that some option values are required.
+3. Exit the BitBar Output App and *refresh* the BitBar menu Bar on the macOS
+3. You should see your Hubitat™ devices and status states’ in the MacOS menubar!
 
 ----
 
