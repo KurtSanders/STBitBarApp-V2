@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 # -*- coding: utf-8 -*-
 """
  *
@@ -33,7 +33,7 @@ from urlparse import urlparse
 start = timeit.default_timer()
 
 # -------------------------------------------- #
-HE_Logic_Python_Py_Local_Version = "4.02"      #
+Logic_Python_Py_Local_Version = "5.00"      #
 DEBUG = False                                  #
 # -------------------------------------------- #
 
@@ -43,11 +43,11 @@ locale.setlocale(locale.LC_ALL, '')
 imageLibraryNames = {}
 manifestDict = {}
 timePollEvery = 600
-currentSTBitBarRelease = None
-currentSTBitBarNews = None
+currentBitBarRelease = None
+currentBitBarNews = None
 # Version Information of ST BitBar Plugin File
-STPluginFilename_argPosition = 1
-STPluginVersion_argPosition = 2
+PluginFilename_argPosition    = 1
+PluginVersion_argPosition     = 2
 
 # Setting Class
 class Setting(object):
@@ -81,15 +81,16 @@ manifest_replace    = cfgGetValue('manifest_replace', "True", False).strip('\'"'
 
 # Get application pathnames and version info
 manifestFile        = "manifest.json"
-STPluginFolder      = os.path.dirname(sys.argv[0])
+PluginFolder      = os.path.dirname(sys.argv[0])
+
 try:
-    STPluginVersion = sys.argv[STPluginVersion_argPosition]
+    PluginVersion = sys.argv[PluginVersion_argPosition]
 except IndexError:
-    STPluginVersion = None
+    PluginVersion = None
 try:
-    STPluginFilename = os.path.basename(sys.argv[STPluginFilename_argPosition])
+    PluginFilename = os.path.basename(sys.argv[PluginFilename_argPosition])
 except IndexError:
-    STPluginFilename = None
+    PluginFilename = None
 try:
     bbplugindir = os.path.split(os.path.dirname(sys.argv[0]))[0]
 except IndexError:
@@ -97,14 +98,14 @@ except IndexError:
 
 # Read the local manifest.json file for icon images and application variables, re-download from GitHub if changed
 try:
-    with open("{}/{}".format(STPluginFolder, manifestFile)) as manifest_json_file:
+    with open("{}/{}".format(PluginFolder, manifestFile)) as manifest_json_file:
         manifestDict = json.load(manifest_json_file)
-        currentSTBitBarRelease = manifestDict.get('current', None)
-        currentSTBitBarNews = manifestDict.get('news', None)
+        currentBitBarRelease = manifestDict.get('current', None)
+        currentBitBarNews = manifestDict.get('news', None)
 except IOError, e:
     print "{}".format(e)
-    print "BitBar Error: the {}' file is not accessible in BitBar ST subfolder".format(manifestFile)
-    print "BitBar ST Folder = '{}'".format(STPluginFolder)
+    print "BitBar Error: the {}' file is not accessible in BitBar subfolder".format(manifestFile)
+    print "BitBar Folder = '{}'".format(PluginFolder)
     print "Please verify the files in the BitBar Plugin Folder per the documentation"
     exit(99)
 
@@ -112,9 +113,9 @@ except IOError, e:
 def getManifest():
     # Only get live updates timePollEvery per hour
     if (int(time.strftime("%H%M", time.localtime())) % timePollEvery) == 0:
-        global currentSTBitBarRelease
-        global currentSTBitBarNews
-        req = urllib2.Request("https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/installation/manifest.json")
+        global currentBitBarRelease
+        global currentBitBarNews
+        req = urllib2.Request("https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/BitBar%20Plugin/HE/manifest.json")
         try:
             reqdata = urllib2.urlopen(req)
         except urllib2.HTTPError as e:
@@ -122,22 +123,22 @@ def getManifest():
             print e.read()
             return
         except urllib2.URLError as e:
-            print 'Error: Failed to reach the STBitBarApp-V2 server for reading manifest file/version check.'
+            print 'Error: Failed to reach the BitBarApp-V2 Github HTTP server for reading manifest file/version check.'
             print 'Reason: ', e.reason
             return
         try:
             gethubManifestDict = json.loads(reqdata.read())
         except (ValueError, TypeError):
             return
-        currentSTBitBarRelease = gethubManifestDict.get('current', None)
-        currentSTBitBarNews = gethubManifestDict.get('news', None)
+        currentBitBarRelease = gethubManifestDict.get('current', None)
+        currentBitBarNews = gethubManifestDict.get('news', None)
         if DEBUG or manifest_replace == "False":
             return
-        BitBarNeedUpdate = currentSTBitBarRelease != bitbarOutputSmartAppVersion
-        PluginNeedUpdate = currentSTBitBarRelease != HE_Logic_Python_Py_Local_Version
+        BitBarNeedUpdate = currentBitBarRelease != bitbarOutputSmartAppVersion
+        PluginNeedUpdate = currentBitBarRelease != Logic_Python_Py_Local_Version
         if BitBarNeedUpdate or PluginNeedUpdate:
             try:
-                with open("{}/{}".format(STPluginFolder, manifestFile), 'w') as manifest_json_file:
+                with open("{}/{}".format(PluginFolder, manifestFile), 'w') as manifest_json_file:
                     json.dump(gethubManifestDict, manifest_json_file)
             except IOError:
                 json.dump(manifestDict, manifest_json_file)
@@ -276,7 +277,6 @@ def getOptions(dictvarname, nonedefault):
     tmp = options.get(dictvarname, nonedefault)
     return tmp if tmp is not None else nonedefault
 
-
 # Builds the param statement for bitbar to launch the "open" command
 # noinspection PyShadowingNames
 def openParamBuilder(openCommand):
@@ -300,9 +300,9 @@ def verifyInteger(intValue, errorIntValue):
         return errorIntValue
 
 # Set URLs
-# statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + "{}".format(HE_Logic_Python_Py_Local_Version) + "&path=" + sys.argv[0] + "&bbpluginfilename=" + STPluginFilename + "&bbpluginversion=" + STPluginVersion
-f = dict(pythonAppVersion=HE_Logic_Python_Py_Local_Version, access_token=secret,
-         path=bbplugindir, bbpluginfilename=STPluginFilename, bbpluginversion=STPluginVersion)
+# statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + "{}".format(Logic_Python_Py_Local_Version) + "&path=" + sys.argv[0] + "&bbpluginfilename=" + PluginFilename + "&bbpluginversion=" + PluginVersion
+f = dict(pythonAppVersion=Logic_Python_Py_Local_Version, access_token=secret,
+         path=bbplugindir, bbpluginfilename=PluginFilename, bbpluginversion=PluginVersion)
 statusURL = "{}{}{}".format(smartAppURL, "GetStatus/?", urllib.urlencode(f))
 contactURL = smartAppURL + "ToggleSwitch/?access_token="+secret+"&id="
 valveURL = smartAppURL + "ToggleValve/?access_token="+secret+"&id="
@@ -329,7 +329,7 @@ try:
 except (urllib2.HTTPError, urllib2.URLError) as err:
     print ":rage:"
     print "---"
-    print ":thumbsdown: HTTPS Error Encountered: Communicating to HE API caused the following error: {}".format(
+    print ":thumbsdown: HTTPS Error Encountered: Communicating to Hub API caused the following error: {}".format(
         str(err))
     print "==> Please check your Internet Connectivity and Refresh BitBar again when Online"
     exit(99)
@@ -339,7 +339,7 @@ except (urllib2.HTTPError, urllib2.URLError) as err:
 if response.code != 200:
     print ":rage:"
     print '---'
-    print ":thumbsdown: Error Communicating with ST API, HTTPS rc={}".format(response.code)
+    print ":thumbsdown: Error Communicating with HE API, HTTPS rc={}".format(response.code)
     print "Content:", response.content
     print "--SmartThings HTTP Server Response"
     for response_info_name in response.info():
@@ -398,17 +398,17 @@ except KeyError, e:
 
 def upgradeAvailable():
     getManifest()
-    BitBarNeedUpdate = currentSTBitBarRelease != bitbarOutputSmartAppVersion
-    PluginNeedUpdate = currentSTBitBarRelease != HE_Logic_Python_Py_Local_Version
+    BitBarNeedUpdate = currentBitBarRelease != bitbarOutputSmartAppVersion
+    PluginNeedUpdate = currentBitBarRelease != Logic_Python_Py_Local_Version
     if BitBarNeedUpdate or PluginNeedUpdate:
         print '---'
-        print "STBitBarApp {} - SanderSoft™ | font=arial color=purple".format(bitbarOutputSmartAppVersion)
+        print "BitBarApp {} - SanderSoft™ | font=arial color=purple".format(bitbarOutputSmartAppVersion)
         print ":computer: SmartApp Upgrade {} Now Available | color=red".format(bitbarOutputSmartAppVersion)
-        print "--:newspaper: {} | length=60 color=red font=16".format(currentSTBitBarNews)
+        print "--:newspaper: {} | length=60 color=red font=16".format(currentBitBarNews)
         if BitBarNeedUpdate:
-            print "--√ Click this to Launch SmartThings IDE and manually 'Update from Repo' | ", openParamBuilder("open " + buildIDEURL(smartAppURL)), ' terminal=false color=blue'
+            print "--√ Update BitBar Output App from your Hubitat PackageManager App' |  color=blue"
         if PluginNeedUpdate:
-            print "--√ Click here to Upgrade ST BitBar Plugins App folder | color=blue bash={} param1=upgrade terminal=false".format(sys.argv[1])
+            print "--√ Click here to Upgrade BitBar Plugins App folder | color=blue bash={} param1=upgrade terminal=false".format(sys.argv[1])
 
 # noinspection PyShadowingNames
 def eventGroupByDate(tempList, prefix=None, valueSuffix=""):
@@ -662,7 +662,7 @@ if mainDisplay is not None:
             elif mainDisplay[x]['emoji'] is not None:
                 print "| image={} dropdown=false".format(getImageString(mainDisplay[x]['emoji']))
             else:
-                formattedMainDisplay = "ST BitBar"
+                formattedMainDisplay = "HE BitBar"
                 print "{} | {} {} dropdown=false".format(formattedMainDisplay.encode('utf-8'), 'size=14', mainMenuColor)
     if mainDisplaylen > 0:
         maxLengthDisplayName = 0
@@ -680,7 +680,7 @@ if mainDisplay is not None:
         for x in range(len(mainDisplay)):
             print "--:small_blue_diamond: {} {} {} ".format(mainDisplay[x]['name'].ljust(maxLengthDisplayName, '.'), str(mainDisplay[x]['value']).upper(), buildFontOptions(3))
 else:
-    formattedMainDisplay = "ST BitBar"
+    formattedMainDisplay = "HE BitBar"
     print "{} | {} {} dropdown=false".format(formattedMainDisplay.encode('utf-8'), 'size=14', mainMenuColor)
 
 upgradeAvailable()
@@ -927,8 +927,8 @@ if shmDisplayBool and alarms is not None:
     for i, alarm in enumerate(alarms):
         if alarm['name'] == 'shm':
             shmCurrentState = alarm['value']
-            print "Smart Home Monitor is {}{}".format(shmCurrentStateDict.get(alarm['value'], alarm['value']), buildFontOptions())
-    # Verify the SHM is configured:
+            print "Hubitat™ Safety Monitor is {}{}".format(shmCurrentStateDict.get(alarm['value'], alarm['value']), buildFontOptions())
+    # Verify the HSM is configured:
     if shmCurrentState != "unconfigured":
         print "--Select to Change" + buildFontOptions()
         for alarmState in alarmStates:
@@ -1514,14 +1514,16 @@ if waters is not None:
 # Configuration Options
 hortSeparatorBar()
 stop = timeit.default_timer()
-print ":crystal_ball: STBitBarApp Actions and Shortcuts" + buildFontOptions(2)
-print "--• Upgrade ST BitBar Plugins App folder to latest {} release |".format(currentSTBitBarRelease), buildFontOptions(3), "bash=" + callbackScript, ' param1=upgrade terminal=false'
+print ":crystal_ball: BitBarApp Actions and Shortcuts" + buildFontOptions(2)
+if currentBitBarRelease != Logic_Python_Py_Local_Version:
+    print "--• Upgrade BitBar Plugins App folder to latest {} release |".format(currentBitBarRelease), buildFontOptions(3), "bash=" + callbackScript, ' param1=upgrade terminal=false'
 print "--:computer: Your Current Running Program Version Information" + buildFontOptions()
-print "----BitBar Output App Version: {} ".format(currentSTBitBarRelease), buildFontOptions()
-print "----HE_Python_Logic.py Local Version: {}".format(HE_Logic_Python_Py_Local_Version), buildFontOptions()
-print "----BitBar Plugin GUI Options" + buildFontOptions()
-print "------" + sys.argv[0] + buildFontOptions()
-printFormatString = "------{:" + len(max(options, key=len)).__str__() + "} = {} {}"
+print "----• {:25} : {}".format("BitBar Output App Version",currentBitBarRelease), buildFontOptions()
+print "----• {:25} : {}".format('HE_Python_Logic.py',Logic_Python_Py_Local_Version), buildFontOptions()
+print "----• {:25} : {}".format(PluginFilename, PluginVersion), buildFontOptions()
+print "--• BitBar Plugin GUI Options" + buildFontOptions()
+print "----" + sys.argv[0] + buildFontOptions()
+printFormatString = "----{:" + len(max(options, key=len)).__str__() + "} = {} {}"
 for option in sorted(options.iterkeys()):
     if options[option] is not None and option == 'favoriteDevices' and len(favoriteDevices) > 1:
         for i, v in enumerate(options[option]):
@@ -1530,13 +1532,7 @@ for option in sorted(options.iterkeys()):
         print printFormatString.format(
             option, options[option] if options[option] is not None else "{Default Set in GUI}", buildFontOptions(3)
         )
-# Get the ST rateLimits from the returned headers
-print "----SmartThings HTTP Server Response", buildFontOptions()
-for response_info_name in response.info():
-    if response_info_name[0:6] == 'x-rate':
-        print "------{:20} = {:>3} {}".format(response_info_name, response.info()[response_info_name], buildFontOptions(3))
-print "--• Launch SmartThings IDE " + buildFontOptions() + openParamBuilder("open " + buildIDEURL(smartAppURL)) + ' terminal=false'
-print "--• Launch Mac Default Browser to View STBitBarAPP-V2 GitHub Software Resp " + buildFontOptions() + openParamBuilder("open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
+print "--• Launch macOS Default Browser to View STBitBarAPP-V2 GitHub Software Resp " + buildFontOptions() + openParamBuilder("open https://github.com/kurtsanders/STBitBarApp-V2") + ' terminal=false'
 print "--:loop: Program Execution RunTine: {:.1f} secs".format(stop - start), buildFontOptions()
 
 if favoriteDevicesBool:
