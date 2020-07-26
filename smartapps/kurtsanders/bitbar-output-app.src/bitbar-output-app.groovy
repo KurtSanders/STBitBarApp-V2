@@ -30,7 +30,7 @@ definition(
     name: "BitBar Output App",
     namespace: "kurtsanders",
     author: "kurtsanders",
-    description: "Display SmartThings Device Information in the Apple BitBar (OSX) Application",
+    description: "Display and control ${(isSt)?'SmartThings':'Hubitat'} device information in the top macOS Menu Bar application",
     category: "My Apps",
     iconUrl:    "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2.png",
     iconX2Url:  "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/STBitBarApp-V2.png",
@@ -906,7 +906,11 @@ def enableAPIPage() {
 				paragraph "Woo hoo! The API is now enabled. Brace yourself, though. I hope you don't mind typing long strings of gobbledygook. Sorry I don't know of an easier way to transfer this to the PC. Anyways, tap Done to continue"
 			}
 			else {
-				paragraph "It looks like OAuth is not enabled. Please login to your SmartThings IDE, click the My SmartApps menu item, click the 'Edit Properties' button for the BitBar Output App. Then click the OAuth section followed by the 'Enable OAuth in Smart App' button. Click the Update button and BAM you can finally tap Done here.", title: "Looks like we have to enable OAuth still", required: true, state: null
+				if (isST) {
+					paragraph "It looks like OAuth is not enabled. Please login to your SmartThings IDE, click the My SmartApps menu item, click the 'Edit Properties' button for the BitBar Output App. Then click the OAuth section followed by the 'Enable OAuth in Smart App' button. Click the Update button and BAM you can finally tap Done here.", title: "Looks like we have to enable OAuth still", required: true, state: null
+				} else {
+					paragraph "It looks like OAuth is not enabled in the BitBar Output App. Please verify the OAuth setting in the Apps Code view.", title: "Looks like we have to enable OAuth.", required: true, state: null
+				}
 			}
 		}
 	}
@@ -954,7 +958,7 @@ def devicesTopMenuBarPage() {
         section("MacOS Main Menu BitBar: Select one device to display a status.") {
             paragraph "The MacOS Main Menu Bar runs along the top of the screen on your Mac"
             input name: "displaySensorCapability", type: "enum",
-                title: "Mac Menu Bar: Select up to 4 SmartThings Sensor Capabilities for the Menu Bar Icons",
+                title: "Mac Menu Bar: Select up to 4 Sensor Capabilities for the Menu Bar Icons",
                 options: ['contactSensor':'Contact','lock':'Lock','switch':'Switch','temperatureMeasurement':'Temperature Measurement'],
                 multiple: true,
                 submitOnChange: true,
@@ -1111,7 +1115,7 @@ def fontsPage() {
             href(name: "hrefNotRequired",
                  title: "BROWSE List of typeface names included with Apple macOS",
                  required: false,
-                 image: "http://iconion.com/posts/images/scale-to-size-icons.jpg",
+                 image: "https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/scale-to-size-icons.jpg",
                  style: "external",
                  url: "https://en.wikipedia.org/wiki/List_of_typefaces_included_with_macOS",
                  description: "Tap this area to view a list of typeface names included with Apple macOS in your mobile browser")
@@ -1270,17 +1274,17 @@ def batteryPage() {
 def optionsPage() {
     dynamicPage(name:"optionsPage", hideWhenEmpty: true) {
         section("Required: Smart Home Monitor, Modes & Routines") {
-        paragraph "Display/Hide SmartThings Modes, Routines and SHM to the BitBar SubMenu to display state & allow control?"
+        paragraph "Display/Hide Hub Modes, Routines and SHM to the BitBar SubMenu to display state & allow control?"
             input "modesDisplayBool", "bool",
-                title: "Show SmartThings Modes?",
+                title: "Show Hub Modes?",
                 default: false,
                 required: true
             input "routinesDisplayBool", "bool",
-                title: "Show SmartThings Routines?",
+                title: "Show Hub Routines?",
                 default: false,
                 required: true
             input "shmDisplayBool", "bool",
-                title: "Show Smart Home Monitor",
+                title: "Show ${(isST)?'Smart Home Monitor':'Hubitat Safety Monitor'}",
                 default: false,
                 required: true
         }
