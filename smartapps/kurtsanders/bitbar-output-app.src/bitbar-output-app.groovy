@@ -14,7 +14,13 @@
  *
  */
 // Major BitBar Version requires a change to the Python Version, Minor BitBar Version numbering will still be compatible with lower minor Python versions
-def appVersion() { return "4.02" }
+def appVersion() {
+	if (isST) {
+		return "4.02"
+	} else {
+		return "5.00"
+	}
+}
 import groovy.json.JsonSlurper
 // import java.awt.Color;
 import java.util.ArrayList;
