@@ -17,7 +17,7 @@ verbose_request_notify=true
 # Main Program
 
 he_python_logic_filename=`dirname $0`/HE/HE_Python_Logic.py
-version="4.01"
+version="5.00"
 
 if [[ ! -f "${he_python_logic_filename}" ]]; then
 	osascript -e "display alert \"HE BitBar ERROR\" message \"${he_python_logic_filename} file not found!\""
