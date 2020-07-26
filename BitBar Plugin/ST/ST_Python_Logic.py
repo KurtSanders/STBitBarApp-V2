@@ -300,7 +300,7 @@ def verifyInteger(intValue, errorIntValue):
         return errorIntValue
 
 # Set URLs
-# statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + "{}".format(HE_Logic_Python_Py_Local_Version) + "&path=" + sys.argv[0] + "&bbpluginfilename=" + STPluginFilename + "&bbpluginversion=" + STPluginVersion
+# statusURL = smartAppURL + "GetStatus/?pythonAppVersion=" + "{}".format(ST_Logic_Python_Py_Local_Version) + "&path=" + sys.argv[0] + "&bbpluginfilename=" + STPluginFilename + "&bbpluginversion=" + STPluginVersion
 f = dict(pythonAppVersion=ST_Logic_Python_Py_Local_Version, path=bbplugindir, bbpluginfilename=STPluginFilename, bbpluginversion=STPluginVersion)
 statusURL = "{}{}{}".format(smartAppURL, "GetStatus/?", urllib.urlencode(f))
 contactURL = smartAppURL + "ToggleSwitch/?id="
