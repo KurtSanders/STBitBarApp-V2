@@ -1,5 +1,8 @@
 # STBitBarApp-V2 (For Apple![macOS logo](https://raw.githubusercontent.com/KurtSanders/STBitBarApp-V2/master/Images/macos_logo.jpg))
 ### Current Versions: 
+
+# This app is Unsupported by the devloper who now uses Hubitat.  The new SmartThings mobile client and platform is unreliable and buggy.
+
 * 5.0x (Alpha) 
 * 4.01 (Stable) ([zip file](https://github.com/KurtSanders/STBitBarApp-V2/releases/tag/4.0.1))
 
